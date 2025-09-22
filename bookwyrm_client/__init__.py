@@ -15,6 +15,12 @@ from .models import (
     CitationSummaryResponse,
     CitationErrorResponse,
     StreamingCitationResponse,
+    Phrase,
+    SummarizeRequest,
+    SummaryResponse,
+    SummarizeProgressUpdate,
+    SummarizeErrorResponse,
+    StreamingSummarizeResponse,
 )
 
 __all__ = [
@@ -32,4 +38,10 @@ __all__ = [
     "CitationSummaryResponse",
     "CitationErrorResponse",
     "StreamingCitationResponse",
+    "Phrase",
+    "SummarizeRequest",
+    "SummaryResponse",
+    "SummarizeProgressUpdate",
+    "SummarizeErrorResponse",
+    "StreamingSummarizeResponse",
 ]

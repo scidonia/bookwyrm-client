@@ -114,3 +114,77 @@ StreamingCitationResponse = Union[
     CitationSummaryResponse,
     CitationErrorResponse,
 ]
+
+
+class Phrase(BaseModel):
+    """Model for a phrase with text and optional position information."""
+
+    text: str
+    start_char: Optional[int] = None
+    end_char: Optional[int] = None
+
+
+class SummarizeRequest(BaseModel):
+    """Request model for summarization processing."""
+
+    content: Optional[str] = None
+    url: Optional[str] = None
+    phrases: Optional[List[Phrase]] = None
+    max_tokens: int = 10000  # Default max tokens for chunking
+    debug: bool = False  # Include intermediate summaries in response
+    api_key: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_input_source(self):
+        """Validate that exactly one input source is provided."""
+        sources = [self.content, self.url, self.phrases]
+        provided_sources = [s for s in sources if s is not None]
+
+        if len(provided_sources) != 1:
+            raise ValueError(
+                "Exactly one of 'content', 'url', or 'phrases' must be provided"
+            )
+
+        if self.max_tokens > 131072:
+            raise ValueError(f"max_tokens cannot exceed 131,072 (got {self.max_tokens})")
+        if self.max_tokens < 1:
+            raise ValueError(f"max_tokens must be at least 1 (got {self.max_tokens})")
+
+        return self
+
+
+class SummarizeProgressUpdate(BaseModel):
+    """Progress update during summarization processing."""
+
+    type: Literal["progress"] = "progress"
+    current_level: int
+    total_levels: int
+    chunks_processed: int
+    total_chunks: int
+    summaries_created: int
+    message: str
+
+
+class SummaryResponse(BaseModel):
+    """Response model for summarization results."""
+
+    type: Literal["summary"] = "summary"
+    summary: str
+    subsummary_count: int
+    levels_used: int
+    total_tokens: int
+    intermediate_summaries: Optional[List[List[str]]] = None  # Debug: summaries by level
+
+
+class SummarizeErrorResponse(BaseModel):
+    """Error during summarization processing."""
+
+    type: Literal["error"] = "error"
+    error: str
+
+
+StreamingSummarizeResponse = Union[
+    SummarizeProgressUpdate,
+    SummaryResponse,
+    SummarizeErrorResponse,
+]

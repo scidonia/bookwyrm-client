@@ -29,6 +29,11 @@ from .models import (
     CitationStreamResponse,
     CitationSummaryResponse,
     CitationErrorResponse,
+    SummarizeRequest,
+    Phrase,
+    SummarizeProgressUpdate,
+    SummaryResponse,
+    SummarizeErrorResponse,
 )
 
 console = Console()
@@ -61,6 +66,47 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
         sys.exit(1)
 
     return chunks
+
+
+def load_phrases_from_jsonl(file_path: Path) -> List[Phrase]:
+    """Load phrases from a JSONL file."""
+    phrases = []
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line_num, line in enumerate(f, 1):
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    phrase = Phrase(
+                        text=data["text"],
+                        start_char=data.get("start_char"),
+                        end_char=data.get("end_char"),
+                    )
+                    phrases.append(phrase)
+                except (json.JSONDecodeError, KeyError) as e:
+                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
+                    sys.exit(1)
+    except FileNotFoundError:
+        console.print(f"[red]File not found: {file_path}[/red]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error reading file: {e}[/red]")
+        sys.exit(1)
+
+    return phrases
+
+
+def load_jsonl_content(file_path: Path) -> str:
+    """Load raw content from a JSONL file."""
+    try:
+        return file_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        console.print(f"[red]File not found: {file_path}[/red]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error reading file: {e}[/red]")
+        sys.exit(1)
 
 
 def save_citations_to_json(citations, output_path: Path):
@@ -412,6 +458,205 @@ def cite_url(
 
             if output:
                 save_citations_to_json(response.citations, output)
+
+    except BookWyrmAPIError as e:
+        console.print(f"[red]API Error: {e}[/red]")
+        if e.status_code:
+            console.print(f"[red]Status Code: {e.status_code}[/red]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        sys.exit(1)
+    finally:
+        client.close()
+
+
+@cli.command()
+@click.argument("jsonl_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output file for summary (JSON format)",
+)
+@click.option(
+    "--max-tokens",
+    type=int,
+    default=10000,
+    help="Maximum tokens per chunk (max: 131,072)",
+)
+@click.option("--debug", is_flag=True, help="Include intermediate summaries")
+@click.option("--stream/--no-stream", default=True, help="Use streaming API")
+@click.pass_context
+def summarize(
+    ctx,
+    jsonl_file: Path,
+    output: Optional[Path],
+    max_tokens: int,
+    debug: bool,
+    stream: bool,
+):
+    """Summarize a JSONL file containing phrases."""
+
+    # Validate max_tokens
+    if max_tokens > 131072:
+        console.print(
+            f"[red]Error: max_tokens cannot exceed 131,072 (got {max_tokens})[/red]"
+        )
+        sys.exit(1)
+    if max_tokens < 1:
+        console.print(
+            f"[red]Error: max_tokens must be at least 1 (got {max_tokens})[/red]"
+        )
+        sys.exit(1)
+
+    console.print(f"[blue]Loading JSONL file: {jsonl_file}[/blue]")
+    content = load_jsonl_content(jsonl_file)
+
+    request = SummarizeRequest(
+        content=content,
+        max_tokens=max_tokens,
+        debug=debug,
+        api_key=ctx.obj["api_key"],
+    )
+
+    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+
+    try:
+        if stream:
+            console.print("[blue]Starting summarization...[/blue]")
+
+            final_result = None
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=console,
+            ) as progress:
+
+                level_tasks = {}  # Track tasks for each level
+
+                for response in client.stream_summarize(request):
+                    if isinstance(response, SummarizeProgressUpdate):
+                        # Create or update task for this level
+                        task_id = f"level_{response.current_level}"
+
+                        if task_id not in level_tasks:
+                            # Create new task for this level
+                            level_tasks[task_id] = progress.add_task(
+                                f"Level {response.current_level}/{response.total_levels}",
+                                total=response.total_chunks,
+                            )
+
+                        # Update the task
+                        progress.update(
+                            level_tasks[task_id],
+                            completed=response.chunks_processed,
+                            description=f"Level {response.current_level}/{response.total_levels}: {response.message}",
+                        )
+
+                    elif isinstance(response, SummaryResponse):
+                        final_result = response
+
+                        # Complete all remaining tasks
+                        for task_id in level_tasks.values():
+                            # Get the task from the progress object
+                            for task in progress.tasks:
+                                if task.id == task_id:
+                                    progress.update(task_id, completed=task.total)
+                                    break
+
+                        console.print("[green]✓ Summarization complete![/green]")
+
+                    elif isinstance(response, SummarizeErrorResponse):
+                        console.print(f"[red]Error: {response.error}[/red]")
+                        sys.exit(1)
+
+            if final_result is None:
+                console.print("[red]No summary received from server[/red]")
+                sys.exit(1)
+
+            # Display results
+            if ctx.obj["verbose"] or debug:
+                console.print(f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]")
+                console.print(f"[dim]Subsummaries created: {final_result.subsummary_count}[/dim]")
+                console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
+
+            # Show intermediate summaries if debug mode
+            if debug and final_result.intermediate_summaries:
+                console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
+                for level, summaries in enumerate(final_result.intermediate_summaries, 1):
+                    console.print(f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]")
+                    for i, summary in enumerate(summaries, 1):
+                        console.print(f"[dim]{i}.[/dim] {summary}")
+
+            console.print("\n[bold]Final Summary:[/bold]")
+            console.print(final_result.summary)
+
+            # Save to output file if specified
+            if output:
+                try:
+                    output_data = {
+                        "summary": final_result.summary,
+                        "subsummary_count": final_result.subsummary_count,
+                        "levels_used": final_result.levels_used,
+                        "total_tokens": final_result.total_tokens,
+                        "source_file": str(jsonl_file),
+                        "max_tokens": max_tokens,
+                        "intermediate_summaries": (
+                            final_result.intermediate_summaries if debug else None
+                        ),
+                    }
+
+                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    console.print(f"\n[green]Summary saved to: {output}[/green]")
+                except Exception as e:
+                    console.print(f"[red]Error saving to {output}: {e}[/red]")
+
+        else:
+            console.print("[blue]Starting summarization...[/blue]")
+
+            with console.status("[bold green]Processing..."):
+                response = client.summarize(request)
+
+            console.print("[green]✓ Summarization complete![/green]")
+
+            if ctx.obj["verbose"] or debug:
+                console.print(f"[dim]Total tokens processed: {response.total_tokens}[/dim]")
+                console.print(f"[dim]Subsummaries created: {response.subsummary_count}[/dim]")
+                console.print(f"[dim]Levels used: {response.levels_used}[/dim]")
+
+            # Show intermediate summaries if debug mode
+            if debug and response.intermediate_summaries:
+                console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
+                for level, summaries in enumerate(response.intermediate_summaries, 1):
+                    console.print(f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]")
+                    for i, summary in enumerate(summaries, 1):
+                        console.print(f"[dim]{i}.[/dim] {summary}")
+
+            console.print("\n[bold]Final Summary:[/bold]")
+            console.print(response.summary)
+
+            # Save to output file if specified
+            if output:
+                try:
+                    output_data = {
+                        "summary": response.summary,
+                        "subsummary_count": response.subsummary_count,
+                        "levels_used": response.levels_used,
+                        "total_tokens": response.total_tokens,
+                        "source_file": str(jsonl_file),
+                        "max_tokens": max_tokens,
+                        "intermediate_summaries": (
+                            response.intermediate_summaries if debug else None
+                        ),
+                    }
+
+                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    console.print(f"\n[green]Summary saved to: {output}[/green]")
+                except Exception as e:
+                    console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")

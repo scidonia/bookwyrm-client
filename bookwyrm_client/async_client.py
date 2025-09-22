@@ -11,6 +11,11 @@ from .models import (
     CitationStreamResponse,
     CitationSummaryResponse,
     CitationErrorResponse,
+    SummarizeRequest,
+    SummaryResponse,
+    StreamingSummarizeResponse,
+    SummarizeProgressUpdate,
+    SummarizeErrorResponse,
 )
 from .client import BookWyrmClientError, BookWyrmAPIError
 
@@ -125,3 +130,83 @@ class AsyncBookWyrmClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
+
+    async def summarize(self, request: SummarizeRequest) -> SummaryResponse:
+        """
+        Get a summary of the provided content.
+
+        Args:
+            request: Summarization request with content and options
+
+        Returns:
+            Summary response with the generated summary
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        if self.api_key and not request.api_key:
+            request.api_key = self.api_key
+
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/summarize",
+                json=request.model_dump(exclude_none=True),
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+            return SummaryResponse.model_validate(response.json())
+        except httpx.HTTPStatusError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except httpx.RequestError as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    async def stream_summarize(
+        self, request: SummarizeRequest
+    ) -> AsyncIterator[StreamingSummarizeResponse]:
+        """
+        Stream summarization progress and results.
+
+        Args:
+            request: Summarization request with content and options
+
+        Yields:
+            Streaming summarization responses (progress, summary, or errors)
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        if self.api_key and not request.api_key:
+            request.api_key = self.api_key
+
+        try:
+            async with self.client.stream(
+                "POST",
+                f"{self.base_url}/summarize",
+                json=request.model_dump(exclude_none=True),
+                headers={"Content-Type": "application/json"},
+            ) as response:
+                response.raise_for_status()
+
+                async for line in response.aiter_lines():
+                    if line.strip() and line.startswith("data: "):
+                        try:
+                            data = json.loads(line[6:])  # Remove "data: " prefix
+                            response_type = data.get("type")
+
+                            if response_type == "progress":
+                                yield SummarizeProgressUpdate.model_validate(data)
+                            elif response_type == "summary":
+                                yield SummaryResponse.model_validate(data)
+                            elif response_type == "error":
+                                yield SummarizeErrorResponse.model_validate(data)
+                            else:
+                                # Unknown response type, skip
+                                continue
+                        except json.JSONDecodeError:
+                            # Skip malformed JSON lines
+                            continue
+
+        except httpx.HTTPStatusError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except httpx.RequestError as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
