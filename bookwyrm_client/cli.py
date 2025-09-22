@@ -579,15 +579,23 @@ def summarize(
 
             # Display results
             if ctx.obj["verbose"] or debug:
-                console.print(f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]")
-                console.print(f"[dim]Subsummaries created: {final_result.subsummary_count}[/dim]")
+                console.print(
+                    f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
+                )
+                console.print(
+                    f"[dim]Subsummaries created: {final_result.subsummary_count}[/dim]"
+                )
                 console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
 
             # Show intermediate summaries if debug mode
             if debug and final_result.intermediate_summaries:
                 console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
-                for level, summaries in enumerate(final_result.intermediate_summaries, 1):
-                    console.print(f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]")
+                for level, summaries in enumerate(
+                    final_result.intermediate_summaries, 1
+                ):
+                    console.print(
+                        f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
+                    )
                     for i, summary in enumerate(summaries, 1):
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
@@ -609,7 +617,9 @@ def summarize(
                         ),
                     }
 
-                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    output.write_text(
+                        json.dumps(output_data, indent=2), encoding="utf-8"
+                    )
                     console.print(f"\n[green]Summary saved to: {output}[/green]")
                 except Exception as e:
                     console.print(f"[red]Error saving to {output}: {e}[/red]")
@@ -623,15 +633,21 @@ def summarize(
             console.print("[green]✓ Summarization complete![/green]")
 
             if ctx.obj["verbose"] or debug:
-                console.print(f"[dim]Total tokens processed: {response.total_tokens}[/dim]")
-                console.print(f"[dim]Subsummaries created: {response.subsummary_count}[/dim]")
+                console.print(
+                    f"[dim]Total tokens processed: {response.total_tokens}[/dim]"
+                )
+                console.print(
+                    f"[dim]Subsummaries created: {response.subsummary_count}[/dim]"
+                )
                 console.print(f"[dim]Levels used: {response.levels_used}[/dim]")
 
             # Show intermediate summaries if debug mode
             if debug and response.intermediate_summaries:
                 console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
                 for level, summaries in enumerate(response.intermediate_summaries, 1):
-                    console.print(f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]")
+                    console.print(
+                        f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
+                    )
                     for i, summary in enumerate(summaries, 1):
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
@@ -653,7 +669,9 @@ def summarize(
                         ),
                     }
 
-                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    output.write_text(
+                        json.dumps(output_data, indent=2), encoding="utf-8"
+                    )
                     console.print(f"\n[green]Summary saved to: {output}[/green]")
                 except Exception as e:
                     console.print(f"[red]Error saving to {output}: {e}[/red]")

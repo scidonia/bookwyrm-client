@@ -146,7 +146,9 @@ class SummarizeRequest(BaseModel):
             )
 
         if self.max_tokens > 131072:
-            raise ValueError(f"max_tokens cannot exceed 131,072 (got {self.max_tokens})")
+            raise ValueError(
+                f"max_tokens cannot exceed 131,072 (got {self.max_tokens})"
+            )
         if self.max_tokens < 1:
             raise ValueError(f"max_tokens must be at least 1 (got {self.max_tokens})")
 
@@ -173,7 +175,9 @@ class SummaryResponse(BaseModel):
     subsummary_count: int
     levels_used: int
     total_tokens: int
-    intermediate_summaries: Optional[List[List[str]]] = None  # Debug: summaries by level
+    intermediate_summaries: Optional[List[List[str]]] = (
+        None  # Debug: summaries by level
+    )
 
 
 class SummarizeErrorResponse(BaseModel):
