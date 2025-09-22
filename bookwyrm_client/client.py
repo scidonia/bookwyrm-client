@@ -16,6 +16,10 @@ from .models import (
     StreamingSummarizeResponse,
     SummarizeProgressUpdate,
     SummarizeErrorResponse,
+    ProcessTextRequest,
+    StreamingPhrasalResponse,
+    PhraseProgressUpdate,
+    PhraseResult,
 )
 
 
@@ -74,6 +78,54 @@ class BookWyrmClient:
             )
             response.raise_for_status()
             return CitationResponse.model_validate(response.json())
+        except requests.HTTPError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except requests.RequestException as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    def process_text(self, request: ProcessTextRequest) -> Iterator[StreamingPhrasalResponse]:
+        """
+        Process text using phrasal analysis and return streaming response.
+
+        Args:
+            request: ProcessTextRequest containing text/URL and processing parameters
+
+        Yields:
+            Streaming phrasal responses (progress updates and phrase results)
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            response = self.session.post(
+                f"{self.base_url}/phrasal",
+                json=request.model_dump(exclude_none=True),
+                headers=headers,
+                stream=True,
+            )
+            response.raise_for_status()
+
+            for line in response.iter_lines(decode_unicode=True):
+                if line.strip():
+                    try:
+                        data = json.loads(line)
+                        response_type = data.get("type")
+
+                        if response_type == "progress":
+                            yield PhraseProgressUpdate.model_validate(data)
+                        elif response_type == "phrase":
+                            yield PhraseResult.model_validate(data)
+                        else:
+                            # Unknown response type, skip
+                            continue
+                    except json.JSONDecodeError:
+                        # Skip malformed JSON lines
+                        continue
+
         except requests.HTTPError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except requests.RequestException as e:
