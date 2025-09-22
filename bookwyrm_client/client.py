@@ -83,7 +83,9 @@ class BookWyrmClient:
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    def process_text(self, request: ProcessTextRequest) -> Iterator[StreamingPhrasalResponse]:
+    def process_text(
+        self, request: ProcessTextRequest
+    ) -> Iterator[StreamingPhrasalResponse]:
         """
         Process text using phrasal analysis and return streaming response.
 

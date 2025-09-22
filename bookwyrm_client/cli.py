@@ -698,10 +698,10 @@ def summarize(
     "--url", help="URL to fetch text from (alternative to providing text directly)"
 )
 @click.option(
-    "--file", 
+    "--file",
     "input_file",
     type=click.Path(exists=True, path_type=Path),
-    help="File to read text from (alternative to providing text directly)"
+    help="File to read text from (alternative to providing text directly)",
 )
 @click.option(
     "--output",
@@ -738,20 +738,24 @@ def phrasal(
     spacy_model: str,
 ):
     """Process text using phrasal analysis to extract phrases or chunks."""
-    
+
     # Validate input sources
     input_sources = [input_text, url, input_file]
     provided_sources = [s for s in input_sources if s is not None]
-    
+
     if len(provided_sources) != 1:
-        console.print("[red]Error: Exactly one of text argument, --url, or --file must be provided[/red]")
+        console.print(
+            "[red]Error: Exactly one of text argument, --url, or --file must be provided[/red]"
+        )
         sys.exit(1)
-    
+
     # Get text from the appropriate source
     if input_file:
         try:
             text = input_file.read_text(encoding="utf-8")
-            console.print(f"[blue]Loaded text from {input_file} ({len(text)} characters)[/blue]")
+            console.print(
+                f"[blue]Loaded text from {input_file} ({len(text)} characters)[/blue]"
+            )
         except Exception as e:
             console.print(f"[red]Error reading file {input_file}: {e}[/red]")
             sys.exit(1)
@@ -761,7 +765,7 @@ def phrasal(
     else:
         text = input_text
         console.print(f"[blue]Processing provided text ({len(text)} characters)[/blue]")
-    
+
     # Create request
     request = ProcessTextRequest(
         text=text,
@@ -770,14 +774,14 @@ def phrasal(
         response_format=ResponseFormat(response_format),
         spacy_model=spacy_model,
     )
-    
+
     client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
-    
+
     try:
         console.print("[blue]Starting phrasal processing...[/blue]")
         if output:
             console.print(f"[dim]Streaming results to {output} (JSONL format)[/dim]")
-        
+
         phrases = []
         with Progress(
             SpinnerColumn(),
@@ -786,9 +790,9 @@ def phrasal(
             TaskProgressColumn(),
             console=console,
         ) as progress:
-            
+
             task = progress.add_task("Processing text...", total=None)
-            
+
             for response in client.process_text(request):
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
@@ -802,7 +806,7 @@ def phrasal(
                         )
                 elif isinstance(response, PhraseResult):
                     phrases.append(response)
-                    
+
                     if ctx.obj["verbose"]:
                         if response.start_char is not None:
                             console.print(
@@ -812,20 +816,26 @@ def phrasal(
                             console.print(
                                 f"[green]Phrase:[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
                             )
-                    
+
                     # Immediately append to output file if specified
                     if output:
                         try:
                             with open(output, "a", encoding="utf-8") as f:
-                                f.write(response.model_dump_json(exclude_none=True) + "\n")
+                                f.write(
+                                    response.model_dump_json(exclude_none=True) + "\n"
+                                )
                                 f.flush()
                         except Exception as e:
-                            console.print(f"[red]Error writing to output file: {e}[/red]")
-            
+                            console.print(
+                                f"[red]Error writing to output file: {e}[/red]"
+                            )
+
             progress.update(task, description="Complete!")
-        
-        console.print(f"[green]Processing complete: {len(phrases)} phrases/chunks found[/green]")
-        
+
+        console.print(
+            f"[green]Processing complete: {len(phrases)} phrases/chunks found[/green]"
+        )
+
         # Display summary table
         if phrases and not ctx.obj["verbose"]:
             table = Table(title="Phrasal Processing Results")
@@ -833,26 +843,30 @@ def phrasal(
             if response_format == "with_offsets":
                 table.add_column("Position", justify="center", style="magenta")
             table.add_column("Text", style="green")
-            
+
             for i, phrase in enumerate(phrases[:10]):  # Show first 10
                 row = [str(i + 1)]
                 if response_format == "with_offsets" and phrase.start_char is not None:
                     row.append(f"{phrase.start_char}-{phrase.end_char}")
                 elif response_format == "with_offsets":
                     row.append("N/A")
-                
-                text_preview = phrase.text[:80] + "..." if len(phrase.text) > 80 else phrase.text
+
+                text_preview = (
+                    phrase.text[:80] + "..." if len(phrase.text) > 80 else phrase.text
+                )
                 row.append(text_preview)
                 table.add_row(*row)
-            
+
             if len(phrases) > 10:
-                table.add_row("...", "..." if response_format == "with_offsets" else "", "...")
-            
+                table.add_row(
+                    "...", "..." if response_format == "with_offsets" else "", "..."
+                )
+
             console.print(table)
-        
+
         if output:
             console.print(f"[green]Results saved to {output}[/green]")
-    
+
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:

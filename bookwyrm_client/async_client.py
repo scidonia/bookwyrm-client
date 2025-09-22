@@ -70,7 +70,9 @@ class AsyncBookWyrmClient:
         except httpx.RequestError as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    async def process_text(self, request: ProcessTextRequest) -> AsyncIterator[StreamingPhrasalResponse]:
+    async def process_text(
+        self, request: ProcessTextRequest
+    ) -> AsyncIterator[StreamingPhrasalResponse]:
         """
         Process text using phrasal analysis and return streaming response.
 
