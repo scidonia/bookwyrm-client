@@ -192,3 +192,62 @@ StreamingSummarizeResponse = Union[
     SummaryResponse,
     SummarizeErrorResponse,
 ]
+
+
+class ResponseFormat(str, Enum):
+    """Response format options for phrasal processing."""
+
+    TEXT_ONLY = "text_only"
+    WITH_OFFSETS = "with_offsets"
+
+
+class ProcessTextRequest(BaseModel):
+    """Request model for phrasal text processing.
+    
+    Example usage with URL:
+        request = ProcessTextRequest(
+            text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",
+            chunk_size=1000,
+            response_format=ResponseFormat.WITH_OFFSETS
+        )
+    """
+
+    text: Optional[str] = None
+    text_url: Optional[str] = None
+    chunk_size: Optional[int] = None
+    response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS
+    spacy_model: str = "en_core_web_sm"
+
+    @model_validator(mode="after")
+    def validate_input_source(self):
+        """Validate that exactly one of text or text_url is provided."""
+        if not self.text and not self.text_url:
+            raise ValueError("Either 'text' or 'text_url' must be provided")
+        if self.text and self.text_url:
+            raise ValueError("Only one of 'text' or 'text_url' should be provided")
+        return self
+
+
+class PhraseProgressUpdate(BaseModel):
+    """Progress update for phrasal processing."""
+
+    type: Literal["progress"] = "progress"
+    phrases_processed: int
+    chunks_created: int
+    bytes_processed: int
+    message: str
+
+
+class PhraseResult(BaseModel):
+    """Result containing a phrase or chunk."""
+
+    type: Literal["phrase"] = "phrase"
+    text: str
+    start_char: Optional[int] = None
+    end_char: Optional[int] = None
+
+
+StreamingPhrasalResponse = Union[
+    PhraseProgressUpdate,
+    PhraseResult,
+]
