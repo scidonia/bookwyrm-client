@@ -21,6 +21,11 @@ from .models import (
     SummarizeProgressUpdate,
     SummarizeErrorResponse,
     StreamingSummarizeResponse,
+    ProcessTextRequest,
+    ResponseFormat,
+    PhraseProgressUpdate,
+    PhraseResult,
+    StreamingPhrasalResponse,
 )
 
 __all__ = [
@@ -44,4 +49,9 @@ __all__ = [
     "SummarizeProgressUpdate",
     "SummarizeErrorResponse",
     "StreamingSummarizeResponse",
+    "ProcessTextRequest",
+    "ResponseFormat",
+    "PhraseProgressUpdate",
+    "PhraseResult",
+    "StreamingPhrasalResponse",
 ]
