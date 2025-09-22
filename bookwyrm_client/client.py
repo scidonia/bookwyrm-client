@@ -16,12 +16,13 @@ from .models import (
 
 class BookWyrmClientError(Exception):
     """Base exception for BookWyrm client errors."""
+
     pass
 
 
 class BookWyrmAPIError(BookWyrmClientError):
     """Exception for API-related errors."""
-    
+
     def __init__(self, message: str, status_code: Optional[int] = None):
         super().__init__(message)
         self.status_code = status_code
@@ -30,10 +31,12 @@ class BookWyrmAPIError(BookWyrmClientError):
 class BookWyrmClient:
     """Synchronous client for BookWyrm API."""
 
-    def __init__(self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None):
+    def __init__(
+        self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None
+    ):
         """
         Initialize the BookWyrm client.
-        
+
         Args:
             base_url: Base URL of the BookWyrm API
             api_key: API key for authentication
@@ -45,13 +48,13 @@ class BookWyrmClient:
     def get_citations(self, request: CitationRequest) -> CitationResponse:
         """
         Get citations for a question from text chunks.
-        
+
         Args:
             request: Citation request with chunks and question
-            
+
         Returns:
             Citation response with found citations
-            
+
         Raises:
             BookWyrmAPIError: If the API request fails
         """
@@ -71,16 +74,18 @@ class BookWyrmClient:
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    def stream_citations(self, request: CitationRequest) -> Iterator[StreamingCitationResponse]:
+    def stream_citations(
+        self, request: CitationRequest
+    ) -> Iterator[StreamingCitationResponse]:
         """
         Stream citations as they are found.
-        
+
         Args:
             request: Citation request with chunks and question
-            
+
         Yields:
             Streaming citation responses (progress, citations, summary, or errors)
-            
+
         Raises:
             BookWyrmAPIError: If the API request fails
         """
@@ -101,7 +106,7 @@ class BookWyrmClient:
                     try:
                         data = json.loads(line)
                         response_type = data.get("type")
-                        
+
                         if response_type == "progress":
                             yield CitationProgressUpdate.model_validate(data)
                         elif response_type == "citation":

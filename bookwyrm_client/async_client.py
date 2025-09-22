@@ -18,10 +18,12 @@ from .client import BookWyrmClientError, BookWyrmAPIError
 class AsyncBookWyrmClient:
     """Asynchronous client for BookWyrm API."""
 
-    def __init__(self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None):
+    def __init__(
+        self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None
+    ):
         """
         Initialize the async BookWyrm client.
-        
+
         Args:
             base_url: Base URL of the BookWyrm API
             api_key: API key for authentication
@@ -33,13 +35,13 @@ class AsyncBookWyrmClient:
     async def get_citations(self, request: CitationRequest) -> CitationResponse:
         """
         Get citations for a question from text chunks.
-        
+
         Args:
             request: Citation request with chunks and question
-            
+
         Returns:
             Citation response with found citations
-            
+
         Raises:
             BookWyrmAPIError: If the API request fails
         """
@@ -59,16 +61,18 @@ class AsyncBookWyrmClient:
         except httpx.RequestError as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    async def stream_citations(self, request: CitationRequest) -> AsyncIterator[StreamingCitationResponse]:
+    async def stream_citations(
+        self, request: CitationRequest
+    ) -> AsyncIterator[StreamingCitationResponse]:
         """
         Stream citations as they are found.
-        
+
         Args:
             request: Citation request with chunks and question
-            
+
         Yields:
             Streaming citation responses (progress, citations, summary, or errors)
-            
+
         Raises:
             BookWyrmAPIError: If the API request fails
         """
@@ -89,7 +93,7 @@ class AsyncBookWyrmClient:
                         try:
                             data = json.loads(line)
                             response_type = data.get("type")
-                            
+
                             if response_type == "progress":
                                 yield CitationProgressUpdate.model_validate(data)
                             elif response_type == "citation":
