@@ -117,13 +117,14 @@ def display_citations_table(citations):
 @click.option(
     "--base-url", default="http://localhost:8000", help="Base URL of the BookWyrm API"
 )
-@click.option("--api-key", help="API key for authentication")
+@click.option("--api-key", help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")
 @click.pass_context
 def cli(ctx, base_url: str, api_key: Optional[str]):
     """BookWyrm Client CLI - Find citations in text using AI."""
     ctx.ensure_object(dict)
     ctx.obj["base_url"] = base_url
-    ctx.obj["api_key"] = api_key or os.getenv("BOOKWYRM_API_KEY")
+    # Use CLI flag if provided, otherwise fall back to environment variable
+    ctx.obj["api_key"] = api_key if api_key is not None else os.getenv("BOOKWYRM_API_KEY")
 
 
 @cli.command()
