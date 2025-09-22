@@ -73,6 +73,16 @@ def save_citations_to_json(citations, output_path: Path):
         console.print(f"[red]Error saving citations: {e}[/red]")
 
 
+def append_citation_to_jsonl(citation, output_path: Path):
+    """Append a single citation to a JSONL file."""
+    try:
+        with open(output_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(citation.model_dump()) + "\n")
+            f.flush()  # Ensure immediate write to disk
+    except Exception as e:
+        console.print(f"[red]Error appending citation: {e}[/red]")
+
+
 def display_citations_table(citations):
     """Display citations in a rich table."""
     if not citations:
@@ -138,7 +148,7 @@ def cli(ctx, base_url: str, api_key: Optional[str]):
     "--output",
     "-o",
     type=click.Path(path_type=Path),
-    help="Output file for citations (JSON)",
+    help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
 )
 @click.option("--start", type=int, default=0, help="Start chunk index")
 @click.option("--limit", type=int, help="Limit number of chunks to process")
@@ -175,6 +185,8 @@ def cite(
     try:
         if stream:
             console.print(f"[blue]Streaming citations for: {question}[/blue]")
+            if output:
+                console.print(f"[dim]Streaming citations to {output} (JSONL format)[/dim]")
 
             citations = []
             with Progress(
@@ -199,6 +211,9 @@ def cite(
                         console.print(
                             f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
                         )
+                        # Immediately append to output file if specified
+                        if output:
+                            append_citation_to_jsonl(response.citation, output)
                     elif isinstance(response, CitationSummaryResponse):
                         progress.update(
                             task,
@@ -218,7 +233,7 @@ def cite(
             display_citations_table(citations)
 
             if output:
-                save_citations_to_json(citations, output)
+                console.print(f"[green]Citations streamed to {output}[/green]")
 
         else:
             console.print(f"[blue]Getting citations for: {question}[/blue]")
@@ -256,7 +271,7 @@ def cite(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
-    help="Output file for citations (JSON)",
+    help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
 )
 @click.option("--start", type=int, default=0, help="Start chunk index")
 @click.option("--limit", type=int, help="Limit number of chunks to process")
@@ -290,6 +305,8 @@ def cite_url(
         if stream:
             console.print(f"[blue]Streaming citations for: {question}[/blue]")
             console.print(f"[dim]Source: {url}[/dim]")
+            if output:
+                console.print(f"[dim]Streaming citations to {output} (JSONL format)[/dim]")
 
             citations = []
             with Progress(
@@ -316,6 +333,9 @@ def cite_url(
                         console.print(
                             f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
                         )
+                        # Immediately append to output file if specified
+                        if output:
+                            append_citation_to_jsonl(response.citation, output)
                     elif isinstance(response, CitationSummaryResponse):
                         progress.update(
                             task,
@@ -335,7 +355,7 @@ def cite_url(
             display_citations_table(citations)
 
             if output:
-                save_citations_to_json(citations, output)
+                console.print(f"[green]Citations streamed to {output}[/green]")
 
         else:
             console.print(f"[blue]Getting citations for: {question}[/blue]")
