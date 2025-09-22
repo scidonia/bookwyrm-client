@@ -35,45 +35,24 @@ pip install -r requirements-dev.txt
 
 ## Usage
 
-### Command Line Interface
+### Python Library
 
-The CLI provides a rich, interactive interface for finding citations:
+The BookWyrm client provides both synchronous and asynchronous interfaces for text processing, citation finding, summarization, and phrasal analysis.
 
-```bash
-# Find citations in a JSONL file
-bookwyrm-client cite chunks.jsonl "What is the main theme?"
-
-# Save results to JSON
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --output results.json
-
-# Use a URL as source
-bookwyrm-client cite-url https://example.com/chunks.jsonl "What is the main theme?"
-
-# Process only a subset of chunks
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --start 10 --limit 100
-
-# Use non-streaming mode
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --no-stream
-
-# Set API key and base URL
-bookwyrm-client --api-key YOUR_KEY --base-url http://localhost:8000 cite chunks.jsonl "Question?"
-```
-
-### Python Library - Synchronous Client
+#### Synchronous Client
 
 ```python
-from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk
+from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat
 
 # Initialize client
 client = BookWyrmClient(base_url="http://localhost:8000", api_key="your-key")
 
-# Prepare text chunks
+# Citation finding
 chunks = [
     TextChunk(text="This is the first chunk.", start_char=0, end_char=25),
     TextChunk(text="This is the second chunk.", start_char=26, end_char=52),
 ]
 
-# Create request
 request = CitationRequest(
     chunks=chunks,
     question="What are the chunks about?",
@@ -95,26 +74,38 @@ for stream_response in client.stream_citations(request):
     elif hasattr(stream_response, 'message'):
         print(f"Progress: {stream_response.message}")
 
+# Phrasal text processing
+phrasal_request = ProcessTextRequest(
+    text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",  # Triplanetary by E. E. Smith
+    chunk_size=1000,
+    response_format=ResponseFormat.WITH_OFFSETS
+)
+
+for response in client.process_text(phrasal_request):
+    if hasattr(response, 'text'):
+        print(f"Phrase: {response.text[:100]}...")
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
 client.close()
 ```
 
-### Python Library - Asynchronous Client
+#### Asynchronous Client
 
 ```python
 import asyncio
-from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, TextChunk
+from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat
 
 async def main():
     # Initialize async client
-    async with AsyncBookWyrmClient(base_url="http://localhost:8000") as client:
+    async with AsyncBookWyrmClient(base_url="http://localhost:8000", api_key="your-key") as client:
         
-        # Prepare request
+        # Citation finding
         request = CitationRequest(
             jsonl_url="https://example.com/chunks.jsonl",
             question="What is the main topic?",
         )
         
-        # Get citations
         response = await client.get_citations(request)
         print(f"Found {response.total_citations} citations")
         
@@ -123,7 +114,79 @@ async def main():
             if hasattr(stream_response, 'citation'):
                 print(f"New citation: {stream_response.citation.text}")
 
+        # Phrasal text processing
+        phrasal_request = ProcessTextRequest(
+            text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",  # Triplanetary by E. E. Smith
+            chunk_size=500,
+            response_format=ResponseFormat.TEXT_ONLY
+        )
+
+        async for response in client.process_text(phrasal_request):
+            if hasattr(response, 'text'):
+                print(f"Phrase: {response.text[:100]}...")
+            elif hasattr(response, 'message'):
+                print(f"Progress: {response.message}")
+
 asyncio.run(main())
+```
+
+### Command Line Interface
+
+The CLI provides a rich, interactive interface for text processing operations:
+
+#### Citation Finding
+
+```bash
+# Find citations in a JSONL file
+bookwyrm-client cite chunks.jsonl "What is the main theme?"
+
+# Save results to JSON
+bookwyrm-client cite chunks.jsonl "What is the main theme?" --output results.json
+
+# Use a URL as source
+bookwyrm-client cite-url https://example.com/chunks.jsonl "What is the main theme?"
+
+# Process only a subset of chunks
+bookwyrm-client cite chunks.jsonl "What is the main theme?" --start 10 --limit 100
+
+# Use non-streaming mode
+bookwyrm-client cite chunks.jsonl "What is the main theme?" --no-stream
+```
+
+#### Phrasal Text Processing
+
+```bash
+# Process text from a URL (Triplanetary by E. E. Smith from Project Gutenberg)
+bookwyrm-client phrasal --url "https://www.gutenberg.org/cache/epub/32706/pg32706.txt" --chunk-size 1000 --output triplanetary_phrases.jsonl
+
+# Process text from a file
+bookwyrm-client phrasal --file document.txt --format with_offsets --output phrases.jsonl
+
+# Process text directly
+bookwyrm-client phrasal "This is some text to analyze for phrases." --format text_only
+
+# Use different SpaCy models
+bookwyrm-client phrasal --file document.txt --spacy-model en_core_web_lg
+```
+
+#### Summarization
+
+```bash
+# Summarize a JSONL file of phrases
+bookwyrm-client summarize phrases.jsonl --output summary.json
+
+# Include debug information
+bookwyrm-client summarize phrases.jsonl --debug --max-tokens 5000
+```
+
+#### Global Options
+
+```bash
+# Set API key and base URL for all commands
+bookwyrm-client --api-key YOUR_KEY --base-url http://localhost:8000 phrasal --url "https://example.com/text.txt"
+
+# Enable verbose output
+bookwyrm-client --verbose cite chunks.jsonl "Question?"
 ```
 
 ### Environment Variables
