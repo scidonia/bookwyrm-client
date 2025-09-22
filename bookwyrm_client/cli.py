@@ -130,19 +130,21 @@ def display_verbose_citation(citation):
         if citation.quality <= 1
         else "yellow" if citation.quality <= 2 else "green"
     )
-    
+
     chunk_range = (
         f"{citation.start_chunk}-{citation.end_chunk}"
         if citation.start_chunk != citation.end_chunk
         else str(citation.start_chunk)
     )
-    
+
     panel_content = f"""[bold]Quality:[/bold] [{quality_color}]{citation.quality}/4[/{quality_color}]
 [bold]Chunks:[/bold] {chunk_range}
 [bold]Text:[/bold] {citation.text}
 [bold]Reasoning:[/bold] {citation.reasoning}"""
-    
-    console.print(Panel(panel_content, title="Citation Found", border_style=quality_color))
+
+    console.print(
+        Panel(panel_content, title="Citation Found", border_style=quality_color)
+    )
 
 
 @click.group()
