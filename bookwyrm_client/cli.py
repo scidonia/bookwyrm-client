@@ -123,6 +123,28 @@ def display_citations_table(citations):
     console.print(table)
 
 
+def display_verbose_citation(citation):
+    """Display a single citation with full details."""
+    quality_color = (
+        "red"
+        if citation.quality <= 1
+        else "yellow" if citation.quality <= 2 else "green"
+    )
+    
+    chunk_range = (
+        f"{citation.start_chunk}-{citation.end_chunk}"
+        if citation.start_chunk != citation.end_chunk
+        else str(citation.start_chunk)
+    )
+    
+    panel_content = f"""[bold]Quality:[/bold] [{quality_color}]{citation.quality}/4[/{quality_color}]
+[bold]Chunks:[/bold] {chunk_range}
+[bold]Text:[/bold] {citation.text}
+[bold]Reasoning:[/bold] {citation.reasoning}"""
+    
+    console.print(Panel(panel_content, title="Citation Found", border_style=quality_color))
+
+
 @click.group()
 @click.option(
     "--base-url", default="http://localhost:8000", help="Base URL of the BookWyrm API"
@@ -130,8 +152,11 @@ def display_citations_table(citations):
 @click.option(
     "--api-key", help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
 )
+@click.option(
+    "--verbose", "-v", is_flag=True, help="Show detailed citation information"
+)
 @click.pass_context
-def cli(ctx, base_url: str, api_key: Optional[str]):
+def cli(ctx, base_url: str, api_key: Optional[str], verbose: bool):
     """BookWyrm Client CLI - Find citations in text using AI."""
     ctx.ensure_object(dict)
     ctx.obj["base_url"] = base_url
@@ -139,6 +164,7 @@ def cli(ctx, base_url: str, api_key: Optional[str]):
     ctx.obj["api_key"] = (
         api_key if api_key is not None else os.getenv("BOOKWYRM_API_KEY")
     )
+    ctx.obj["verbose"] = verbose
 
 
 @cli.command()
@@ -210,9 +236,12 @@ def cite(
                         )
                     elif isinstance(response, CitationStreamResponse):
                         citations.append(response.citation)
-                        console.print(
-                            f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
-                        )
+                        if ctx.obj["verbose"]:
+                            display_verbose_citation(response.citation)
+                        else:
+                            console.print(
+                                f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
+                            )
                         # Immediately append to output file if specified
                         if output:
                             append_citation_to_jsonl(response.citation, output)
@@ -334,9 +363,12 @@ def cite_url(
                         )
                     elif isinstance(response, CitationStreamResponse):
                         citations.append(response.citation)
-                        console.print(
-                            f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
-                        )
+                        if ctx.obj["verbose"]:
+                            display_verbose_citation(response.citation)
+                        else:
+                            console.print(
+                                f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
+                            )
                         # Immediately append to output file if specified
                         if output:
                             append_citation_to_jsonl(response.citation, output)
