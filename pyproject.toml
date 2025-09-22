@@ -24,11 +24,16 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "requests>=2.25.0",
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=6.0",
+    "pytest-asyncio>=0.21.0",
     "black>=22.0",
     "flake8>=4.0",
     "mypy>=0.900",
@@ -40,6 +45,10 @@ Repository = "https://github.com/yourusername/bookwyrm-client"
 
 [project.scripts]
 bookwyrm-client = "bookwyrm_client.main:main"
+
+[project.entry-points."bookwyrm_client.commands"]
+cite = "bookwyrm_client.cli:cite"
+cite-url = "bookwyrm_client.cli:cite_url"
 
 [tool.black]
 line-length = 88

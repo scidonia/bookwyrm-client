@@ -1,3 +1,35 @@
 """BookWyrm client library."""
 
 __version__ = "0.1.0"
+
+from .client import BookWyrmClient, BookWyrmClientError, BookWyrmAPIError
+from .async_client import AsyncBookWyrmClient
+from .models import (
+    TextChunk,
+    CitationRequest,
+    Citation,
+    CitationResponse,
+    UsageInfo,
+    CitationProgressUpdate,
+    CitationStreamResponse,
+    CitationSummaryResponse,
+    CitationErrorResponse,
+    StreamingCitationResponse,
+)
+
+__all__ = [
+    "BookWyrmClient",
+    "AsyncBookWyrmClient",
+    "BookWyrmClientError",
+    "BookWyrmAPIError",
+    "TextChunk",
+    "CitationRequest",
+    "Citation",
+    "CitationResponse",
+    "UsageInfo",
+    "CitationProgressUpdate",
+    "CitationStreamResponse",
+    "CitationSummaryResponse",
+    "CitationErrorResponse",
+    "StreamingCitationResponse",
+]
