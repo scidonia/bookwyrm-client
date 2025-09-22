@@ -203,7 +203,7 @@ class ResponseFormat(str, Enum):
 
 class ProcessTextRequest(BaseModel):
     """Request model for phrasal text processing.
-    
+
     Example usage with URL:
         request = ProcessTextRequest(
             text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",
