@@ -186,7 +186,9 @@ def cite(
         if stream:
             console.print(f"[blue]Streaming citations for: {question}[/blue]")
             if output:
-                console.print(f"[dim]Streaming citations to {output} (JSONL format)[/dim]")
+                console.print(
+                    f"[dim]Streaming citations to {output} (JSONL format)[/dim]"
+                )
 
             citations = []
             with Progress(
@@ -306,7 +308,9 @@ def cite_url(
             console.print(f"[blue]Streaming citations for: {question}[/blue]")
             console.print(f"[dim]Source: {url}[/dim]")
             if output:
-                console.print(f"[dim]Streaming citations to {output} (JSONL format)[/dim]")
+                console.print(
+                    f"[dim]Streaming citations to {output} (JSONL format)[/dim]"
+                )
 
             citations = []
             with Progress(
