@@ -267,9 +267,7 @@ class ClassifyRequest(BaseModel):
         provided_sources = [s for s in sources if s is not None]
 
         if len(provided_sources) != 1:
-            raise ValueError(
-                "Exactly one of 'content' or 'url' must be provided"
-            )
+            raise ValueError("Exactly one of 'content' or 'url' must be provided")
 
         return self
 
@@ -278,11 +276,15 @@ class FileClassification(BaseModel):
     """Model for file classification results."""
 
     format_type: str  # General file format (e.g., "text", "image", "binary", "archive")
-    content_type: str  # Specific content type (e.g., "python_code", "json_data", "jpeg_image")
+    content_type: (
+        str  # Specific content type (e.g., "python_code", "json_data", "jpeg_image")
+    )
     mime_type: str  # MIME type detected
     confidence: float  # Confidence score 0.0-1.0
     details: dict  # Additional classification details (encoding, pygments_lexer, etc.)
-    classification_methods: Optional[List[str]] = None  # Methods used for classification
+    classification_methods: Optional[List[str]] = (
+        None  # Methods used for classification
+    )
 
 
 class ClassifyResponse(BaseModel):

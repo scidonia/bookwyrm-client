@@ -892,9 +892,7 @@ def phrasal(
     type=click.Path(exists=True, path_type=Path),
     help="File to classify (alternative to providing content directly)",
 )
-@click.option(
-    "--filename", help="Optional filename hint for classification"
-)
+@click.option("--filename", help="Optional filename hint for classification")
 @click.option(
     "--output",
     "-o",
@@ -940,7 +938,9 @@ def classify(
         console.print(f"[blue]Classifying URL: {url}[/blue]")
     else:
         content = input_content
-        console.print(f"[blue]Classifying provided content ({len(content)} characters)[/blue]")
+        console.print(
+            f"[blue]Classifying provided content ({len(content)} characters)[/blue]"
+        )
 
     # Create request
     request = ClassifyRequest(
@@ -971,14 +971,20 @@ def classify(
         table.add_row("File Size", f"{response.file_size:,} bytes")
 
         if response.sample_preview:
-            preview = response.sample_preview[:100] + "..." if len(response.sample_preview) > 100 else response.sample_preview
+            preview = (
+                response.sample_preview[:100] + "..."
+                if len(response.sample_preview) > 100
+                else response.sample_preview
+            )
             table.add_row("Sample Preview", preview)
 
         console.print(table)
 
         # Display classification methods if available
         if response.classification.classification_methods:
-            console.print(f"\n[dim]Classification methods used: {', '.join(response.classification.classification_methods)}[/dim]")
+            console.print(
+                f"\n[dim]Classification methods used: {', '.join(response.classification.classification_methods)}[/dim]"
+            )
 
         # Display additional details if available
         if response.classification.details:
@@ -986,10 +992,10 @@ def classify(
             details_table = Table()
             details_table.add_column("Key", style="cyan")
             details_table.add_column("Value", style="yellow")
-            
+
             for key, value in response.classification.details.items():
                 details_table.add_row(key, str(value))
-            
+
             console.print(details_table)
 
         # Save to output file if specified
@@ -1003,13 +1009,13 @@ def classify(
                         "file": str(input_file) if input_file else None,
                         "url": url,
                         "filename_hint": filename,
-                    }
+                    },
                 }
 
-                output.write_text(
-                    json.dumps(output_data, indent=2), encoding="utf-8"
+                output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                console.print(
+                    f"\n[green]Classification results saved to: {output}[/green]"
                 )
-                console.print(f"\n[green]Classification results saved to: {output}[/green]")
             except Exception as e:
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 
