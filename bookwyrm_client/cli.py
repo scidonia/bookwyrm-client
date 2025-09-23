@@ -4,9 +4,9 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Annotated
 
-import click
+import typer
 from rich.console import Console
 from rich.progress import (
     Progress,
@@ -199,83 +199,66 @@ def display_verbose_citation(citation):
     )
 
 
-@click.group()
-@click.option(
-    "--base-url",
-    help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)",
-)
-@click.option(
-    "--api-key", help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
-)
-@click.option(
-    "--verbose", "-v", is_flag=True, help="Show detailed citation information"
-)
-@click.pass_context
-def cli(ctx, base_url: Optional[str], api_key: Optional[str], verbose: bool):
-    """BookWyrm Client CLI - Find citations in text using AI."""
-    ctx.ensure_object(dict)
-    # Use CLI flag if provided, otherwise fall back to environment variable, then default
-    ctx.obj["base_url"] = (
-        base_url
-        if base_url is not None
-        else os.getenv("BOOKWYRM_API_URL", "http://localhost:8000")
-    )
-    # Use CLI flag if provided, otherwise fall back to environment variable
-    ctx.obj["api_key"] = (
-        api_key if api_key is not None else os.getenv("BOOKWYRM_API_KEY")
-    )
-    ctx.obj["verbose"] = verbose
+app = typer.Typer(help="BookWyrm Client CLI - Find citations in text using AI.")
+
+# Global state for CLI options
+class GlobalState:
+    def __init__(self):
+        self.base_url: str = ""
+        self.api_key: Optional[str] = None
+        self.verbose: bool = False
+
+state = GlobalState()
+
+def get_base_url(base_url: Optional[str] = None) -> str:
+    """Get base URL from CLI option, environment variable, or default."""
+    if base_url is not None:
+        return base_url
+    return os.getenv("BOOKWYRM_API_URL", "http://localhost:8000")
+
+def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
+    """Get API key from CLI option or environment variable."""
+    if api_key is not None:
+        return api_key
+    return os.getenv("BOOKWYRM_API_KEY")
 
 
-@cli.command()
-@click.argument("question")
-@click.argument("jsonl_input", required=False)
-@click.option("--url", help="URL to JSONL file (alternative to providing file path)")
-@click.option(
-    "--file",
-    "jsonl_file",
-    type=click.Path(exists=True, path_type=Path),
-    help="JSONL file to read chunks from (alternative to providing file path as argument)",
-)
-@click.option(
-    "-o",
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
-)
-@click.option("--start", type=int, default=0, help="Start chunk index")
-@click.option("--limit", type=int, help="Limit number of chunks to process")
-@click.option("--max-tokens", type=int, default=1000, help="Maximum tokens per chunk")
-@click.option("--stream/--no-stream", default=True, help="Use streaming API")
-@click.pass_context
+@app.command()
 def cite(
-    ctx,
-    question: str,
-    jsonl_input: Optional[str],
-    url: Optional[str],
-    jsonl_file: Optional[Path],
-    output: Optional[Path],
-    start: int,
-    limit: Optional[int],
-    max_tokens: int,
-    stream: bool,
+    question: Annotated[str, typer.Argument(help="Question to find citations for")],
+    jsonl_input: Annotated[Optional[str], typer.Argument(help="JSONL file path")] = None,
+    url: Annotated[Optional[str], typer.Option(help="URL to JSONL file (alternative to providing file path)")] = None,
+    file: Annotated[Optional[Path], typer.Option("--file", help="JSONL file to read chunks from", exists=True)] = None,
+    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for citations (JSON for non-streaming, JSONL for streaming)")] = None,
+    start: Annotated[int, typer.Option(help="Start chunk index")] = 0,
+    limit: Annotated[Optional[int], typer.Option(help="Limit number of chunks to process")] = None,
+    max_tokens: Annotated[int, typer.Option(help="Maximum tokens per chunk")] = 1000,
+    stream: Annotated[bool, typer.Option("--stream/--no-stream", help="Use streaming API")] = True,
+    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
+    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
+    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed citation information")] = False,
 ):
     """Find citations for a question in text chunks from file or URL."""
+    
+    # Set global state
+    state.base_url = get_base_url(base_url)
+    state.api_key = get_api_key(api_key)
+    state.verbose = verbose
 
     # Validate input sources
-    input_sources = [jsonl_input, url, jsonl_file]
+    input_sources = [jsonl_input, url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
         console.print(
             "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
         )
-        sys.exit(1)
+        raise typer.Exit(1)
 
     # Handle different input sources
-    if jsonl_file or jsonl_input:
+    if file or jsonl_input:
         # Use local file
-        file_path = jsonl_file if jsonl_file else Path(jsonl_input)
+        file_path = file if file else Path(jsonl_input)
         console.print(f"[blue]Loading chunks from {file_path}...[/blue]")
         chunks = load_chunks_from_jsonl(file_path)
         console.print(f"[green]Loaded {len(chunks)} chunks[/green]")
@@ -286,7 +269,7 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
-            api_key=ctx.obj["api_key"],
+            api_key=state.api_key,
         )
     else:
         # Use URL
@@ -297,10 +280,10 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
-            api_key=ctx.obj["api_key"],
+            api_key=state.api_key,
         )
 
-    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
         if stream:
@@ -337,7 +320,7 @@ def cite(
                         )
                     elif isinstance(response, CitationStreamResponse):
                         citations.append(response.citation)
-                        if ctx.obj["verbose"]:
+                        if state.verbose:
                             display_verbose_citation(response.citation)
                         else:
                             console.print(
@@ -390,52 +373,43 @@ def cite(
         console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
             console.print(f"[red]Status Code: {e.status_code}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     finally:
         client.close()
 
 
-@cli.command()
-@click.argument("jsonl_file", type=click.Path(exists=True, path_type=Path))
-@click.option(
-    "-o",
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Output file for summary (JSON format)",
-)
-@click.option(
-    "--max-tokens",
-    type=int,
-    default=10000,
-    help="Maximum tokens per chunk (max: 131,072)",
-)
-@click.option("--debug", is_flag=True, help="Include intermediate summaries")
-@click.option("--stream/--no-stream", default=True, help="Use streaming API")
-@click.pass_context
+@app.command()
 def summarize(
-    ctx,
-    jsonl_file: Path,
-    output: Optional[Path],
-    max_tokens: int,
-    debug: bool,
-    stream: bool,
+    jsonl_file: Annotated[Path, typer.Argument(help="JSONL file containing phrases", exists=True)],
+    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for summary (JSON format)")] = None,
+    max_tokens: Annotated[int, typer.Option(help="Maximum tokens per chunk (max: 131,072)")] = 10000,
+    debug: Annotated[bool, typer.Option(help="Include intermediate summaries")] = False,
+    stream: Annotated[bool, typer.Option("--stream/--no-stream", help="Use streaming API")] = True,
+    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
+    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
+    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
 ):
     """Summarize a JSONL file containing phrases."""
+    
+    # Set global state
+    state.base_url = get_base_url(base_url)
+    state.api_key = get_api_key(api_key)
+    state.verbose = verbose
 
     # Validate max_tokens
     if max_tokens > 131072:
         console.print(
             f"[red]Error: max_tokens cannot exceed 131,072 (got {max_tokens})[/red]"
         )
-        sys.exit(1)
+        raise typer.Exit(1)
     if max_tokens < 1:
         console.print(
             f"[red]Error: max_tokens must be at least 1 (got {max_tokens})[/red]"
         )
-        sys.exit(1)
+        raise typer.Exit(1)
 
     console.print(f"[blue]Loading JSONL file: {jsonl_file}[/blue]")
     content = load_jsonl_content(jsonl_file)
@@ -444,10 +418,10 @@ def summarize(
         content=content,
         max_tokens=max_tokens,
         debug=debug,
-        api_key=ctx.obj["api_key"],
+        api_key=state.api_key,
     )
 
-    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
         if stream:
@@ -505,7 +479,7 @@ def summarize(
                 sys.exit(1)
 
             # Display results
-            if ctx.obj["verbose"] or debug:
+            if state.verbose or debug:
                 console.print(
                     f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
                 )
@@ -559,7 +533,7 @@ def summarize(
 
             console.print("[green]✓ Summarization complete![/green]")
 
-            if ctx.obj["verbose"] or debug:
+            if state.verbose or debug:
                 console.print(
                     f"[dim]Total tokens processed: {response.total_tokens}[/dim]"
                 )
@@ -607,81 +581,59 @@ def summarize(
         console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
             console.print(f"[red]Status Code: {e.status_code}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     finally:
         client.close()
 
 
-@cli.command()
-@click.argument("input_text", required=False)
-@click.option(
-    "--url", help="URL to fetch text from (alternative to providing text directly)"
-)
-@click.option(
-    "--file",
-    "input_file",
-    type=click.Path(exists=True, path_type=Path),
-    help="File to read text from (alternative to providing text directly)",
-)
-@click.option(
-    "-o",
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Output file for phrases (JSONL format)",
-)
-@click.option(
-    "--chunk-size",
-    type=int,
-    help="Target size for each chunk (if not specified, returns phrases individually)",
-)
-@click.option(
-    "--format",
-    "response_format",
-    type=click.Choice(["text_only", "with_offsets"]),
-    default="with_offsets",
-    help="Response format",
-)
-@click.option(
-    "--spacy-model",
-    default="en_core_web_sm",
-    help="SpaCy model to use for processing",
-)
-@click.pass_context
+@app.command()
 def phrasal(
-    ctx,
-    input_text: Optional[str],
-    url: Optional[str],
-    input_file: Optional[Path],
-    output: Optional[Path],
-    chunk_size: Optional[int],
-    response_format: str,
-    spacy_model: str,
+    input_text: Annotated[Optional[str], typer.Argument(help="Text to process")] = None,
+    url: Annotated[Optional[str], typer.Option(help="URL to fetch text from (alternative to providing text directly)")] = None,
+    file: Annotated[Optional[Path], typer.Option("--file", help="File to read text from", exists=True)] = None,
+    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for phrases (JSONL format)")] = None,
+    chunk_size: Annotated[Optional[int], typer.Option(help="Target size for each chunk (if not specified, returns phrases individually)")] = None,
+    format: Annotated[str, typer.Option(help="Response format")] = "with_offsets",
+    spacy_model: Annotated[str, typer.Option(help="SpaCy model to use for processing")] = "en_core_web_sm",
+    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
+    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
+    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
 ):
     """Process text using phrasal analysis to extract phrases or chunks."""
+    
+    # Set global state
+    state.base_url = get_base_url(base_url)
+    state.api_key = get_api_key(api_key)
+    state.verbose = verbose
+    
+    # Validate format choice
+    if format not in ["text_only", "with_offsets"]:
+        console.print(f"[red]Error: format must be 'text_only' or 'with_offsets', got '{format}'[/red]")
+        raise typer.Exit(1)
 
     # Validate input sources
-    input_sources = [input_text, url, input_file]
+    input_sources = [input_text, url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
         console.print(
             "[red]Error: Exactly one of text argument, --url, or --file must be provided[/red]"
         )
-        sys.exit(1)
+        raise typer.Exit(1)
 
     # Get text from the appropriate source
-    if input_file:
+    if file:
         try:
-            text = input_file.read_text(encoding="utf-8")
+            text = file.read_text(encoding="utf-8")
             console.print(
-                f"[blue]Loaded text from {input_file} ({len(text)} characters)[/blue]"
+                f"[blue]Loaded text from {file} ({len(text)} characters)[/blue]"
             )
         except Exception as e:
-            console.print(f"[red]Error reading file {input_file}: {e}[/red]")
-            sys.exit(1)
+            console.print(f"[red]Error reading file {file}: {e}[/red]")
+            raise typer.Exit(1)
     elif url:
         text = None  # Will be handled by the API
         console.print(f"[blue]Processing text from URL: {url}[/blue]")
@@ -694,11 +646,11 @@ def phrasal(
         text=text,
         text_url=url,
         chunk_size=chunk_size,
-        response_format=ResponseFormat(response_format),
+        response_format=ResponseFormat(format),
         spacy_model=spacy_model,
     )
 
-    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
         console.print("[blue]Starting phrasal processing...[/blue]")
@@ -722,7 +674,7 @@ def phrasal(
                         task,
                         description=response.message,
                     )
-                    if ctx.obj["verbose"]:
+                    if state.verbose:
                         console.print(
                             f"[dim]Processed {response.phrases_processed} phrases, "
                             f"created {response.chunks_created} chunks[/dim]"
@@ -730,7 +682,7 @@ def phrasal(
                 elif isinstance(response, PhraseResult):
                     phrases.append(response)
 
-                    if ctx.obj["verbose"]:
+                    if state.verbose:
                         if response.start_char is not None:
                             console.print(
                                 f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
@@ -760,18 +712,18 @@ def phrasal(
         )
 
         # Display summary table
-        if phrases and not ctx.obj["verbose"]:
+        if phrases and not state.verbose:
             table = Table(title="Phrasal Processing Results")
             table.add_column("Index", justify="right", style="cyan", no_wrap=True)
-            if response_format == "with_offsets":
+            if format == "with_offsets":
                 table.add_column("Position", justify="center", style="magenta")
             table.add_column("Text", style="green")
 
             for i, phrase in enumerate(phrases[:10]):  # Show first 10
                 row = [str(i + 1)]
-                if response_format == "with_offsets" and phrase.start_char is not None:
+                if format == "with_offsets" and phrase.start_char is not None:
                     row.append(f"{phrase.start_char}-{phrase.end_char}")
-                elif response_format == "with_offsets":
+                elif format == "with_offsets":
                     row.append("N/A")
 
                 text_preview = (
@@ -782,7 +734,7 @@ def phrasal(
 
             if len(phrases) > 10:
                 table.add_row(
-                    "...", "..." if response_format == "with_offsets" else "", "..."
+                    "...", "..." if format == "with_offsets" else "", "..."
                 )
 
             console.print(table)
@@ -794,80 +746,69 @@ def phrasal(
         console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
             console.print(f"[red]Status Code: {e.status_code}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     finally:
         client.close()
 
 
-@cli.command()
-@click.argument("input_content", required=False)
-@click.option(
-    "--url", help="URL to classify (alternative to providing content directly)"
-)
-@click.option(
-    "--file",
-    "input_file",
-    type=click.Path(exists=True, path_type=Path),
-    help="File to classify (alternative to providing content directly)",
-)
-@click.option("--filename", help="Optional filename hint for classification")
-@click.option(
-    "-o",
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Output file for classification results (JSON format)",
-)
-@click.pass_context
+@app.command()
 def classify(
-    ctx,
-    input_content: Optional[str],
-    url: Optional[str],
-    input_file: Optional[Path],
-    filename: Optional[str],
-    output: Optional[Path],
+    input_content: Annotated[Optional[str], typer.Argument(help="Content to classify")] = None,
+    url: Annotated[Optional[str], typer.Option(help="URL to classify (alternative to providing content directly)")] = None,
+    file: Annotated[Optional[Path], typer.Option("--file", help="File to classify", exists=True)] = None,
+    filename: Annotated[Optional[str], typer.Option(help="Optional filename hint for classification")] = None,
+    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for classification results (JSON format)")] = None,
+    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
+    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
+    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
 ):
     """Classify content, URL, or file to determine its type and format."""
+    
+    # Set global state
+    state.base_url = get_base_url(base_url)
+    state.api_key = get_api_key(api_key)
+    state.verbose = verbose
 
     # Validate input sources
-    input_sources = [input_content, url, input_file]
+    input_sources = [input_content, url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
         console.print(
             "[red]Error: Exactly one of content argument, --url, or --file must be provided[/red]"
         )
-        sys.exit(1)
+        raise typer.Exit(1)
 
     # Get content from the appropriate source
     content_encoding = None
-    if input_file:
+    if file:
         try:
             # Try to read as text first, fall back to binary
             try:
-                content = input_file.read_text(encoding="utf-8")
+                content = file.read_text(encoding="utf-8")
                 console.print(
-                    f"[blue]Classifying text file: {input_file} ({len(content)} characters)[/blue]"
+                    f"[blue]Classifying text file: {file} ({len(content)} characters)[/blue]"
                 )
             except UnicodeDecodeError:
                 # Read as binary and base64 encode for transmission
                 import base64
 
-                binary_content = input_file.read_bytes()
+                binary_content = file.read_bytes()
                 content = base64.b64encode(binary_content).decode("ascii")
                 content_encoding = "base64"
                 console.print(
-                    f"[blue]Classifying binary file: {input_file} ({len(binary_content)} bytes, base64 encoded)[/blue]"
+                    f"[blue]Classifying binary file: {file} ({len(binary_content)} bytes, base64 encoded)[/blue]"
                 )
 
             # Use the actual filename if no hint provided
             if not filename:
-                filename = input_file.name
+                filename = file.name
         except Exception as e:
-            console.print(f"[red]Error reading file {input_file}: {e}[/red]")
-            sys.exit(1)
+            console.print(f"[red]Error reading file {file}: {e}[/red]")
+            raise typer.Exit(1)
     elif url:
         content = None  # Will be handled by the API
         console.print(f"[blue]Classifying URL resource: {url}[/blue]")
@@ -896,7 +837,7 @@ def classify(
         content_encoding=content_encoding,
     )
 
-    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
         console.print("[blue]Starting classification...[/blue]")
@@ -953,7 +894,7 @@ def classify(
                     "file_size": response.file_size,
                     "sample_preview": response.sample_preview,
                     "source": {
-                        "file": str(input_file) if input_file else None,
+                        "file": str(file) if file else None,
                         "url": url,
                         "filename_hint": filename,
                     },
@@ -970,13 +911,18 @@ def classify(
         console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
             console.print(f"[red]Status Code: {e.status_code}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
-        sys.exit(1)
+        raise typer.Exit(1)
     finally:
         client.close()
 
 
+def main():
+    """Entry point for the CLI."""
+    app()
+
+
 if __name__ == "__main__":
-    cli()
+    main()
