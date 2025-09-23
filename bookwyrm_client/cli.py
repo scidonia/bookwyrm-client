@@ -921,12 +921,25 @@ def classify(
         sys.exit(1)
 
     # Get content from the appropriate source
+    content_encoding = None
     if input_file:
         try:
-            content = input_file.read_text(encoding="utf-8")
-            console.print(
-                f"[blue]Classifying file: {input_file} ({len(content)} characters)[/blue]"
-            )
+            # Try to read as text first, fall back to binary
+            try:
+                content = input_file.read_text(encoding="utf-8")
+                console.print(
+                    f"[blue]Classifying text file: {input_file} ({len(content)} characters)[/blue]"
+                )
+            except UnicodeDecodeError:
+                # Read as binary and base64 encode for transmission
+                import base64
+                binary_content = input_file.read_bytes()
+                content = base64.b64encode(binary_content).decode('ascii')
+                content_encoding = "base64"
+                console.print(
+                    f"[blue]Classifying binary file: {input_file} ({len(binary_content)} bytes, base64 encoded)[/blue]"
+                )
+            
             # Use the actual filename if no hint provided
             if not filename:
                 filename = input_file.name
@@ -958,6 +971,7 @@ def classify(
         content=content,
         url=url,
         filename=filename,
+        content_encoding=content_encoding,
     )
 
     client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
