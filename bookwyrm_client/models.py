@@ -259,7 +259,9 @@ class ClassifyRequest(BaseModel):
     content: Optional[str] = None
     url: Optional[str] = None
     filename: Optional[str] = None  # Optional hint for classification
-    content_encoding: Optional[str] = None  # "base64" if content is base64-encoded binary
+    content_encoding: Optional[str] = (
+        None  # "base64" if content is base64-encoded binary
+    )
 
     @model_validator(mode="after")
     def validate_input_source(self):

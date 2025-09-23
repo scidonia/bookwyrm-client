@@ -933,13 +933,14 @@ def classify(
             except UnicodeDecodeError:
                 # Read as binary and base64 encode for transmission
                 import base64
+
                 binary_content = input_file.read_bytes()
-                content = base64.b64encode(binary_content).decode('ascii')
+                content = base64.b64encode(binary_content).decode("ascii")
                 content_encoding = "base64"
                 console.print(
                     f"[blue]Classifying binary file: {input_file} ({len(binary_content)} bytes, base64 encoded)[/blue]"
                 )
-            
+
             # Use the actual filename if no hint provided
             if not filename:
                 filename = input_file.name
