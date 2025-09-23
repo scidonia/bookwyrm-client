@@ -201,7 +201,7 @@ def display_verbose_citation(citation):
 
 @click.group()
 @click.option(
-    "--base-url", default="http://localhost:8000", help="Base URL of the BookWyrm API"
+    "--base-url", help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)"
 )
 @click.option(
     "--api-key", help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
@@ -210,10 +210,14 @@ def display_verbose_citation(citation):
     "--verbose", "-v", is_flag=True, help="Show detailed citation information"
 )
 @click.pass_context
-def cli(ctx, base_url: str, api_key: Optional[str], verbose: bool):
+def cli(ctx, base_url: Optional[str], api_key: Optional[str], verbose: bool):
     """BookWyrm Client CLI - Find citations in text using AI."""
     ctx.ensure_object(dict)
-    ctx.obj["base_url"] = base_url
+    # Use CLI flag if provided, otherwise fall back to environment variable, then default
+    ctx.obj["base_url"] = (
+        base_url if base_url is not None 
+        else os.getenv("BOOKWYRM_API_URL", "http://localhost:8000")
+    )
     # Use CLI flag if provided, otherwise fall back to environment variable
     ctx.obj["api_key"] = (
         api_key if api_key is not None else os.getenv("BOOKWYRM_API_KEY")

@@ -240,6 +240,11 @@ bookwyrm-client --api-key YOUR_KEY --base-url http://localhost:8000 phrasal --ur
 
 # Enable verbose output
 bookwyrm-client --verbose cite chunks.jsonl "Question?"
+
+# Use environment variables instead
+export BOOKWYRM_API_URL="http://localhost:8000"
+export BOOKWYRM_API_KEY="your-api-key"
+bookwyrm-client phrasal --url "https://example.com/text.txt"
 ```
 
 ### Environment Variables
@@ -248,7 +253,7 @@ Set these environment variables for convenience:
 
 ```bash
 export BOOKWYRM_API_KEY="your-api-key"
-export BOOKWYRM_BASE_URL="http://localhost:8000"
+export BOOKWYRM_API_URL="http://localhost:8000"
 ```
 
 ## Development
