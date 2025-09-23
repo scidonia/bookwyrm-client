@@ -935,7 +935,15 @@ def classify(
             sys.exit(1)
     elif url:
         content = None  # Will be handled by the API
-        console.print(f"[blue]Classifying URL: {url}[/blue]")
+        console.print(f"[blue]Classifying URL resource: {url}[/blue]")
+        # Extract filename hint from URL if not provided
+        if not filename:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            if parsed_url.path:
+                filename = parsed_url.path.split('/')[-1]
+                if filename:
+                    console.print(f"[dim]Using filename hint from URL: {filename}[/dim]")
     else:
         content = input_content
         console.print(
