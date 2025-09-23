@@ -42,7 +42,7 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 #### Synchronous Client
 
 ```python
-from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat
+from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest
 
 # Initialize client
 client = BookWyrmClient(base_url="http://localhost:8000", api_key="your-key")
@@ -87,6 +87,31 @@ for response in client.process_text(phrasal_request):
     elif hasattr(response, 'message'):
         print(f"Progress: {response.message}")
 
+# File classification
+classify_request = ClassifyRequest(
+    url="https://www.gutenberg.org/ebooks/18857.epub3.images",
+    filename="alice_wonderland.epub"  # Optional hint
+)
+
+classification_response = client.classify(classify_request)
+print(f"Format: {classification_response.classification.format_type}")
+print(f"Content Type: {classification_response.classification.content_type}")
+print(f"MIME Type: {classification_response.classification.mime_type}")
+print(f"Confidence: {classification_response.classification.confidence:.2%}")
+print(f"File Size: {classification_response.file_size:,} bytes")
+
+# Classify local content
+with open("document.txt", "r") as f:
+    content = f.read()
+
+local_classify_request = ClassifyRequest(
+    content=content,
+    filename="document.txt"
+)
+
+local_response = client.classify(local_classify_request)
+print(f"Local file classified as: {local_response.classification.content_type}")
+
 client.close()
 ```
 
@@ -94,7 +119,7 @@ client.close()
 
 ```python
 import asyncio
-from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat
+from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat, ClassifyRequest
 
 async def main():
     # Initialize async client
@@ -126,6 +151,15 @@ async def main():
                 print(f"Phrase: {response.text[:100]}...")
             elif hasattr(response, 'message'):
                 print(f"Progress: {response.message}")
+
+        # File classification
+        classify_request = ClassifyRequest(
+            url="https://www.gutenberg.org/ebooks/18857.epub3.images"
+        )
+        
+        classification = await client.classify(classify_request)
+        print(f"Classified as: {classification.classification.content_type}")
+        print(f"Confidence: {classification.classification.confidence:.2%}")
 
 asyncio.run(main())
 ```
@@ -167,6 +201,22 @@ bookwyrm-client phrasal "This is some text to analyze for phrases." --format tex
 
 # Use different SpaCy models
 bookwyrm-client phrasal --file document.txt --spacy-model en_core_web_lg
+```
+
+#### File Classification
+
+```bash
+# Classify a URL resource (EPUB from Project Gutenberg)
+bookwyrm-client classify --url "https://www.gutenberg.org/ebooks/18857.epub3.images" --output classification.json
+
+# Classify a local file
+bookwyrm-client classify --file document.pdf --output results.json
+
+# Classify text content directly
+bookwyrm-client classify "import pandas as pd\ndf = pd.DataFrame()" --filename "script.py"
+
+# Classify with filename hint for better accuracy
+bookwyrm-client classify --url "https://example.com/data" --filename "data.json"
 ```
 
 #### Summarization
@@ -236,10 +286,13 @@ pytest -k "async"
 - `Citation`: A found citation with quality score and reasoning
 - `CitationResponse`: Response containing multiple citations
 - `UsageInfo`: Token usage and cost information
+- `ClassifyRequest`: Request model for file classification
+- `ClassifyResponse`: Response containing classification results
+- `FileClassification`: Detailed classification information
 
 ### Clients
 
-- `BookWyrmClient`: Synchronous client with `get_citations()` and `stream_citations()` methods
+- `BookWyrmClient`: Synchronous client with `get_citations()`, `stream_citations()`, `classify()`, and other methods
 - `AsyncBookWyrmClient`: Asynchronous client with async versions of the same methods
 
 ### Exceptions
