@@ -225,8 +225,8 @@ def cli(ctx, base_url: str, api_key: Optional[str], verbose: bool):
 @click.argument("jsonl_file", type=click.Path(exists=True, path_type=Path))
 @click.argument("question")
 @click.option(
-    "--output",
     "-o",
+    "--output",
     type=click.Path(path_type=Path),
     help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
 )
@@ -353,8 +353,8 @@ def cite(
 @click.argument("url")
 @click.argument("question")
 @click.option(
-    "--output",
     "-o",
+    "--output",
     type=click.Path(path_type=Path),
     help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
 )
@@ -480,8 +480,8 @@ def cite_url(
 @cli.command()
 @click.argument("jsonl_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--output",
     "-o",
+    "--output",
     type=click.Path(path_type=Path),
     help="Output file for summary (JSON format)",
 )
@@ -706,8 +706,8 @@ def summarize(
     help="File to read text from (alternative to providing text directly)",
 )
 @click.option(
-    "--output",
     "-o",
+    "--output",
     type=click.Path(path_type=Path),
     help="Output file for phrases (JSONL format)",
 )
@@ -894,8 +894,8 @@ def phrasal(
 )
 @click.option("--filename", help="Optional filename hint for classification")
 @click.option(
-    "--output",
     "-o",
+    "--output",
     type=click.Path(path_type=Path),
     help="Output file for classification results (JSON format)",
 )
