@@ -224,9 +224,7 @@ def cli(ctx, base_url: str, api_key: Optional[str], verbose: bool):
 @cli.command()
 @click.argument("question")
 @click.argument("jsonl_input", required=False)
-@click.option(
-    "--url", help="URL to JSONL file (alternative to providing file path)"
-)
+@click.option("--url", help="URL to JSONL file (alternative to providing file path)")
 @click.option(
     "--file",
     "jsonl_file",
@@ -275,7 +273,7 @@ def cite(
         console.print(f"[blue]Loading chunks from {file_path}...[/blue]")
         chunks = load_chunks_from_jsonl(file_path)
         console.print(f"[green]Loaded {len(chunks)} chunks[/green]")
-        
+
         request = CitationRequest(
             chunks=chunks,
             question=question,
@@ -392,7 +390,6 @@ def cite(
         sys.exit(1)
     finally:
         client.close()
-
 
 
 @cli.command()
