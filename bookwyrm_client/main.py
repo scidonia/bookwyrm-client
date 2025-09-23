@@ -1,11 +1,11 @@
 """Main entry point for the BookWyrm client."""
 
-from .cli import cli
+from .cli import main as cli_main
 
 
 def main():
     """Main function for the BookWyrm client CLI."""
-    cli()
+    cli_main()
 
 
 if __name__ == "__main__":
