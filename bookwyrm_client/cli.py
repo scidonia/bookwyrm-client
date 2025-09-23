@@ -201,6 +201,7 @@ def display_verbose_citation(citation):
 
 app = typer.Typer(help="BookWyrm Client CLI - Find citations in text using AI.")
 
+
 # Global state for CLI options
 class GlobalState:
     def __init__(self):
@@ -208,13 +209,16 @@ class GlobalState:
         self.api_key: Optional[str] = None
         self.verbose: bool = False
 
+
 state = GlobalState()
+
 
 def get_base_url(base_url: Optional[str] = None) -> str:
     """Get base URL from CLI option, environment variable, or default."""
     if base_url is not None:
         return base_url
     return os.getenv("BOOKWYRM_API_URL", "http://localhost:8000")
+
 
 def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
     """Get API key from CLI option or environment variable."""
@@ -226,20 +230,51 @@ def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
 @app.command()
 def cite(
     question: Annotated[str, typer.Argument(help="Question to find citations for")],
-    jsonl_input: Annotated[Optional[str], typer.Argument(help="JSONL file path")] = None,
-    url: Annotated[Optional[str], typer.Option(help="URL to JSONL file (alternative to providing file path)")] = None,
-    file: Annotated[Optional[Path], typer.Option("--file", help="JSONL file to read chunks from", exists=True)] = None,
-    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for citations (JSON for non-streaming, JSONL for streaming)")] = None,
+    jsonl_input: Annotated[
+        Optional[str], typer.Argument(help="JSONL file path")
+    ] = None,
+    url: Annotated[
+        Optional[str],
+        typer.Option(help="URL to JSONL file (alternative to providing file path)"),
+    ] = None,
+    file: Annotated[
+        Optional[Path],
+        typer.Option("--file", help="JSONL file to read chunks from", exists=True),
+    ] = None,
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "-o",
+            "--output",
+            help="Output file for citations (JSON for non-streaming, JSONL for streaming)",
+        ),
+    ] = None,
     start: Annotated[int, typer.Option(help="Start chunk index")] = 0,
-    limit: Annotated[Optional[int], typer.Option(help="Limit number of chunks to process")] = None,
+    limit: Annotated[
+        Optional[int], typer.Option(help="Limit number of chunks to process")
+    ] = None,
     max_tokens: Annotated[int, typer.Option(help="Maximum tokens per chunk")] = 1000,
-    stream: Annotated[bool, typer.Option("--stream/--no-stream", help="Use streaming API")] = True,
-    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
-    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
-    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed citation information")] = False,
+    stream: Annotated[
+        bool, typer.Option("--stream/--no-stream", help="Use streaming API")
+    ] = True,
+    base_url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)"
+        ),
+    ] = None,
+    api_key: Annotated[
+        Optional[str],
+        typer.Option(
+            help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
+    ] = False,
 ):
     """Find citations for a question in text chunks from file or URL."""
-    
+
     # Set global state
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
@@ -383,17 +418,38 @@ def cite(
 
 @app.command()
 def summarize(
-    jsonl_file: Annotated[Path, typer.Argument(help="JSONL file containing phrases", exists=True)],
-    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for summary (JSON format)")] = None,
-    max_tokens: Annotated[int, typer.Option(help="Maximum tokens per chunk (max: 131,072)")] = 10000,
+    jsonl_file: Annotated[
+        Path, typer.Argument(help="JSONL file containing phrases", exists=True)
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option("-o", "--output", help="Output file for summary (JSON format)"),
+    ] = None,
+    max_tokens: Annotated[
+        int, typer.Option(help="Maximum tokens per chunk (max: 131,072)")
+    ] = 10000,
     debug: Annotated[bool, typer.Option(help="Include intermediate summaries")] = False,
-    stream: Annotated[bool, typer.Option("--stream/--no-stream", help="Use streaming API")] = True,
-    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
-    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
-    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
+    stream: Annotated[
+        bool, typer.Option("--stream/--no-stream", help="Use streaming API")
+    ] = True,
+    base_url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)"
+        ),
+    ] = None,
+    api_key: Annotated[
+        Optional[str],
+        typer.Option(
+            help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
 ):
     """Summarize a JSONL file containing phrases."""
-    
+
     # Set global state
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
@@ -592,26 +648,58 @@ def summarize(
 @app.command()
 def phrasal(
     input_text: Annotated[Optional[str], typer.Argument(help="Text to process")] = None,
-    url: Annotated[Optional[str], typer.Option(help="URL to fetch text from (alternative to providing text directly)")] = None,
-    file: Annotated[Optional[Path], typer.Option("--file", help="File to read text from", exists=True)] = None,
-    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for phrases (JSONL format)")] = None,
-    chunk_size: Annotated[Optional[int], typer.Option(help="Target size for each chunk (if not specified, returns phrases individually)")] = None,
+    url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="URL to fetch text from (alternative to providing text directly)"
+        ),
+    ] = None,
+    file: Annotated[
+        Optional[Path],
+        typer.Option("--file", help="File to read text from", exists=True),
+    ] = None,
+    output: Annotated[
+        Optional[Path],
+        typer.Option("-o", "--output", help="Output file for phrases (JSONL format)"),
+    ] = None,
+    chunk_size: Annotated[
+        Optional[int],
+        typer.Option(
+            help="Target size for each chunk (if not specified, returns phrases individually)"
+        ),
+    ] = None,
     format: Annotated[str, typer.Option(help="Response format")] = "with_offsets",
-    spacy_model: Annotated[str, typer.Option(help="SpaCy model to use for processing")] = "en_core_web_sm",
-    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
-    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
-    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
+    spacy_model: Annotated[
+        str, typer.Option(help="SpaCy model to use for processing")
+    ] = "en_core_web_sm",
+    base_url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)"
+        ),
+    ] = None,
+    api_key: Annotated[
+        Optional[str],
+        typer.Option(
+            help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
 ):
     """Process text using phrasal analysis to extract phrases or chunks."""
-    
+
     # Set global state
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
-    
+
     # Validate format choice
     if format not in ["text_only", "with_offsets"]:
-        console.print(f"[red]Error: format must be 'text_only' or 'with_offsets', got '{format}'[/red]")
+        console.print(
+            f"[red]Error: format must be 'text_only' or 'with_offsets', got '{format}'[/red]"
+        )
         raise typer.Exit(1)
 
     # Validate input sources
@@ -733,9 +821,7 @@ def phrasal(
                 table.add_row(*row)
 
             if len(phrases) > 10:
-                table.add_row(
-                    "...", "..." if format == "with_offsets" else "", "..."
-                )
+                table.add_row("...", "..." if format == "with_offsets" else "", "...")
 
             console.print(table)
 
@@ -756,17 +842,47 @@ def phrasal(
 
 @app.command()
 def classify(
-    input_content: Annotated[Optional[str], typer.Argument(help="Content to classify")] = None,
-    url: Annotated[Optional[str], typer.Option(help="URL to classify (alternative to providing content directly)")] = None,
-    file: Annotated[Optional[Path], typer.Option("--file", help="File to classify", exists=True)] = None,
-    filename: Annotated[Optional[str], typer.Option(help="Optional filename hint for classification")] = None,
-    output: Annotated[Optional[Path], typer.Option("-o", "--output", help="Output file for classification results (JSON format)")] = None,
-    base_url: Annotated[Optional[str], typer.Option(help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)")] = None,
-    api_key: Annotated[Optional[str], typer.Option(help="API key for authentication (overrides BOOKWYRM_API_KEY env var)")] = None,
-    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show detailed information")] = False,
+    input_content: Annotated[
+        Optional[str], typer.Argument(help="Content to classify")
+    ] = None,
+    url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="URL to classify (alternative to providing content directly)"
+        ),
+    ] = None,
+    file: Annotated[
+        Optional[Path], typer.Option("--file", help="File to classify", exists=True)
+    ] = None,
+    filename: Annotated[
+        Optional[str], typer.Option(help="Optional filename hint for classification")
+    ] = None,
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "-o",
+            "--output",
+            help="Output file for classification results (JSON format)",
+        ),
+    ] = None,
+    base_url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Base URL of the BookWyrm API (overrides BOOKWYRM_API_URL env var)"
+        ),
+    ] = None,
+    api_key: Annotated[
+        Optional[str],
+        typer.Option(
+            help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
 ):
     """Classify content, URL, or file to determine its type and format."""
-    
+
     # Set global state
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
