@@ -20,6 +20,8 @@ from .models import (
     StreamingPhrasalResponse,
     PhraseProgressUpdate,
     PhraseResult,
+    ClassifyRequest,
+    ClassifyResponse,
 )
 from .client import BookWyrmClientError, BookWyrmAPIError
 
@@ -65,6 +67,36 @@ class AsyncBookWyrmClient:
             )
             response.raise_for_status()
             return CitationResponse.model_validate(response.json())
+        except httpx.HTTPStatusError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except httpx.RequestError as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    async def classify(self, request: ClassifyRequest) -> ClassifyResponse:
+        """
+        Classify content or URL to determine file type and format.
+
+        Args:
+            request: Classification request with content or URL
+
+        Returns:
+            Classification response with detected file type and details
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/classify",
+                json=request.model_dump(exclude_none=True),
+                headers=headers,
+            )
+            response.raise_for_status()
+            return ClassifyResponse.model_validate(response.json())
         except httpx.HTTPStatusError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except httpx.RequestError as e:

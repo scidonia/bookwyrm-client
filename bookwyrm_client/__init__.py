@@ -26,6 +26,9 @@ from .models import (
     PhraseProgressUpdate,
     PhraseResult,
     StreamingPhrasalResponse,
+    ClassifyRequest,
+    ClassifyResponse,
+    FileClassification,
 )
 
 __all__ = [
@@ -54,4 +57,7 @@ __all__ = [
     "PhraseProgressUpdate",
     "PhraseResult",
     "StreamingPhrasalResponse",
+    "ClassifyRequest",
+    "ClassifyResponse",
+    "FileClassification",
 ]

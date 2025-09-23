@@ -251,3 +251,43 @@ StreamingPhrasalResponse = Union[
     PhraseProgressUpdate,
     PhraseResult,
 ]
+
+
+class ClassifyRequest(BaseModel):
+    """Request model for file classification."""
+
+    content: Optional[str] = None
+    url: Optional[str] = None
+    filename: Optional[str] = None  # Optional hint for classification
+
+    @model_validator(mode="after")
+    def validate_input_source(self):
+        """Validate that exactly one of content or url is provided."""
+        sources = [self.content, self.url]
+        provided_sources = [s for s in sources if s is not None]
+
+        if len(provided_sources) != 1:
+            raise ValueError(
+                "Exactly one of 'content' or 'url' must be provided"
+            )
+
+        return self
+
+
+class FileClassification(BaseModel):
+    """Model for file classification results."""
+
+    format_type: str  # General file format (e.g., "text", "image", "binary", "archive")
+    content_type: str  # Specific content type (e.g., "python_code", "json_data", "jpeg_image")
+    mime_type: str  # MIME type detected
+    confidence: float  # Confidence score 0.0-1.0
+    details: dict  # Additional classification details (encoding, pygments_lexer, etc.)
+    classification_methods: Optional[List[str]] = None  # Methods used for classification
+
+
+class ClassifyResponse(BaseModel):
+    """Response model for classification results."""
+
+    classification: FileClassification
+    file_size: int
+    sample_preview: Optional[str] = None  # First few characters if text-based

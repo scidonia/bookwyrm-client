@@ -38,6 +38,8 @@ from .models import (
     ResponseFormat,
     PhraseProgressUpdate,
     PhraseResult,
+    ClassifyRequest,
+    ClassifyResponse,
 )
 
 console = Console()
@@ -866,6 +868,150 @@ def phrasal(
 
         if output:
             console.print(f"[green]Results saved to {output}[/green]")
+
+    except BookWyrmAPIError as e:
+        console.print(f"[red]API Error: {e}[/red]")
+        if e.status_code:
+            console.print(f"[red]Status Code: {e.status_code}[/red]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        sys.exit(1)
+    finally:
+        client.close()
+
+
+@cli.command()
+@click.argument("input_content", required=False)
+@click.option(
+    "--url", help="URL to classify (alternative to providing content directly)"
+)
+@click.option(
+    "--file",
+    "input_file",
+    type=click.Path(exists=True, path_type=Path),
+    help="File to classify (alternative to providing content directly)",
+)
+@click.option(
+    "--filename", help="Optional filename hint for classification"
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output file for classification results (JSON format)",
+)
+@click.pass_context
+def classify(
+    ctx,
+    input_content: Optional[str],
+    url: Optional[str],
+    input_file: Optional[Path],
+    filename: Optional[str],
+    output: Optional[Path],
+):
+    """Classify content, URL, or file to determine its type and format."""
+
+    # Validate input sources
+    input_sources = [input_content, url, input_file]
+    provided_sources = [s for s in input_sources if s is not None]
+
+    if len(provided_sources) != 1:
+        console.print(
+            "[red]Error: Exactly one of content argument, --url, or --file must be provided[/red]"
+        )
+        sys.exit(1)
+
+    # Get content from the appropriate source
+    if input_file:
+        try:
+            content = input_file.read_text(encoding="utf-8")
+            console.print(
+                f"[blue]Classifying file: {input_file} ({len(content)} characters)[/blue]"
+            )
+            # Use the actual filename if no hint provided
+            if not filename:
+                filename = input_file.name
+        except Exception as e:
+            console.print(f"[red]Error reading file {input_file}: {e}[/red]")
+            sys.exit(1)
+    elif url:
+        content = None  # Will be handled by the API
+        console.print(f"[blue]Classifying URL: {url}[/blue]")
+    else:
+        content = input_content
+        console.print(f"[blue]Classifying provided content ({len(content)} characters)[/blue]")
+
+    # Create request
+    request = ClassifyRequest(
+        content=content,
+        url=url,
+        filename=filename,
+    )
+
+    client = BookWyrmClient(base_url=ctx.obj["base_url"], api_key=ctx.obj["api_key"])
+
+    try:
+        console.print("[blue]Starting classification...[/blue]")
+
+        with console.status("[bold green]Analyzing..."):
+            response = client.classify(request)
+
+        console.print("[green]✓ Classification complete![/green]")
+
+        # Display results in a nice table
+        table = Table(title="Classification Results")
+        table.add_column("Property", style="cyan", no_wrap=True)
+        table.add_column("Value", style="green")
+
+        table.add_row("Format Type", response.classification.format_type)
+        table.add_row("Content Type", response.classification.content_type)
+        table.add_row("MIME Type", response.classification.mime_type)
+        table.add_row("Confidence", f"{response.classification.confidence:.2%}")
+        table.add_row("File Size", f"{response.file_size:,} bytes")
+
+        if response.sample_preview:
+            preview = response.sample_preview[:100] + "..." if len(response.sample_preview) > 100 else response.sample_preview
+            table.add_row("Sample Preview", preview)
+
+        console.print(table)
+
+        # Display classification methods if available
+        if response.classification.classification_methods:
+            console.print(f"\n[dim]Classification methods used: {', '.join(response.classification.classification_methods)}[/dim]")
+
+        # Display additional details if available
+        if response.classification.details:
+            console.print("\n[bold]Additional Details:[/bold]")
+            details_table = Table()
+            details_table.add_column("Key", style="cyan")
+            details_table.add_column("Value", style="yellow")
+            
+            for key, value in response.classification.details.items():
+                details_table.add_row(key, str(value))
+            
+            console.print(details_table)
+
+        # Save to output file if specified
+        if output:
+            try:
+                output_data = {
+                    "classification": response.classification.model_dump(),
+                    "file_size": response.file_size,
+                    "sample_preview": response.sample_preview,
+                    "source": {
+                        "file": str(input_file) if input_file else None,
+                        "url": url,
+                        "filename_hint": filename,
+                    }
+                }
+
+                output.write_text(
+                    json.dumps(output_data, indent=2), encoding="utf-8"
+                )
+                console.print(f"\n[green]Classification results saved to: {output}[/green]")
+            except Exception as e:
+                console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")
