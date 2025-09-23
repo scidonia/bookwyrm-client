@@ -172,19 +172,22 @@ The CLI provides a rich, interactive interface for text processing operations:
 
 ```bash
 # Find citations in a JSONL file
-bookwyrm-client cite chunks.jsonl "What is the main theme?"
+bookwyrm-client cite "What is the main theme?" chunks.jsonl
 
 # Save results to JSON
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --output results.json
+bookwyrm-client cite "What is the main theme?" chunks.jsonl --output results.json
 
 # Use a URL as source
-bookwyrm-client cite-url https://example.com/chunks.jsonl "What is the main theme?"
+bookwyrm-client cite "What is the main theme?" --url https://example.com/chunks.jsonl
+
+# Use --file option instead of positional argument
+bookwyrm-client cite "What is the main theme?" --file chunks.jsonl
 
 # Process only a subset of chunks
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --start 10 --limit 100
+bookwyrm-client cite "What is the main theme?" chunks.jsonl --start 10 --limit 100
 
 # Use non-streaming mode
-bookwyrm-client cite chunks.jsonl "What is the main theme?" --no-stream
+bookwyrm-client cite "What is the main theme?" chunks.jsonl --no-stream
 ```
 
 #### Phrasal Text Processing
