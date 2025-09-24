@@ -284,9 +284,9 @@ class AsyncBookWyrmClient:
                 response.raise_for_status()
 
                 async for line in response.aiter_lines():
-                    if line.strip() and line.startswith("data: "):
+                    if line.strip():
                         try:
-                            data = json.loads(line[6:])  # Remove "data: " prefix
+                            data = json.loads(line)
                             response_type = data.get("type")
 
                             if response_type == "progress":
