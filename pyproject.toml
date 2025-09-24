@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "bookwyrm-client"
+name = "bookwyrm"
 version = "0.1.0"
 description = "A client library for BookWyrm"
 readme = "README.md"
@@ -39,14 +39,14 @@ dev = [
 
 [project.urls]
 Homepage = "https://bookwyrm.ai"
-Repository = "https://github.com/scidonia/bookwyrm-client"
+Repository = "https://github.com/scidonia/bookwyrm"
 
 [project.scripts]
-bookwyrm = "bookwyrm_client.main:main"
+bookwyrm = "bookwyrm.main:main"
 
-[project.entry-points."bookwyrm_client.commands"]
-cite = "bookwyrm_client.cli:cite"
-cite-url = "bookwyrm_client.cli:cite_url"
+[project.entry-points."bookwyrm.commands"]
+cite = "bookwyrm.cli:cite"
+cite-url = "bookwyrm.cli:cite_url"
 
 [tool.black]
 line-length = 88

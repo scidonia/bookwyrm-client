@@ -1,4 +1,4 @@
-# bookwyrm-client
+# bookwyrm
 
 A Python client library for interacting with BookWyrm instances, featuring both synchronous and asynchronous clients plus a rich command-line interface.
 
@@ -8,8 +8,8 @@ A Python client library for interacting with BookWyrm instances, featuring both 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bookwyrm-client.git
-cd bookwyrm-client
+git clone https://github.com/yourusername/bookwyrm.git
+cd bookwyrm
 
 # Install dependencies and create virtual environment
 uv sync
@@ -22,11 +22,11 @@ uv pip install -e .
 
 ```bash
 # Install from PyPI (when published)
-pip install bookwyrm-client
+pip install bookwyrm
 
 # Or install from source
-git clone https://github.com/yourusername/bookwyrm-client.git
-cd bookwyrm-client
+git clone https://github.com/yourusername/bookwyrm.git
+cd bookwyrm
 pip install -e .
 
 # For development
@@ -42,7 +42,7 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 #### Synchronous Client
 
 ```python
-from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
+from bookwyrm import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
 
 # Initialize client
 client = BookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key")
@@ -134,7 +134,7 @@ client.close()
 
 ```python
 import asyncio
-from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
+from bookwyrm import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
 
 async def main():
     # Initialize async client
@@ -300,7 +300,7 @@ bookwyrm --help
 pytest
 
 # Run with coverage
-pytest --cov=bookwyrm_client
+pytest --cov=bookwyrm
 
 # Run async tests specifically
 pytest -k "async"
