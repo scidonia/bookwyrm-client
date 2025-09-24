@@ -227,6 +227,17 @@ def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
     return os.getenv("BOOKWYRM_API_KEY")
 
 
+def validate_api_key(api_key: Optional[str]) -> None:
+    """Validate that an API key is provided and inform user if missing."""
+    if not api_key:
+        console.print("[red]Error: No API key provided![/red]")
+        console.print("[yellow]Please provide an API key using one of these methods:[/yellow]")
+        console.print("  1. Set environment variable: [cyan]export BOOKWYRM_API_KEY='your-api-key'[/cyan]")
+        console.print("  2. Use CLI option: [cyan]--api-key your-api-key[/cyan]")
+        console.print("\n[dim]You can get an API key from https://api.bookwyrm.ai[/dim]")
+        raise typer.Exit(1)
+
+
 @app.command()
 def cite(
     question: Annotated[str, typer.Argument(help="Question to find citations for")],
@@ -279,6 +290,18 @@ def cite(
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
+    
+    # Validate API key before proceeding
+    validate_api_key(state.api_key)
+    
+    # Validate API key before proceeding
+    validate_api_key(state.api_key)
+    
+    # Validate API key before proceeding
+    validate_api_key(state.api_key)
+    
+    # Validate API key before proceeding
+    validate_api_key(state.api_key)
 
     # Validate input sources
     input_sources = [jsonl_input, url, file]
