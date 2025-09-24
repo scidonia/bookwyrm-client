@@ -187,54 +187,54 @@ The CLI provides a rich, interactive interface for text processing operations:
 
 ```bash
 # Find citations in a JSONL file
-bookwyrm-client cite "What is the main theme?" chunks.jsonl
+bookwyrm cite "What is the main theme?" chunks.jsonl
 
 # Save results to JSON
-bookwyrm-client cite "What is the main theme?" chunks.jsonl --output results.json
+bookwyrm cite "What is the main theme?" chunks.jsonl --output results.json
 
 # Use a URL as source
-bookwyrm-client cite "What is the main theme?" --url https://example.com/chunks.jsonl
+bookwyrm cite "What is the main theme?" --url https://example.com/chunks.jsonl
 
 # Use --file option instead of positional argument
-bookwyrm-client cite "What is the main theme?" --file chunks.jsonl
+bookwyrm cite "What is the main theme?" --file chunks.jsonl
 
 # Process only a subset of chunks
-bookwyrm-client cite "What is the main theme?" chunks.jsonl --start 10 --limit 100
+bookwyrm cite "What is the main theme?" chunks.jsonl --start 10 --limit 100
 
 # Use non-streaming mode
-bookwyrm-client cite "What is the main theme?" chunks.jsonl --no-stream
+bookwyrm cite "What is the main theme?" chunks.jsonl --no-stream
 ```
 
 #### Phrasal Text Processing
 
 ```bash
 # Process text from a URL (Triplanetary by E. E. Smith from Project Gutenberg)
-bookwyrm-client phrasal --url "https://www.gutenberg.org/cache/epub/32706/pg32706.txt" --chunk-size 1000 --output triplanetary_phrases.jsonl
+bookwyrm phrasal --url "https://www.gutenberg.org/cache/epub/32706/pg32706.txt" --chunk-size 1000 --output triplanetary_phrases.jsonl
 
 # Process text from a file
-bookwyrm-client phrasal --file document.txt --format with_offsets --output phrases.jsonl
+bookwyrm phrasal --file document.txt --format with_offsets --output phrases.jsonl
 
 # Process text directly
-bookwyrm-client phrasal "This is some text to analyze for phrases." --format text_only
+bookwyrm phrasal "This is some text to analyze for phrases." --format text_only
 
 # Use different SpaCy models
-bookwyrm-client phrasal --file document.txt --spacy-model en_core_web_lg
+bookwyrm phrasal --file document.txt --spacy-model en_core_web_lg
 ```
 
 #### File Classification
 
 ```bash
 # Classify a URL resource (EPUB from Project Gutenberg)
-bookwyrm-client classify --url "https://www.gutenberg.org/ebooks/18857.epub3.images" --output classification.json
+bookwyrm classify --url "https://www.gutenberg.org/ebooks/18857.epub3.images" --output classification.json
 
 # Classify a local file
-bookwyrm-client classify --file document.pdf --output results.json
+bookwyrm classify --file document.pdf --output results.json
 
 # Classify text content directly
-bookwyrm-client classify "import pandas as pd\ndf = pd.DataFrame()" --filename "script.py"
+bookwyrm classify "import pandas as pd\ndf = pd.DataFrame()" --filename "script.py"
 
 # Classify with filename hint for better accuracy
-bookwyrm-client classify --url "https://example.com/data" --filename "data.json"
+bookwyrm classify --url "https://example.com/data" --filename "data.json"
 
 # Note: Binary files are automatically detected and base64-encoded when using --file option
 ```
@@ -243,10 +243,10 @@ bookwyrm-client classify --url "https://example.com/data" --filename "data.json"
 
 ```bash
 # Summarize a JSONL file of phrases
-bookwyrm-client summarize phrases.jsonl --output summary.json
+bookwyrm summarize phrases.jsonl --output summary.json
 
 # Include debug information
-bookwyrm-client summarize phrases.jsonl --debug --max-tokens 5000
+bookwyrm summarize phrases.jsonl --debug --max-tokens 5000
 ```
 
 #### Global Options
@@ -255,15 +255,15 @@ All commands support these options:
 
 ```bash
 # Set API key and base URL for individual commands
-bookwyrm-client phrasal --api-key YOUR_KEY --base-url https://api.bookwyrm.ai:443 --url "https://example.com/text.txt"
+bookwyrm phrasal --api-key YOUR_KEY --base-url https://api.bookwyrm.ai:443 --url "https://example.com/text.txt"
 
 # Enable verbose output (per command)
-bookwyrm-client cite --verbose "Question?" chunks.jsonl
+bookwyrm cite --verbose "Question?" chunks.jsonl
 
 # Use environment variables (recommended)
 export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
 export BOOKWYRM_API_KEY="your-api-key"
-bookwyrm-client phrasal --url "https://example.com/text.txt"
+bookwyrm phrasal --url "https://example.com/text.txt"
 ```
 
 **Note:** API key and base URL options are available on each command individually, not as global app-level options. Using environment variables is the recommended approach for setting these values across all commands.
@@ -285,12 +285,12 @@ This project supports both uv and pip for development:
 # With uv
 uv sync
 uv run pytest
-uv run bookwyrm-client --help
+uv run bookwyrm --help
 
 # With pip
 pip install -r requirements-dev.txt
 pytest
-bookwyrm-client --help
+bookwyrm --help
 ```
 
 ### Running Tests
