@@ -217,7 +217,7 @@ def get_base_url(base_url: Optional[str] = None) -> str:
     """Get base URL from CLI option, environment variable, or default."""
     if base_url is not None:
         return base_url
-    return os.getenv("BOOKWYRM_API_URL", "http://localhost:8000")
+    return os.getenv("BOOKWYRM_API_URL", "https://api.bookwyrm.ai:443")
 
 
 def get_api_key(api_key: Optional[str] = None) -> Optional[str]:

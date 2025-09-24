@@ -30,7 +30,7 @@ class AsyncBookWyrmClient:
     """Asynchronous client for BookWyrm API."""
 
     def __init__(
-        self, base_url: str = "http://localhost:8000", api_key: Optional[str] = None
+        self, base_url: str = "https://api.bookwyrm.ai:443", api_key: Optional[str] = None
     ):
         """
         Initialize the async BookWyrm client.

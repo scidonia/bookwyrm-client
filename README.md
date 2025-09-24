@@ -45,7 +45,7 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
 
 # Initialize client
-client = BookWyrmClient(base_url="http://localhost:8000", api_key="your-key")
+client = BookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key")
 
 # Citation finding
 chunks = [
@@ -138,7 +138,7 @@ from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextReq
 
 async def main():
     # Initialize async client
-    async with AsyncBookWyrmClient(base_url="http://localhost:8000", api_key="your-key") as client:
+    async with AsyncBookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key") as client:
         
         # Citation finding
         request = CitationRequest(
@@ -255,13 +255,13 @@ All commands support these options:
 
 ```bash
 # Set API key and base URL for individual commands
-bookwyrm-client phrasal --api-key YOUR_KEY --base-url http://localhost:8000 --url "https://example.com/text.txt"
+bookwyrm-client phrasal --api-key YOUR_KEY --base-url https://api.bookwyrm.ai:443 --url "https://example.com/text.txt"
 
 # Enable verbose output (per command)
 bookwyrm-client cite --verbose "Question?" chunks.jsonl
 
 # Use environment variables (recommended)
-export BOOKWYRM_API_URL="http://localhost:8000"
+export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
 export BOOKWYRM_API_KEY="your-api-key"
 bookwyrm-client phrasal --url "https://example.com/text.txt"
 ```
@@ -274,7 +274,7 @@ Set these environment variables for convenience:
 
 ```bash
 export BOOKWYRM_API_KEY="your-api-key"
-export BOOKWYRM_API_URL="http://localhost:8000"
+export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
 ```
 
 ## Development
