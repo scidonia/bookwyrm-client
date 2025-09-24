@@ -76,7 +76,7 @@
             };
           };
           uvpart = {
-            python = pkgs.python312;
+            python = pkgs.python311;
             workspaceRoot = ./.;
             extraPackages = with pkgs; [
             ];

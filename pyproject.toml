@@ -9,19 +9,16 @@ description = "A client library for BookWyrm"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Gavin Mendel-Gleason", email = "gavin@scidonia.ai"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "requests>=2.25.0",
     "httpx>=0.24.0",
@@ -41,11 +38,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/bookwyrm-client"
-Repository = "https://github.com/yourusername/bookwyrm-client"
+Homepage = "https://bookwyrm.ai"
+Repository = "https://github.com/scidonia/bookwyrm-client"
 
 [project.scripts]
-bookwyrm-client = "bookwyrm_client.main:main"
+bookwyrm = "bookwyrm_client.main:main"
 
 [project.entry-points."bookwyrm_client.commands"]
 cite = "bookwyrm_client.cli:cite"
@@ -53,10 +50,10 @@ cite-url = "bookwyrm_client.cli:cite_url"
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py311']
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
