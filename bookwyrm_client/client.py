@@ -43,7 +43,9 @@ class BookWyrmClient:
     """Synchronous client for BookWyrm API."""
 
     def __init__(
-        self, base_url: str = "https://api.bookwyrm.ai:443", api_key: Optional[str] = None
+        self,
+        base_url: str = "https://api.bookwyrm.ai:443",
+        api_key: Optional[str] = None,
     ):
         """
         Initialize the BookWyrm client.
