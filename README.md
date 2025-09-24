@@ -42,7 +42,7 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 #### Synchronous Client
 
 ```python
-from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest
+from bookwyrm_client import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
 
 # Initialize client
 client = BookWyrmClient(base_url="http://localhost:8000", api_key="your-key")
@@ -112,6 +112,21 @@ local_classify_request = ClassifyRequest(
 local_response = client.classify(local_classify_request)
 print(f"Local file classified as: {local_response.classification.content_type}")
 
+# Classify binary content (automatically base64 encoded)
+with open("image.jpg", "rb") as f:
+    binary_content = f.read()
+    import base64
+    encoded_content = base64.b64encode(binary_content).decode("ascii")
+
+binary_classify_request = ClassifyRequest(
+    content=encoded_content,
+    content_encoding="base64",
+    filename="image.jpg"
+)
+
+binary_response = client.classify(binary_classify_request)
+print(f"Binary file classified as: {binary_response.classification.content_type}")
+
 client.close()
 ```
 
@@ -119,7 +134,7 @@ client.close()
 
 ```python
 import asyncio
-from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat, ClassifyRequest
+from bookwyrm_client import AsyncBookWyrmClient, CitationRequest, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
 
 async def main():
     # Initialize async client
@@ -220,6 +235,8 @@ bookwyrm-client classify "import pandas as pd\ndf = pd.DataFrame()" --filename "
 
 # Classify with filename hint for better accuracy
 bookwyrm-client classify --url "https://example.com/data" --filename "data.json"
+
+# Note: Binary files are automatically detected and base64-encoded when using --file option
 ```
 
 #### Summarization
@@ -234,18 +251,22 @@ bookwyrm-client summarize phrases.jsonl --debug --max-tokens 5000
 
 #### Global Options
 
+All commands support these options:
+
 ```bash
-# Set API key and base URL for all commands
-bookwyrm-client --api-key YOUR_KEY --base-url http://localhost:8000 phrasal --url "https://example.com/text.txt"
+# Set API key and base URL for individual commands
+bookwyrm-client phrasal --api-key YOUR_KEY --base-url http://localhost:8000 --url "https://example.com/text.txt"
 
-# Enable verbose output
-bookwyrm-client --verbose cite chunks.jsonl "Question?"
+# Enable verbose output (per command)
+bookwyrm-client cite --verbose "Question?" chunks.jsonl
 
-# Use environment variables instead
+# Use environment variables (recommended)
 export BOOKWYRM_API_URL="http://localhost:8000"
 export BOOKWYRM_API_KEY="your-api-key"
 bookwyrm-client phrasal --url "https://example.com/text.txt"
 ```
+
+**Note:** API key and base URL options are available on each command individually, not as global app-level options. Using environment variables is the recommended approach for setting these values across all commands.
 
 ### Environment Variables
 
