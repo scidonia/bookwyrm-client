@@ -23,7 +23,6 @@ class CitationRequest(BaseModel):
     start: Optional[int] = 0
     limit: Optional[int] = None
     max_tokens_per_chunk: Optional[int] = 1000
-    api_key: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_input_source(self):
@@ -132,7 +131,6 @@ class SummarizeRequest(BaseModel):
     phrases: Optional[List[Phrase]] = None
     max_tokens: int = 10000  # Default max tokens for chunking
     debug: bool = False  # Include intermediate summaries in response
-    api_key: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_input_source(self):

@@ -71,14 +71,15 @@ class BookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        if self.api_key and not request.api_key:
-            request.api_key = self.api_key
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
             response = self.session.post(
                 f"{self.base_url}/cite",
                 json=request.model_dump(exclude_none=True),
-                headers={"Content-Type": "application/json"},
+                headers=headers,
             )
             response.raise_for_status()
             return CitationResponse.model_validate(response.json())
@@ -182,14 +183,15 @@ class BookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        if self.api_key and not request.api_key:
-            request.api_key = self.api_key
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
             response = self.session.post(
                 f"{self.base_url}/cite/stream",
                 json=request.model_dump(exclude_none=True),
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 stream=True,
             )
             response.raise_for_status()
@@ -245,9 +247,6 @@ class BookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        if self.api_key and not request.api_key:
-            request.api_key = self.api_key
-
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -280,9 +279,6 @@ class BookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        if self.api_key and not request.api_key:
-            request.api_key = self.api_key
-
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"

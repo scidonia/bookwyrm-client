@@ -333,7 +333,6 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
-            api_key=state.api_key,
         )
     else:
         # Use URL
@@ -344,7 +343,6 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
-            api_key=state.api_key,
         )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
@@ -503,7 +501,6 @@ def summarize(
         content=content,
         max_tokens=max_tokens,
         debug=debug,
-        api_key=state.api_key,
     )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
