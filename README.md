@@ -23,14 +23,6 @@ uv pip install -e .
 ```bash
 # Install from PyPI (when published)
 pip install bookwyrm
-
-# Or install from source
-git clone https://github.com/yourusername/bookwyrm.git
-cd bookwyrm
-pip install -e .
-
-# For development
-pip install -r requirements-dev.txt
 ```
 
 ## Usage
