@@ -43,7 +43,7 @@ To use the BookWyrm client, you'll need an API key from bookwyrm.ai:
 
 1. Visit [bookwyrm.ai](https://bookwyrm.ai)
 2. Click on "Sign up for beta" to create an account
-3. Once registered, you'll receive your API key
+3. Once registered, you can create an API key in the dashboard.
 4. Set your API key as an environment variable or pass it directly to the client
 
 ```bash
