@@ -59,7 +59,7 @@ class UsageInfo(BaseModel):
 
     tokens_processed: int
     chunks_processed: int
-    estimated_cost: float
+    estimated_cost: Optional[float] = None
     remaining_credits: Optional[float] = None
 
 
