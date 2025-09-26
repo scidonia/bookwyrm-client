@@ -401,8 +401,9 @@ def cite(
                             f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
                         )
                         if response.usage:
+                            cost_str = f"${response.usage.estimated_cost:.4f}" if response.usage.estimated_cost is not None else "N/A"
                             console.print(
-                                f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: ${response.usage.estimated_cost:.4f}[/dim]"
+                                f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                             )
                     elif isinstance(response, CitationErrorResponse):
                         console.print(f"[red]Error: {response.error}[/red]")
@@ -422,8 +423,9 @@ def cite(
 
             console.print(f"[green]Found {response.total_citations} citations[/green]")
             if response.usage:
+                cost_str = f"${response.usage.estimated_cost:.4f}" if response.usage.estimated_cost is not None else "N/A"
                 console.print(
-                    f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: ${response.usage.estimated_cost:.4f}[/dim]"
+                    f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                 )
 
             display_citations_table(response.citations)
