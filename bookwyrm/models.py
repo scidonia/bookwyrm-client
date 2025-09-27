@@ -331,7 +331,7 @@ class PDFPage(BaseModel):
     """Data for a single PDF page."""
 
     page_number: int
-    text_elements: List[PDFTextElement]
+    text_blocks: List[PDFTextElement]
     tables: List[dict] = []  # Placeholder for future table extraction
     images: List[dict] = []  # Placeholder for future image extraction
 
