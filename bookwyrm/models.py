@@ -347,6 +347,7 @@ class PDFStructuredData(BaseModel):
 class PDFExtractResponse(BaseModel):
     """Response model for PDF extraction results."""
 
-    structured_data: PDFStructuredData
-    file_size: int
+    pages: List[PDFPage]
+    total_pages: int
+    extraction_method: str = "paddleocr"
     processing_time: Optional[float] = None

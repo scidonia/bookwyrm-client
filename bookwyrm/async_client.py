@@ -252,7 +252,8 @@ class AsyncBookWyrmClient:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
 
             response.raise_for_status()
-            return PDFExtractResponse.model_validate(response.json())
+            response_data = response.json()
+            return PDFExtractResponse.model_validate(response_data)
         except httpx.HTTPStatusError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except httpx.RequestError as e:
