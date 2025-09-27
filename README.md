@@ -256,6 +256,25 @@ bookwyrm classify --url "https://example.com/data" --filename "data.json"
 # Note: Binary files are automatically detected and base64-encoded when using --file option
 ```
 
+#### PDF Structure Extraction
+
+```bash
+# Extract structured data from a local PDF file
+bookwyrm extract-pdf document.pdf --output extracted_data.json
+
+# Extract from a PDF URL
+bookwyrm extract-pdf --url "https://example.com/document.pdf" --output results.json
+
+# Use --file option instead of positional argument
+bookwyrm extract-pdf --file document.pdf --output data.json
+
+# Show detailed extraction results
+bookwyrm extract-pdf document.pdf --verbose --output detailed_results.json
+
+# Use custom PDF extraction API endpoint
+bookwyrm extract-pdf document.pdf --base-url "http://localhost:8000" --output results.json
+```
+
 #### Summarization
 
 ```bash
