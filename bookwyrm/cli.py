@@ -1167,18 +1167,16 @@ def extract_pdf(
         console.print("[green]✓ PDF extraction complete![/green]")
 
         # Display summary
-        structured_data = response.structured_data
-        console.print(f"[green]Extracted {structured_data.total_pages} pages[/green]")
+        console.print(f"[green]Extracted {response.total_pages} pages[/green]")
         
-        total_elements = sum(len(page.text_elements) for page in structured_data.pages)
+        total_elements = sum(len(page.text_blocks) for page in response.pages)
         console.print(f"[green]Found {total_elements} text elements[/green]")
         
         if response.processing_time:
             console.print(f"[dim]Processing time: {response.processing_time:.2f}s[/dim]")
-        console.print(f"[dim]File size: {response.file_size:,} bytes[/dim]")
 
         # Display detailed results if verbose
-        if state.verbose and structured_data.pages:
+        if state.verbose and response.pages:
             table = Table(title="Extracted Text Elements")
             table.add_column("Page", justify="right", style="cyan", no_wrap=True)
             table.add_column("Position", justify="center", style="magenta")
@@ -1187,12 +1185,12 @@ def extract_pdf(
 
             # Show first 20 elements across all pages
             element_count = 0
-            for page in structured_data.pages:
-                for element in page.text_elements:
+            for page in response.pages:
+                for element in page.text_blocks:
                     if element_count >= 20:
                         break
                     
-                    position = f"({element.x1:.0f},{element.y1:.0f})-({element.x2:.0f},{element.y2:.0f})"
+                    position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
                     confidence = f"{element.confidence:.2f}"
                     text_preview = (
                         element.text[:60] + "..." if len(element.text) > 60 else element.text
@@ -1218,10 +1216,10 @@ def extract_pdf(
         if output:
             try:
                 output_data = {
-                    "structured_data": structured_data.model_dump(),
-                    "file_size": response.file_size,
+                    "pages": [page.model_dump() for page in response.pages],
+                    "total_pages": response.total_pages,
+                    "extraction_method": response.extraction_method,
                     "processing_time": response.processing_time,
-                    "extraction_method": structured_data.extraction_method,
                     "source": {
                         "file": str(file) if file else str(pdf_input) if pdf_input else None,
                         "url": url,
