@@ -224,17 +224,33 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            # Use the JSON endpoint for consistency with other methods
-            response = await self.client.post(
-                f"{self.base_url}/extract-structure-json",
-                json=request.model_dump(exclude_none=True),
-                headers=headers,
-            )
+            if request.pdf_content:
+                # Handle base64-encoded file content using form data
+                import base64
+                pdf_bytes = base64.b64decode(request.pdf_content)
+                
+                files = {"file": (request.filename or "document.pdf", pdf_bytes, "application/pdf")}
+                response = await self.client.post(
+                    f"{self.base_url}/extract-structure",
+                    files=files,
+                    headers=headers,
+                )
+            elif request.pdf_url:
+                # Handle URL using JSON endpoint
+                headers["Content-Type"] = "application/json"
+                response = await self.client.post(
+                    f"{self.base_url}/extract-structure-json",
+                    json={"pdf_url": request.pdf_url},
+                    headers=headers,
+                )
+            else:
+                raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
+
             response.raise_for_status()
             return PDFExtractResponse.model_validate(response.json())
         except httpx.HTTPStatusError as e:
