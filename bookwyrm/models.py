@@ -315,16 +315,22 @@ class PDFExtractRequest(BaseModel):
         return self
 
 
+class PDFBoundingBox(BaseModel):
+    """Bounding box coordinates."""
+
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+
+
 class PDFTextElement(BaseModel):
     """A text element extracted from PDF with position and confidence."""
 
     text: str
     confidence: float
     bbox: List[List[float]]  # Raw bounding box polygon
-    x1: float  # Simplified rectangular coordinates
-    y1: float
-    x2: float
-    y2: float
+    coordinates: PDFBoundingBox  # Simplified rectangular coordinates
 
 
 class PDFPage(BaseModel):
