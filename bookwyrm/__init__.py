@@ -29,6 +29,11 @@ from .models import (
     ClassifyRequest,
     ClassifyResponse,
     FileClassification,
+    PDFExtractRequest,
+    PDFExtractResponse,
+    PDFTextElement,
+    PDFPage,
+    PDFStructuredData,
 )
 
 __all__ = [
@@ -60,4 +65,9 @@ __all__ = [
     "ClassifyRequest",
     "ClassifyResponse",
     "FileClassification",
+    "PDFExtractRequest",
+    "PDFExtractResponse",
+    "PDFTextElement",
+    "PDFPage",
+    "PDFStructuredData",
 ]
