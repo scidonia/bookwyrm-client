@@ -294,3 +294,59 @@ class ClassifyResponse(BaseModel):
     classification: FileClassification
     file_size: int
     sample_preview: Optional[str] = None  # First few characters if text-based
+
+
+class PDFExtractRequest(BaseModel):
+    """Request model for PDF structure extraction."""
+
+    pdf_url: Optional[str] = None
+    pdf_content: Optional[str] = None  # Base64 encoded PDF content
+    filename: Optional[str] = None  # Optional filename hint
+
+    @model_validator(mode="after")
+    def validate_input_source(self):
+        """Validate that exactly one of pdf_url or pdf_content is provided."""
+        sources = [self.pdf_url, self.pdf_content]
+        provided_sources = [s for s in sources if s is not None]
+
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of 'pdf_url' or 'pdf_content' must be provided")
+
+        return self
+
+
+class PDFTextElement(BaseModel):
+    """A text element extracted from PDF with position and confidence."""
+
+    text: str
+    confidence: float
+    bbox: List[List[float]]  # Raw bounding box polygon
+    x1: float  # Simplified rectangular coordinates
+    y1: float
+    x2: float
+    y2: float
+
+
+class PDFPage(BaseModel):
+    """Data for a single PDF page."""
+
+    page_number: int
+    text_elements: List[PDFTextElement]
+    tables: List[dict] = []  # Placeholder for future table extraction
+    images: List[dict] = []  # Placeholder for future image extraction
+
+
+class PDFStructuredData(BaseModel):
+    """Complete structured data from PDF extraction."""
+
+    pages: List[PDFPage]
+    total_pages: int
+    extraction_method: str = "paddleocr"
+
+
+class PDFExtractResponse(BaseModel):
+    """Response model for PDF extraction results."""
+
+    structured_data: PDFStructuredData
+    file_size: int
+    processing_time: Optional[float] = None

@@ -40,6 +40,8 @@ from .models import (
     PhraseResult,
     ClassifyRequest,
     ClassifyResponse,
+    PDFExtractRequest,
+    PDFExtractResponse,
 )
 
 console = Console()
@@ -1048,6 +1050,186 @@ def classify(
                 console.print(
                     f"\n[green]Classification results saved to: {output}[/green]"
                 )
+            except Exception as e:
+                console.print(f"[red]Error saving to {output}: {e}[/red]")
+
+    except BookWyrmAPIError as e:
+        console.print(f"[red]API Error: {e}[/red]")
+        if e.status_code:
+            console.print(f"[red]Status Code: {e.status_code}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        raise typer.Exit(1)
+    finally:
+        client.close()
+
+
+@app.command()
+def extract_pdf(
+    pdf_input: Annotated[
+        Optional[str], typer.Argument(help="PDF file path or URL to extract from")
+    ] = None,
+    url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="PDF URL to extract from (alternative to providing file path)"
+        ),
+    ] = None,
+    file: Annotated[
+        Optional[Path],
+        typer.Option("--file", help="PDF file to extract from", exists=True),
+    ] = None,
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "-o",
+            "--output",
+            help="Output file for extracted data (JSON format)",
+        ),
+    ] = None,
+    base_url: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Base URL of the PDF extraction API (overrides BOOKWYRM_PDF_API_URL env var)"
+        ),
+    ] = None,
+    api_key: Annotated[
+        Optional[str],
+        typer.Option(
+            help="API key for authentication (overrides BOOKWYRM_API_KEY env var)"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
+):
+    """Extract structured data from a PDF file using OCR."""
+
+    # Set global state
+    # Use PDF-specific base URL if available, otherwise fall back to main API
+    pdf_base_url = base_url or os.getenv("BOOKWYRM_PDF_API_URL") or get_base_url(None)
+    state.base_url = pdf_base_url
+    state.api_key = get_api_key(api_key)
+    state.verbose = verbose
+
+    # Validate API key before proceeding
+    validate_api_key(state.api_key)
+
+    # Validate input sources
+    input_sources = [pdf_input, url, file]
+    provided_sources = [s for s in input_sources if s is not None]
+
+    if len(provided_sources) != 1:
+        console.print(
+            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Handle different input sources
+    if file or pdf_input:
+        # Use local file
+        file_path = file if file else Path(pdf_input)
+        
+        if not file_path.exists():
+            console.print(f"[red]Error: File not found: {file_path}[/red]")
+            raise typer.Exit(1)
+            
+        console.print(f"[blue]Reading PDF file: {file_path}[/blue]")
+        
+        try:
+            # Read file as binary and base64 encode
+            import base64
+            pdf_bytes = file_path.read_bytes()
+            pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
+            console.print(f"[green]Loaded PDF file ({len(pdf_bytes)} bytes)[/green]")
+            
+            request = PDFExtractRequest(
+                pdf_content=pdf_content,
+                filename=file_path.name
+            )
+        except Exception as e:
+            console.print(f"[red]Error reading PDF file: {e}[/red]")
+            raise typer.Exit(1)
+    else:
+        # Use URL
+        console.print(f"[blue]Using PDF from URL: {url}[/blue]")
+        request = PDFExtractRequest(pdf_url=url)
+
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+
+    try:
+        console.print("[blue]Starting PDF extraction...[/blue]")
+
+        with console.status("[bold green]Processing PDF..."):
+            response = client.extract_pdf(request)
+
+        console.print("[green]✓ PDF extraction complete![/green]")
+
+        # Display summary
+        structured_data = response.structured_data
+        console.print(f"[green]Extracted {structured_data.total_pages} pages[/green]")
+        
+        total_elements = sum(len(page.text_elements) for page in structured_data.pages)
+        console.print(f"[green]Found {total_elements} text elements[/green]")
+        
+        if response.processing_time:
+            console.print(f"[dim]Processing time: {response.processing_time:.2f}s[/dim]")
+        console.print(f"[dim]File size: {response.file_size:,} bytes[/dim]")
+
+        # Display detailed results if verbose
+        if state.verbose and structured_data.pages:
+            table = Table(title="Extracted Text Elements")
+            table.add_column("Page", justify="right", style="cyan", no_wrap=True)
+            table.add_column("Position", justify="center", style="magenta")
+            table.add_column("Confidence", justify="center", style="yellow")
+            table.add_column("Text", style="green")
+
+            # Show first 20 elements across all pages
+            element_count = 0
+            for page in structured_data.pages:
+                for element in page.text_elements:
+                    if element_count >= 20:
+                        break
+                    
+                    position = f"({element.x1:.0f},{element.y1:.0f})-({element.x2:.0f},{element.y2:.0f})"
+                    confidence = f"{element.confidence:.2f}"
+                    text_preview = (
+                        element.text[:60] + "..." if len(element.text) > 60 else element.text
+                    )
+                    
+                    table.add_row(
+                        str(page.page_number),
+                        position,
+                        confidence,
+                        text_preview
+                    )
+                    element_count += 1
+                
+                if element_count >= 20:
+                    break
+            
+            if total_elements > 20:
+                table.add_row("...", "...", "...", "...")
+            
+            console.print(table)
+
+        # Save to output file if specified
+        if output:
+            try:
+                output_data = {
+                    "structured_data": structured_data.model_dump(),
+                    "file_size": response.file_size,
+                    "processing_time": response.processing_time,
+                    "extraction_method": structured_data.extraction_method,
+                    "source": {
+                        "file": str(file) if file else str(pdf_input) if pdf_input else None,
+                        "url": url,
+                    },
+                }
+
+                output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                console.print(f"\n[green]Extraction results saved to: {output}[/green]")
             except Exception as e:
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 

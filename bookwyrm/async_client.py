@@ -22,6 +22,8 @@ from .models import (
     PhraseResult,
     ClassifyRequest,
     ClassifyResponse,
+    PDFExtractRequest,
+    PDFExtractResponse,
 )
 from .client import BookWyrmClientError, BookWyrmAPIError
 
@@ -204,6 +206,37 @@ class AsyncBookWyrmClient:
                             # Skip malformed JSON lines
                             continue
 
+        except httpx.HTTPStatusError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except httpx.RequestError as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    async def extract_pdf(self, request: PDFExtractRequest) -> PDFExtractResponse:
+        """
+        Extract structured data from a PDF file.
+
+        Args:
+            request: PDF extraction request with URL or content
+
+        Returns:
+            PDF extraction response with structured data
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            # Use the JSON endpoint for consistency with other methods
+            response = await self.client.post(
+                f"{self.base_url}/extract-structure-json",
+                json=request.model_dump(exclude_none=True),
+                headers=headers,
+            )
+            response.raise_for_status()
+            return PDFExtractResponse.model_validate(response.json())
         except httpx.HTTPStatusError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except httpx.RequestError as e:
