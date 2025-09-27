@@ -9,6 +9,7 @@ BookWyrm simplifies RAG and agent development by providing these core endpoints:
 - **Citation Finding** - Automatically find and extract relevant citations from text chunks based on questions or queries
 - **Text Processing** - Break down large documents into meaningful phrases and chunks with configurable sizing
 - **Document Classification** - Intelligently classify files and content by format, type, and structure
+- **PDF Structure Extraction** - Extract structured text data from PDF files using OCR with bounding box coordinates
 - **Summarization** - Generate concise summaries from collections of text phrases or documents
 - **Streaming Support** - Real-time processing with progress updates for all major operations
 
