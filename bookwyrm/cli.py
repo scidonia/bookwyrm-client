@@ -872,13 +872,10 @@ def phrasal(
 
 @app.command()
 def classify(
-    input_content: Annotated[
-        Optional[str], typer.Argument(help="Content to classify")
-    ] = None,
     url: Annotated[
         Optional[str],
         typer.Option(
-            help="URL to classify (alternative to providing content directly)"
+            help="URL to classify"
         ),
     ] = None,
     file: Annotated[
@@ -911,7 +908,7 @@ def classify(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """Classify content, URL, or file to determine its type and format."""
+    """Classify URL or file to determine its type and format."""
 
     # Set global state
     state.base_url = get_base_url(base_url)
@@ -919,12 +916,12 @@ def classify(
     state.verbose = verbose
 
     # Validate input sources
-    input_sources = [input_content, url, file]
+    input_sources = [url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
         console.print(
-            "[red]Error: Exactly one of content argument, --url, or --file must be provided[/red]"
+            "[red]Error: Exactly one of --url or --file must be provided[/red]"
         )
         raise typer.Exit(1)
 

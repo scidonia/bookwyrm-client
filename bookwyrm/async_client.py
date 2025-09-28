@@ -79,10 +79,10 @@ class AsyncBookWyrmClient:
 
     async def classify(self, request: ClassifyRequest) -> ClassifyResponse:
         """
-        Classify content or URL to determine file type and format.
+        Classify file content to determine file type and format.
 
         Args:
-            request: Classification request with content or URL
+            request: Classification request with base64-encoded content
 
         Returns:
             Classification response with detected file type and details
@@ -95,35 +95,19 @@ class AsyncBookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            if request.content and request.content_encoding == "base64":
-                # Handle base64-encoded file content using multipart form data
-                import base64
-                file_bytes = base64.b64decode(request.content)
+            if not request.content or request.content_encoding != "base64":
+                raise BookWyrmAPIError("Content must be provided as base64-encoded data")
                 
-                files = {"file": (request.filename or "document", file_bytes)}
-                response = await self.client.post(
-                    f"{self.base_url}/classify",
-                    files=files,
-                    headers=headers,
-                )
-            elif request.url:
-                # Handle URL using JSON endpoint
-                headers["Content-Type"] = "application/json"
-                response = await self.client.post(
-                    f"{self.base_url}/classify-json",
-                    json={"url": request.url, "filename": request.filename},
-                    headers=headers,
-                )
-            elif request.content:
-                # Handle text content using JSON endpoint
-                headers["Content-Type"] = "application/json"
-                response = await self.client.post(
-                    f"{self.base_url}/classify-json",
-                    json={"content": request.content, "filename": request.filename},
-                    headers=headers,
-                )
-            else:
-                raise BookWyrmAPIError("Either content or url must be provided")
+            # Decode base64 content and send as multipart form data
+            import base64
+            file_bytes = base64.b64decode(request.content)
+            
+            files = {"file": (request.filename or "document", file_bytes)}
+            response = await self.client.post(
+                f"{self.base_url}/classify",
+                files=files,
+                headers=headers,
+            )
 
             response.raise_for_status()
             return ClassifyResponse.model_validate(response.json())
