@@ -926,58 +926,56 @@ def classify(
         raise typer.Exit(1)
 
     # Get content from the appropriate source
-    content_encoding = None
     if file:
         try:
-            # Try to read as text first, fall back to binary
-            try:
-                content = file.read_text(encoding="utf-8")
-                console.print(
-                    f"[blue]Classifying text file: {file} ({len(content)} characters)[/blue]"
-                )
-            except UnicodeDecodeError:
-                # Read as binary and base64 encode for transmission
-                import base64
-
-                binary_content = file.read_bytes()
-                content = base64.b64encode(binary_content).decode("ascii")
-                content_encoding = "base64"
-                console.print(
-                    f"[blue]Classifying binary file: {file} ({len(binary_content)} bytes, base64 encoded)[/blue]"
-                )
+            # Always read as binary and base64 encode for multipart upload
+            import base64
+            binary_content = file.read_bytes()
+            content = base64.b64encode(binary_content).decode("ascii")
+            console.print(
+                f"[blue]Classifying file: {file} ({len(binary_content)} bytes)[/blue]"
+            )
 
             # Use the actual filename if no hint provided
-            if not filename:
-                filename = file.name
+            effective_filename = filename or file.name
         except Exception as e:
             console.print(f"[red]Error reading file {file}: {e}[/red]")
             raise typer.Exit(1)
-    elif url:
-        content = None  # Will be handled by the API
-        console.print(f"[blue]Classifying URL resource: {url}[/blue]")
-        # Extract filename hint from URL if not provided
-        if not filename:
-            from urllib.parse import urlparse
-
-            parsed_url = urlparse(url)
-            if parsed_url.path:
-                filename = parsed_url.path.split("/")[-1]
-                if filename:
-                    console.print(
-                        f"[dim]Using filename hint from URL: {filename}[/dim]"
-                    )
     else:
-        content = input_content
-        console.print(
-            f"[blue]Classifying provided content ({len(content)} characters)[/blue]"
-        )
+        # Handle URL - we'll fetch it and send as multipart
+        console.print(f"[blue]Classifying URL resource: {url}[/blue]")
+        try:
+            import httpx
+            import base64
+            
+            with httpx.Client() as client:
+                response = client.get(url)
+                response.raise_for_status()
+                content = base64.b64encode(response.content).decode("ascii")
+                
+            console.print(f"[blue]Downloaded {len(response.content)} bytes from URL[/blue]")
+            
+            # Extract filename hint from URL if not provided
+            effective_filename = filename
+            if not effective_filename:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                if parsed_url.path:
+                    potential_filename = parsed_url.path.split("/")[-1]
+                    if potential_filename and "." in potential_filename:
+                        effective_filename = potential_filename
+                        console.print(
+                            f"[dim]Using filename hint from URL: {effective_filename}[/dim]"
+                        )
+        except Exception as e:
+            console.print(f"[red]Error fetching URL {url}: {e}[/red]")
+            raise typer.Exit(1)
 
     # Create request
     request = ClassifyRequest(
         content=content,
-        url=url,
-        filename=filename,
-        content_encoding=content_encoding,
+        filename=effective_filename,
+        content_encoding="base64",
     )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
