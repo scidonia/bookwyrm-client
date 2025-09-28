@@ -90,16 +90,41 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = await self.client.post(
-                f"{self.base_url}/classify",
-                json=request.model_dump(exclude_none=True),
-                headers=headers,
-            )
+            if request.content and request.content_encoding == "base64":
+                # Handle base64-encoded file content using multipart form data
+                import base64
+                file_bytes = base64.b64decode(request.content)
+                
+                files = {"file": (request.filename or "document", file_bytes)}
+                response = await self.client.post(
+                    f"{self.base_url}/classify",
+                    files=files,
+                    headers=headers,
+                )
+            elif request.url:
+                # Handle URL using JSON endpoint
+                headers["Content-Type"] = "application/json"
+                response = await self.client.post(
+                    f"{self.base_url}/classify-json",
+                    json={"url": request.url, "filename": request.filename},
+                    headers=headers,
+                )
+            elif request.content:
+                # Handle text content using JSON endpoint
+                headers["Content-Type"] = "application/json"
+                response = await self.client.post(
+                    f"{self.base_url}/classify-json",
+                    json={"content": request.content, "filename": request.filename},
+                    headers=headers,
+                )
+            else:
+                raise BookWyrmAPIError("Either content or url must be provided")
+
             response.raise_for_status()
             return ClassifyResponse.model_validate(response.json())
         except httpx.HTTPStatusError as e:
