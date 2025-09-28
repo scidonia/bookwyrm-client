@@ -872,6 +872,9 @@ def phrasal(
 
 @app.command()
 def classify(
+    file_path: Annotated[
+        Optional[Path], typer.Argument(help="File to classify")
+    ] = None,
     url: Annotated[
         Optional[str],
         typer.Option(
@@ -908,38 +911,44 @@ def classify(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """Classify URL or file to determine its type and format."""
+    """Classify file or URL to determine its type and format."""
 
     # Set global state
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
-    # Validate input sources
-    input_sources = [url, file]
+    # Validate input sources - allow positional file argument or --file or --url
+    input_sources = [file_path, url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
         console.print(
-            "[red]Error: Exactly one of --url or --file must be provided[/red]"
+            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
         )
         raise typer.Exit(1)
 
+    # Check if positional file exists
+    if file_path and not file_path.exists():
+        console.print(f"[red]Error: File not found: {file_path}[/red]")
+        raise typer.Exit(1)
+
     # Get content from the appropriate source
-    if file:
+    actual_file = file_path or file
+    if actual_file:
         try:
             # Always read as binary and base64 encode for multipart upload
             import base64
-            binary_content = file.read_bytes()
+            binary_content = actual_file.read_bytes()
             content = base64.b64encode(binary_content).decode("ascii")
             console.print(
-                f"[blue]Classifying file: {file} ({len(binary_content)} bytes)[/blue]"
+                f"[blue]Classifying file: {actual_file} ({len(binary_content)} bytes)[/blue]"
             )
 
             # Use the actual filename if no hint provided
-            effective_filename = filename or file.name
+            effective_filename = filename or actual_file.name
         except Exception as e:
-            console.print(f"[red]Error reading file {file}: {e}[/red]")
+            console.print(f"[red]Error reading file {actual_file}: {e}[/red]")
             raise typer.Exit(1)
     else:
         # Handle URL - we'll fetch it and send as multipart
@@ -1035,7 +1044,7 @@ def classify(
                     "file_size": response.file_size,
                     "sample_preview": response.sample_preview,
                     "source": {
-                        "file": str(file) if file else None,
+                        "file": str(actual_file) if actual_file else None,
                         "url": url,
                         "filename_hint": filename,
                     },
@@ -1062,8 +1071,8 @@ def classify(
 
 @app.command()
 def extract_pdf(
-    pdf_input: Annotated[
-        Optional[str], typer.Argument(help="PDF file path or URL to extract from")
+    pdf_file: Annotated[
+        Optional[Path], typer.Argument(help="PDF file to extract from")
     ] = None,
     url: Annotated[
         Optional[str],
@@ -1112,7 +1121,7 @@ def extract_pdf(
     validate_api_key(state.api_key)
 
     # Validate input sources
-    input_sources = [pdf_input, url, file]
+    input_sources = [pdf_file, url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
@@ -1122,12 +1131,11 @@ def extract_pdf(
         raise typer.Exit(1)
 
     # Handle different input sources
-    if file or pdf_input:
+    actual_file = pdf_file or file
+    if actual_file:
         # Use local file
-        file_path = file if file else Path(pdf_input)
-        
-        if not file_path.exists():
-            console.print(f"[red]Error: File not found: {file_path}[/red]")
+        if not actual_file.exists():
+            console.print(f"[red]Error: File not found: {actual_file}[/red]")
             raise typer.Exit(1)
             
         console.print(f"[blue]Reading PDF file: {file_path}[/blue]")
@@ -1216,7 +1224,7 @@ def extract_pdf(
                     "extraction_method": response.extraction_method,
                     "processing_time": response.processing_time,
                     "source": {
-                        "file": str(file) if file else str(pdf_input) if pdf_input else None,
+                        "file": str(actual_file) if actual_file else None,
                         "url": url,
                     },
                 }
