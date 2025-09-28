@@ -1138,18 +1138,18 @@ def extract_pdf(
             console.print(f"[red]Error: File not found: {actual_file}[/red]")
             raise typer.Exit(1)
             
-        console.print(f"[blue]Reading PDF file: {file_path}[/blue]")
+        console.print(f"[blue]Reading PDF file: {actual_file}[/blue]")
         
         try:
             # Read file as binary and base64 encode
             import base64
-            pdf_bytes = file_path.read_bytes()
+            pdf_bytes = actual_file.read_bytes()
             pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
             console.print(f"[green]Loaded PDF file ({len(pdf_bytes)} bytes)[/green]")
             
             request = PDFExtractRequest(
                 pdf_content=pdf_content,
-                filename=file_path.name
+                filename=actual_file.name
             )
         except Exception as e:
             console.print(f"[red]Error reading PDF file: {e}[/red]")
