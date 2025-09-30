@@ -1205,7 +1205,7 @@ def extract_pdf(
                 console=console,
             ) as progress:
 
-                task = progress.add_task("Processing PDF...", total=None)
+                task = progress.add_task("Processing PDF...", total=100)  # Start with 100 as placeholder
 
                 for response in client.stream_extract_pdf(request):
                     if isinstance(response, PDFStreamMetadata):
@@ -1213,7 +1213,8 @@ def extract_pdf(
                         progress.update(
                             task,
                             total=response.total_pages,
-                            description=f"Processing {response.total_pages} pages (starting from page {response.start_page})...",
+                            completed=0,
+                            description=f"Processing {response.total_pages} pages (doc pages {response.start_page}-{response.start_page + response.total_pages - 1})",
                         )
                         if state.verbose:
                             console.print(
@@ -1227,7 +1228,7 @@ def extract_pdf(
                         progress.update(
                             task,
                             completed=response.current_page,
-                            description=f"Page {response.document_page}/{response.total_pages_in_document} - {len(response.page_data.text_blocks)} elements found",
+                            description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
                         )
                         
                         if state.verbose:
