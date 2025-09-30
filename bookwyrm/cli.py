@@ -1213,7 +1213,7 @@ def extract_pdf(
                         progress.update(
                             task,
                             total=response.total_pages,
-                            description=f"Processing {response.total_pages} pages...",
+                            description=f"Processing {response.total_pages} pages (starting from page {response.start_page})...",
                         )
                         if state.verbose:
                             console.print(
@@ -1227,7 +1227,7 @@ def extract_pdf(
                         progress.update(
                             task,
                             completed=response.current_page,
-                            description=f"Processed page {response.document_page} ({len(response.page_data.text_blocks)} elements)",
+                            description=f"Page {response.document_page}/{response.total_pages_in_document} - {len(response.page_data.text_blocks)} elements found",
                         )
                         
                         if state.verbose:
@@ -1293,8 +1293,31 @@ def extract_pdf(
                 
                 console.print(table)
 
-            # Save to output file if specified
-            if output:
+            # Save to output file (specified or default)
+            if output or pages:  # Save if output specified OR if we have pages to save
+                if not output:
+                    # Generate default filename
+                    if actual_file:
+                        base_name = actual_file.stem
+                    elif url:
+                        from urllib.parse import urlparse
+                        parsed = urlparse(url)
+                        base_name = parsed.path.split("/")[-1].replace(".pdf", "") if parsed.path else "pdf_extract"
+                        if not base_name or base_name == "":
+                            base_name = "pdf_extract"
+                    else:
+                        base_name = "pdf_extract"
+                    
+                    # Add page range to filename if specified
+                    if start_page or num_pages:
+                        page_suffix = f"_pages_{start_page or 1}"
+                        if num_pages:
+                            page_suffix += f"-{(start_page or 1) + num_pages - 1}"
+                        base_name += page_suffix
+                    
+                    output = Path(f"{base_name}_extracted.json")
+                    console.print(f"[dim]No output file specified, saving to: {output}[/dim]")
+
                 try:
                     output_data = {
                         "pages": [page.model_dump() for page in pages],
@@ -1373,8 +1396,31 @@ def extract_pdf(
                 
                 console.print(table)
 
-            # Save to output file if specified
-            if output:
+            # Save to output file (specified or default)
+            if output or response.pages:  # Save if output specified OR if we have pages to save
+                if not output:
+                    # Generate default filename
+                    if actual_file:
+                        base_name = actual_file.stem
+                    elif url:
+                        from urllib.parse import urlparse
+                        parsed = urlparse(url)
+                        base_name = parsed.path.split("/")[-1].replace(".pdf", "") if parsed.path else "pdf_extract"
+                        if not base_name or base_name == "":
+                            base_name = "pdf_extract"
+                    else:
+                        base_name = "pdf_extract"
+                    
+                    # Add page range to filename if specified
+                    if start_page or num_pages:
+                        page_suffix = f"_pages_{start_page or 1}"
+                        if num_pages:
+                            page_suffix += f"-{(start_page or 1) + num_pages - 1}"
+                        base_name += page_suffix
+                    
+                    output = Path(f"{base_name}_extracted.json")
+                    console.print(f"[dim]No output file specified, saving to: {output}[/dim]")
+
                 try:
                     output_data = {
                         "pages": [page.model_dump() for page in response.pages],
