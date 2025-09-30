@@ -344,6 +344,9 @@ class AsyncBookWyrmClient:
                                     yield PDFStreamComplete.model_validate(data)
                                 elif response_type == "error":
                                     yield PDFStreamError.model_validate(data)
+                                elif response_type == "keepalive":
+                                    # Ignore keepalive messages
+                                    continue
                                 else:
                                     # Unknown response type, skip
                                     continue
@@ -383,6 +386,9 @@ class AsyncBookWyrmClient:
                                     yield PDFStreamComplete.model_validate(data)
                                 elif response_type == "error":
                                     yield PDFStreamError.model_validate(data)
+                                elif response_type == "keepalive":
+                                    # Ignore keepalive messages
+                                    continue
                                 else:
                                     # Unknown response type, skip
                                     continue
