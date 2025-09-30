@@ -60,7 +60,7 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 #### Synchronous Client
 
 ```python
-from bookwyrm import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest
+from bookwyrm import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest, PDFExtractRequest
 
 # Initialize client
 client = BookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key")
@@ -145,6 +145,41 @@ binary_classify_request = ClassifyRequest(
 binary_response = client.classify(binary_classify_request)
 print(f"Binary file classified as: {binary_response.classification.content_type}")
 
+# PDF structure extraction
+pdf_request = PDFExtractRequest(
+    pdf_url="https://example.com/document.pdf",
+    start_page=1,
+    num_pages=5
+)
+
+# Non-streaming extraction
+pdf_response = client.extract_pdf(pdf_request)
+print(f"Extracted {pdf_response.total_pages} pages")
+print(f"Found {sum(len(page.text_blocks) for page in pdf_response.pages)} text elements")
+
+# Streaming extraction with progress
+for stream_response in client.stream_extract_pdf(pdf_request):
+    if hasattr(stream_response, 'page_data'):
+        print(f"Processed page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
+    elif hasattr(stream_response, 'total_pages'):
+        print(f"Starting extraction of {stream_response.total_pages} pages")
+
+# Extract from local PDF file
+import base64
+with open("document.pdf", "rb") as f:
+    pdf_bytes = f.read()
+    pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
+
+local_pdf_request = PDFExtractRequest(
+    pdf_content=pdf_content,
+    filename="document.pdf",
+    start_page=10,
+    num_pages=5
+)
+
+local_pdf_response = client.extract_pdf(local_pdf_request)
+print(f"Extracted pages 10-14: {local_pdf_response.total_pages} pages processed")
+
 client.close()
 ```
 
@@ -193,6 +228,20 @@ async def main():
         classification = await client.classify(classify_request)
         print(f"Classified as: {classification.classification.content_type}")
         print(f"Confidence: {classification.classification.confidence:.2%}")
+
+        # PDF structure extraction
+        pdf_request = PDFExtractRequest(
+            pdf_url="https://example.com/document.pdf",
+            start_page=1,
+            num_pages=10
+        )
+        
+        # Streaming PDF extraction
+        async for stream_response in client.stream_extract_pdf(pdf_request):
+            if hasattr(stream_response, 'page_data'):
+                print(f"Page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
+            elif hasattr(stream_response, 'total_pages'):
+                print(f"Processing {stream_response.total_pages} pages...")
 
 asyncio.run(main())
 ```
@@ -260,20 +309,33 @@ bookwyrm classify --url "https://example.com/data" --filename "data.json"
 #### PDF Structure Extraction
 
 ```bash
-# Extract structured data from a local PDF file
+# Extract structured data from a local PDF file (with streaming progress)
 bookwyrm extract-pdf document.pdf --output extracted_data.json
 
-# Extract from a PDF URL
+# Extract from a PDF URL with streaming progress
 bookwyrm extract-pdf --url "https://example.com/document.pdf" --output results.json
 
 # Use --file option instead of positional argument
 bookwyrm extract-pdf --file document.pdf --output data.json
 
-# Show detailed extraction results
+# Extract specific page ranges
+bookwyrm extract-pdf document.pdf --start-page 5 --num-pages 10 --output pages_5_to_14.json
+
+# Extract from page 10 to end of document
+bookwyrm extract-pdf document.pdf --start-page 10 --output from_page_10.json
+
+# Use non-streaming mode (no progress bar)
+bookwyrm extract-pdf document.pdf --no-stream --output results.json
+
+# Show detailed extraction results with verbose output
 bookwyrm extract-pdf document.pdf --verbose --output detailed_results.json
 
 # Use custom PDF extraction API endpoint
 bookwyrm extract-pdf document.pdf --base-url "http://localhost:8000" --output results.json
+
+# Auto-save with generated filename (no --output needed)
+bookwyrm extract-pdf my_document.pdf --start-page 5 --num-pages 3
+# Saves to: my_document_pages_5-7_extracted.json
 ```
 
 #### Summarization
@@ -300,6 +362,7 @@ bookwyrm cite --verbose "Question?" chunks.jsonl
 # Use environment variables (recommended)
 export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
 export BOOKWYRM_API_KEY="your-api-key"
+export BOOKWYRM_PDF_API_URL="https://pdf-api.bookwyrm.ai:443"  # Optional: separate PDF API endpoint
 bookwyrm phrasal --url "https://example.com/text.txt"
 ```
 
@@ -312,6 +375,7 @@ Set these environment variables for convenience:
 ```bash
 export BOOKWYRM_API_KEY="your-api-key"
 export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
+export BOOKWYRM_PDF_API_URL="https://pdf-api.bookwyrm.ai:443"  # Optional: separate PDF API endpoint
 ```
 
 ## Development
@@ -355,10 +419,15 @@ pytest -k "async"
 - `ClassifyRequest`: Request model for file classification
 - `ClassifyResponse`: Response containing classification results
 - `FileClassification`: Detailed classification information
+- `PDFExtractRequest`: Request model for PDF structure extraction
+- `PDFExtractResponse`: Response containing extracted PDF data
+- `PDFPage`: Individual page data with text elements
+- `PDFTextElement`: Text element with position and confidence
+- `StreamingPDFResponse`: Union type for streaming PDF responses
 
 ### Clients
 
-- `BookWyrmClient`: Synchronous client with `get_citations()`, `stream_citations()`, `classify()`, and other methods
+- `BookWyrmClient`: Synchronous client with `get_citations()`, `stream_citations()`, `classify()`, `extract_pdf()`, `stream_extract_pdf()`, and other methods
 - `AsyncBookWyrmClient`: Asynchronous client with async versions of the same methods
 
 ### Exceptions
