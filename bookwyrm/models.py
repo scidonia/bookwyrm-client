@@ -299,6 +299,8 @@ class PDFExtractRequest(BaseModel):
     pdf_url: Optional[str] = None
     pdf_content: Optional[str] = None  # Base64 encoded PDF content
     filename: Optional[str] = None  # Optional filename hint
+    start_page: Optional[int] = None  # 1-based page number to start from
+    num_pages: Optional[int] = None   # Number of pages to process from start_page
 
     @model_validator(mode="after")
     def validate_input_source(self):
@@ -308,6 +310,12 @@ class PDFExtractRequest(BaseModel):
 
         if len(provided_sources) != 1:
             raise ValueError("Exactly one of 'pdf_url' or 'pdf_content' must be provided")
+
+        if self.start_page is not None and self.start_page < 1:
+            raise ValueError("start_page must be >= 1")
+
+        if self.num_pages is not None and self.num_pages < 1:
+            raise ValueError("num_pages must be >= 1")
 
         return self
 
@@ -354,3 +362,60 @@ class PDFExtractResponse(BaseModel):
     total_pages: int
     extraction_method: str = "paddleocr"
     processing_time: Optional[float] = None
+
+
+class PDFStreamMetadata(BaseModel):
+    """Metadata for PDF streaming extraction."""
+
+    type: Literal["metadata"] = "metadata"
+    total_pages: int
+    total_pages_in_document: int
+    start_page: int
+    current_page: int
+
+
+class PDFStreamPageResponse(BaseModel):
+    """Individual page response during streaming."""
+
+    type: Literal["page"] = "page"
+    total_pages: int
+    total_pages_in_document: int
+    current_page: int
+    document_page: int
+    page_data: PDFPage
+
+
+class PDFStreamPageError(BaseModel):
+    """Error processing a specific page during streaming."""
+
+    type: Literal["page_error"] = "page_error"
+    total_pages: int
+    total_pages_in_document: int
+    current_page: int
+    document_page: int
+    error: str
+
+
+class PDFStreamComplete(BaseModel):
+    """Completion message for streaming extraction."""
+
+    type: Literal["complete"] = "complete"
+    total_pages: int
+    total_pages_in_document: int
+    current_page: int
+
+
+class PDFStreamError(BaseModel):
+    """Error during PDF streaming extraction."""
+
+    type: Literal["error"] = "error"
+    error: str
+
+
+StreamingPDFResponse = Union[
+    PDFStreamMetadata,
+    PDFStreamPageResponse,
+    PDFStreamPageError,
+    PDFStreamComplete,
+    PDFStreamError,
+]

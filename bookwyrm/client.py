@@ -24,6 +24,12 @@ from .models import (
     ClassifyResponse,
     PDFExtractRequest,
     PDFExtractResponse,
+    StreamingPDFResponse,
+    PDFStreamMetadata,
+    PDFStreamPageResponse,
+    PDFStreamPageError,
+    PDFStreamComplete,
+    PDFStreamError,
 )
 
 
@@ -257,17 +263,30 @@ class BookWyrmClient:
                 pdf_bytes = base64.b64decode(request.pdf_content)
                 
                 files = {"file": (request.filename or "document.pdf", pdf_bytes, "application/pdf")}
+                data = {}
+                if request.start_page is not None:
+                    data["start_page"] = request.start_page
+                if request.num_pages is not None:
+                    data["num_pages"] = request.num_pages
+                    
                 response = self.session.post(
                     f"{self.base_url}/extract-structure",
                     files=files,
+                    data=data,
                     headers=headers,
                 )
             elif request.pdf_url:
                 # Handle URL using JSON endpoint
                 headers["Content-Type"] = "application/json"
+                json_data = {"pdf_url": request.pdf_url}
+                if request.start_page is not None:
+                    json_data["start_page"] = request.start_page
+                if request.num_pages is not None:
+                    json_data["num_pages"] = request.num_pages
+                    
                 response = self.session.post(
                     f"{self.base_url}/extract-structure-json",
-                    json={"pdf_url": request.pdf_url},
+                    json=json_data,
                     headers=headers,
                 )
             else:
@@ -276,6 +295,93 @@ class BookWyrmClient:
             response.raise_for_status()
             response_data = response.json()
             return PDFExtractResponse.model_validate(response_data)
+        except requests.HTTPError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except requests.RequestException as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    def stream_extract_pdf(
+        self, request: PDFExtractRequest
+    ) -> Iterator[StreamingPDFResponse]:
+        """
+        Stream PDF extraction with progress updates.
+
+        Args:
+            request: PDF extraction request with URL or content
+
+        Yields:
+            Streaming PDF responses (metadata, pages, completion, or errors)
+
+        Raises:
+            BookWyrmAPIError: If the API request fails
+        """
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            if request.pdf_content:
+                # Handle base64-encoded file content using form data
+                import base64
+                pdf_bytes = base64.b64decode(request.pdf_content)
+                
+                files = {"file": (request.filename or "document.pdf", pdf_bytes, "application/pdf")}
+                data = {}
+                if request.start_page is not None:
+                    data["start_page"] = request.start_page
+                if request.num_pages is not None:
+                    data["num_pages"] = request.num_pages
+                    
+                response = self.session.post(
+                    f"{self.base_url}/extract-structure-stream",
+                    files=files,
+                    data=data,
+                    headers=headers,
+                    stream=True,
+                )
+            elif request.pdf_url:
+                # Handle URL using JSON endpoint
+                headers["Content-Type"] = "application/json"
+                json_data = {"pdf_url": request.pdf_url}
+                if request.start_page is not None:
+                    json_data["start_page"] = request.start_page
+                if request.num_pages is not None:
+                    json_data["num_pages"] = request.num_pages
+                    
+                response = self.session.post(
+                    f"{self.base_url}/extract-structure-stream-json",
+                    json=json_data,
+                    headers=headers,
+                    stream=True,
+                )
+            else:
+                raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
+
+            response.raise_for_status()
+
+            for line in response.iter_lines(decode_unicode=True):
+                if line.strip():
+                    try:
+                        data = json.loads(line)
+                        response_type = data.get("type")
+
+                        if response_type == "metadata":
+                            yield PDFStreamMetadata.model_validate(data)
+                        elif response_type == "page":
+                            yield PDFStreamPageResponse.model_validate(data)
+                        elif response_type == "page_error":
+                            yield PDFStreamPageError.model_validate(data)
+                        elif response_type == "complete":
+                            yield PDFStreamComplete.model_validate(data)
+                        elif response_type == "error":
+                            yield PDFStreamError.model_validate(data)
+                        else:
+                            # Unknown response type, skip
+                            continue
+                    except json.JSONDecodeError:
+                        # Skip malformed JSON lines
+                        continue
+
         except requests.HTTPError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except requests.RequestException as e:

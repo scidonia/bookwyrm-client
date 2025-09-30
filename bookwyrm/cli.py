@@ -42,6 +42,12 @@ from .models import (
     ClassifyResponse,
     PDFExtractRequest,
     PDFExtractResponse,
+    StreamingPDFResponse,
+    PDFStreamMetadata,
+    PDFStreamPageResponse,
+    PDFStreamPageError,
+    PDFStreamComplete,
+    PDFStreamError,
 )
 
 console = Console()
@@ -1092,6 +1098,17 @@ def extract_pdf(
             help="Output file for extracted data (JSON format)",
         ),
     ] = None,
+    start_page: Annotated[
+        Optional[int],
+        typer.Option(help="1-based page number to start from"),
+    ] = None,
+    num_pages: Annotated[
+        Optional[int],
+        typer.Option(help="Number of pages to process from start_page"),
+    ] = None,
+    stream: Annotated[
+        bool, typer.Option("--stream/--no-stream", help="Use streaming API with progress")
+    ] = True,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1149,7 +1166,9 @@ def extract_pdf(
             
             request = PDFExtractRequest(
                 pdf_content=pdf_content,
-                filename=actual_file.name
+                filename=actual_file.name,
+                start_page=start_page,
+                num_pages=num_pages
             )
         except Exception as e:
             console.print(f"[red]Error reading PDF file: {e}[/red]")
@@ -1157,82 +1176,223 @@ def extract_pdf(
     else:
         # Use URL
         console.print(f"[blue]Using PDF from URL: {url}[/blue]")
-        request = PDFExtractRequest(pdf_url=url)
+        request = PDFExtractRequest(
+            pdf_url=url,
+            start_page=start_page,
+            num_pages=num_pages
+        )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        console.print("[blue]Starting PDF extraction...[/blue]")
+        if stream:
+            console.print("[blue]Starting PDF extraction with streaming...[/blue]")
+            if start_page or num_pages:
+                page_info = f" (pages {start_page or 1}"
+                if num_pages:
+                    page_info += f"-{(start_page or 1) + num_pages - 1}"
+                page_info += ")"
+                console.print(f"[dim]Processing{page_info}[/dim]")
 
-        with console.status("[bold green]Processing PDF..."):
-            response = client.extract_pdf(request)
+            pages = []
+            total_elements = 0
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=console,
+            ) as progress:
 
-        console.print("[green]✓ PDF extraction complete![/green]")
+                task = progress.add_task("Processing PDF...", total=None)
 
-        # Display summary
-        console.print(f"[green]Extracted {response.total_pages} pages[/green]")
-        
-        total_elements = sum(len(page.text_blocks) for page in response.pages)
-        console.print(f"[green]Found {total_elements} text elements[/green]")
-        
-        if response.processing_time:
-            console.print(f"[dim]Processing time: {response.processing_time:.2f}s[/dim]")
+                for response in client.stream_extract_pdf(request):
+                    if isinstance(response, PDFStreamMetadata):
+                        # Set up progress bar with known total
+                        progress.update(
+                            task,
+                            total=response.total_pages,
+                            description=f"Processing {response.total_pages} pages...",
+                        )
+                        if state.verbose:
+                            console.print(
+                                f"[dim]Document has {response.total_pages_in_document} total pages, "
+                                f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
+                            )
+                    elif isinstance(response, PDFStreamPageResponse):
+                        pages.append(response.page_data)
+                        total_elements += len(response.page_data.text_blocks)
+                        
+                        progress.update(
+                            task,
+                            completed=response.current_page,
+                            description=f"Processed page {response.document_page} ({len(response.page_data.text_blocks)} elements)",
+                        )
+                        
+                        if state.verbose:
+                            console.print(
+                                f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
+                            )
+                    elif isinstance(response, PDFStreamPageError):
+                        progress.update(
+                            task,
+                            completed=response.current_page,
+                            description=f"Error on page {response.document_page}",
+                        )
+                        console.print(f"[red]Error on page {response.document_page}: {response.error}[/red]")
+                    elif isinstance(response, PDFStreamComplete):
+                        progress.update(
+                            task,
+                            completed=response.current_page,
+                            description="Complete!",
+                        )
+                        console.print("[green]✓ PDF extraction complete![/green]")
+                    elif isinstance(response, PDFStreamError):
+                        console.print(f"[red]Extraction error: {response.error}[/red]")
+                        raise typer.Exit(1)
 
-        # Display detailed results if verbose
-        if state.verbose and response.pages:
-            table = Table(title="Extracted Text Elements")
-            table.add_column("Page", justify="right", style="cyan", no_wrap=True)
-            table.add_column("Position", justify="center", style="magenta")
-            table.add_column("Confidence", justify="center", style="yellow")
-            table.add_column("Text", style="green")
+            # Display summary
+            console.print(f"[green]Extracted {len(pages)} pages[/green]")
+            console.print(f"[green]Found {total_elements} text elements[/green]")
 
-            # Show first 20 elements across all pages
-            element_count = 0
-            for page in response.pages:
-                for element in page.text_blocks:
+            # Display detailed results if verbose
+            if state.verbose and pages:
+                table = Table(title="Extracted Text Elements")
+                table.add_column("Page", justify="right", style="cyan", no_wrap=True)
+                table.add_column("Position", justify="center", style="magenta")
+                table.add_column("Confidence", justify="center", style="yellow")
+                table.add_column("Text", style="green")
+
+                # Show first 20 elements across all pages
+                element_count = 0
+                for page in pages:
+                    for element in page.text_blocks:
+                        if element_count >= 20:
+                            break
+                        
+                        position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
+                        confidence = f"{element.confidence:.2f}"
+                        text_preview = (
+                            element.text[:60] + "..." if len(element.text) > 60 else element.text
+                        )
+                        
+                        table.add_row(
+                            str(page.page_number),
+                            position,
+                            confidence,
+                            text_preview
+                        )
+                        element_count += 1
+                    
                     if element_count >= 20:
                         break
-                    
-                    position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
-                    confidence = f"{element.confidence:.2f}"
-                    text_preview = (
-                        element.text[:60] + "..." if len(element.text) > 60 else element.text
-                    )
-                    
-                    table.add_row(
-                        str(page.page_number),
-                        position,
-                        confidence,
-                        text_preview
-                    )
-                    element_count += 1
                 
-                if element_count >= 20:
-                    break
-            
-            if total_elements > 20:
-                table.add_row("...", "...", "...", "...")
-            
-            console.print(table)
+                if total_elements > 20:
+                    table.add_row("...", "...", "...", "...")
+                
+                console.print(table)
 
-        # Save to output file if specified
-        if output:
-            try:
-                output_data = {
-                    "pages": [page.model_dump() for page in response.pages],
-                    "total_pages": response.total_pages,
-                    "extraction_method": response.extraction_method,
-                    "processing_time": response.processing_time,
-                    "source": {
-                        "file": str(actual_file) if actual_file else None,
-                        "url": url,
-                    },
-                }
+            # Save to output file if specified
+            if output:
+                try:
+                    output_data = {
+                        "pages": [page.model_dump() for page in pages],
+                        "total_pages": len(pages),
+                        "extraction_method": "paddleocr",
+                        "source": {
+                            "file": str(actual_file) if actual_file else None,
+                            "url": url,
+                            "start_page": start_page,
+                            "num_pages": num_pages,
+                        },
+                    }
 
-                output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
-                console.print(f"\n[green]Extraction results saved to: {output}[/green]")
-            except Exception as e:
-                console.print(f"[red]Error saving to {output}: {e}[/red]")
+                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    console.print(f"\n[green]Extraction results saved to: {output}[/green]")
+                except Exception as e:
+                    console.print(f"[red]Error saving to {output}: {e}[/red]")
+
+        else:
+            console.print("[blue]Starting PDF extraction...[/blue]")
+            if start_page or num_pages:
+                page_info = f" (pages {start_page or 1}"
+                if num_pages:
+                    page_info += f"-{(start_page or 1) + num_pages - 1}"
+                page_info += ")"
+                console.print(f"[dim]Processing{page_info}[/dim]")
+
+            with console.status("[bold green]Processing PDF..."):
+                response = client.extract_pdf(request)
+
+            console.print("[green]✓ PDF extraction complete![/green]")
+
+            # Display summary
+            console.print(f"[green]Extracted {response.total_pages} pages[/green]")
+            
+            total_elements = sum(len(page.text_blocks) for page in response.pages)
+            console.print(f"[green]Found {total_elements} text elements[/green]")
+            
+            if response.processing_time:
+                console.print(f"[dim]Processing time: {response.processing_time:.2f}s[/dim]")
+
+            # Display detailed results if verbose
+            if state.verbose and response.pages:
+                table = Table(title="Extracted Text Elements")
+                table.add_column("Page", justify="right", style="cyan", no_wrap=True)
+                table.add_column("Position", justify="center", style="magenta")
+                table.add_column("Confidence", justify="center", style="yellow")
+                table.add_column("Text", style="green")
+
+                # Show first 20 elements across all pages
+                element_count = 0
+                for page in response.pages:
+                    for element in page.text_blocks:
+                        if element_count >= 20:
+                            break
+                        
+                        position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
+                        confidence = f"{element.confidence:.2f}"
+                        text_preview = (
+                            element.text[:60] + "..." if len(element.text) > 60 else element.text
+                        )
+                        
+                        table.add_row(
+                            str(page.page_number),
+                            position,
+                            confidence,
+                            text_preview
+                        )
+                        element_count += 1
+                    
+                    if element_count >= 20:
+                        break
+                
+                if total_elements > 20:
+                    table.add_row("...", "...", "...", "...")
+                
+                console.print(table)
+
+            # Save to output file if specified
+            if output:
+                try:
+                    output_data = {
+                        "pages": [page.model_dump() for page in response.pages],
+                        "total_pages": response.total_pages,
+                        "extraction_method": response.extraction_method,
+                        "processing_time": response.processing_time,
+                        "source": {
+                            "file": str(actual_file) if actual_file else None,
+                            "url": url,
+                            "start_page": start_page,
+                            "num_pages": num_pages,
+                        },
+                    }
+
+                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                    console.print(f"\n[green]Extraction results saved to: {output}[/green]")
+                except Exception as e:
+                    console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")
