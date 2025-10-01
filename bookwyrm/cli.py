@@ -585,6 +585,16 @@ def summarize(
         )
         raise typer.Exit(1)
 
+    # Require output file when using structured output with Pydantic model
+    if (model_class_file or model_class_name) and not output:
+        console.print(
+            "[red]Error: --output is required when using structured output with --model-class-file and --model-class-name[/red]"
+        )
+        console.print(
+            "[dim]Structured output generates JSON that should be saved to a file for proper access.[/dim]"
+        )
+        raise typer.Exit(1)
+
     console.print(f"[blue]Loading JSONL file: {jsonl_file}[/blue]")
     content = load_jsonl_content(jsonl_file)
 
