@@ -732,7 +732,6 @@ def summarize(
             # If we used a structured model, try to parse and display the JSON nicely
             if model_name and model_schema_json:
                 try:
-                    import json
                     structured_data = json.loads(final_result.summary)
                     console.print("[dim]Structured output:[/dim]")
                     for key, value in structured_data.items():
@@ -808,7 +807,6 @@ def summarize(
             # If we used a structured model, try to parse and display the JSON nicely
             if model_name and model_schema_json:
                 try:
-                    import json
                     structured_data = json.loads(response.summary)
                     console.print("[dim]Structured output:[/dim]")
                     for key, value in structured_data.items():
