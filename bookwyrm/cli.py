@@ -21,7 +21,12 @@ from rich.text import Text
 from rich.live import Live
 from rich.layout import Layout
 
-from . import __version__
+try:
+    from importlib.metadata import version
+    __version__ = version("bookwyrm")
+except ImportError:
+    __version__ = "unknown"
+
 from .client import BookWyrmClient, BookWyrmAPIError
 from .models import (
     CitationRequest,

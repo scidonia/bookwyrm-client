@@ -4,7 +4,12 @@ import json
 import platform
 from typing import List, Iterator, Optional
 import requests
-from . import __version__
+
+try:
+    from importlib.metadata import version
+    __version__ = version("bookwyrm")
+except ImportError:
+    __version__ = "unknown"
 from .models import (
     CitationRequest,
     CitationResponse,

@@ -1,6 +1,11 @@
 """BookWyrm client library."""
 
-__version__ = "0.1.3"
+try:
+    from importlib.metadata import version
+    __version__ = version("bookwyrm")
+except ImportError:
+    # Fallback for Python < 3.8 or if package not installed
+    __version__ = "unknown"
 
 from .client import BookWyrmClient, BookWyrmClientError, BookWyrmAPIError
 from .async_client import AsyncBookWyrmClient
