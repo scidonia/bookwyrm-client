@@ -490,6 +490,35 @@ def summarize(
     stream: Annotated[
         bool, typer.Option("--stream/--no-stream", help="Use streaming API")
     ] = True,
+    model_class_file: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--model-class-file",
+            help="Python file containing Pydantic model class for structured output",
+            exists=True,
+        ),
+    ] = None,
+    model_class_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--model-class-name",
+            help="Name of the Pydantic model class to use (required with --model-class-file)",
+        ),
+    ] = None,
+    chunk_prompt: Annotated[
+        Optional[str],
+        typer.Option(
+            "--chunk-prompt",
+            help="Custom prompt for chunk summarization (requires --summary-prompt)",
+        ),
+    ] = None,
+    summary_prompt: Annotated[
+        Optional[str],
+        typer.Option(
+            "--summary-prompt",
+            help="Custom prompt for summary of summaries (requires --chunk-prompt)",
+        ),
+    ] = None,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -525,13 +554,88 @@ def summarize(
         )
         raise typer.Exit(1)
 
+    # Validate model class options
+    if model_class_file and not model_class_name:
+        console.print(
+            "[red]Error: --model-class-name is required when --model-class-file is provided[/red]"
+        )
+        raise typer.Exit(1)
+    if model_class_name and not model_class_file:
+        console.print(
+            "[red]Error: --model-class-file is required when --model-class-name is provided[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Validate custom prompt options
+    if chunk_prompt and not summary_prompt:
+        console.print(
+            "[red]Error: --summary-prompt is required when --chunk-prompt is provided[/red]"
+        )
+        raise typer.Exit(1)
+    if summary_prompt and not chunk_prompt:
+        console.print(
+            "[red]Error: --chunk-prompt is required when --summary-prompt is provided[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Validate mutually exclusive options
+    if (model_class_file or model_class_name) and (chunk_prompt or summary_prompt):
+        console.print(
+            "[red]Error: Cannot specify both model class options and custom prompt options. These are mutually exclusive.[/red]"
+        )
+        raise typer.Exit(1)
+
     console.print(f"[blue]Loading JSONL file: {jsonl_file}[/blue]")
     content = load_jsonl_content(jsonl_file)
+
+    # Handle model class loading if specified
+    model_name = None
+    model_schema_json = None
+    if model_class_file and model_class_name:
+        try:
+            console.print(f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]")
+            
+            # Load the Python file as a module
+            import importlib.util
+            import sys
+            
+            spec = importlib.util.spec_from_file_location("user_model", model_class_file)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not load module from {model_class_file}")
+            
+            user_module = importlib.util.module_from_spec(spec)
+            sys.modules["user_model"] = user_module
+            spec.loader.exec_module(user_module)
+            
+            # Get the model class
+            if not hasattr(user_module, model_class_name):
+                raise AttributeError(f"Class '{model_class_name}' not found in {model_class_file}")
+            
+            model_class = getattr(user_module, model_class_name)
+            
+            # Validate it's a Pydantic model
+            from pydantic import BaseModel
+            if not issubclass(model_class, BaseModel):
+                raise TypeError(f"Class '{model_class_name}' must be a Pydantic BaseModel")
+            
+            # Get the schema
+            model_name = model_class_name
+            model_schema_json = json.dumps(model_class.model_json_schema())
+            
+            console.print(f"[green]Successfully loaded model class '{model_class_name}'[/green]")
+            
+        except Exception as e:
+            console.print(f"[red]Error loading model class: {e}[/red]")
+            raise typer.Exit(1)
 
     request = SummarizeRequest(
         content=content,
         max_tokens=max_tokens,
         debug=debug,
+        model_name=model_name,
+        model_schema_json=model_schema_json,
+        chunk_prompt=chunk_prompt,
+        summary_of_summaries_prompt=summary_prompt,
     )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
