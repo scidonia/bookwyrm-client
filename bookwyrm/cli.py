@@ -21,6 +21,7 @@ from rich.text import Text
 from rich.live import Live
 from rich.layout import Layout
 
+from . import __version__
 from .client import BookWyrmClient, BookWyrmAPIError
 from .models import (
     CitationRequest,
@@ -208,6 +209,21 @@ def display_verbose_citation(citation):
 
 
 app = typer.Typer(help="BookWyrm Client CLI - Find citations in text using AI.")
+
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"bookwyrm {__version__}")
+        raise typer.Exit()
+
+@app.callback()
+def main(
+    version: Annotated[
+        Optional[bool], 
+        typer.Option("--version", callback=version_callback, help="Show version and exit")
+    ] = None,
+):
+    """BookWyrm Client CLI - Find citations in text using AI."""
+    pass
 
 
 # Global state for CLI options
