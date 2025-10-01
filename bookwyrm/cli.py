@@ -817,7 +817,7 @@ def phrasal(
     ] = None,
     file: Annotated[
         Optional[Path],
-        typer.Option("--file", help="File to read text from", exists=True),
+        typer.Option("-f", "--file", help="File to read text from", exists=True),
     ] = None,
     output: Annotated[
         Optional[Path],
