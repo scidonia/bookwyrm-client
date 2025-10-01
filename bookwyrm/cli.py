@@ -728,18 +728,42 @@ def summarize(
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
             console.print("\n[bold]Final Summary:[/bold]")
-            console.print(final_result.summary)
+            
+            # If we used a structured model, try to parse and display the JSON nicely
+            if model_name and model_schema_json:
+                try:
+                    import json
+                    structured_data = json.loads(final_result.summary)
+                    console.print("[dim]Structured output:[/dim]")
+                    for key, value in structured_data.items():
+                        if value is not None:
+                            console.print(f"[cyan]{key}:[/cyan] {value}")
+                except json.JSONDecodeError:
+                    # Fallback to raw text if JSON parsing fails
+                    console.print(final_result.summary)
+            else:
+                console.print(final_result.summary)
 
             # Save to output file if specified
             if output:
                 try:
+                    # If we used a structured model, parse the JSON summary for better storage
+                    summary_data = final_result.summary
+                    if model_name and model_schema_json:
+                        try:
+                            summary_data = json.loads(final_result.summary)
+                        except json.JSONDecodeError:
+                            # Keep as string if parsing fails
+                            pass
+                    
                     output_data = {
-                        "summary": final_result.summary,
+                        "summary": summary_data,
                         "subsummary_count": final_result.subsummary_count,
                         "levels_used": final_result.levels_used,
                         "total_tokens": final_result.total_tokens,
                         "source_file": str(jsonl_file),
                         "max_tokens": max_tokens,
+                        "model_used": model_name if model_name else None,
                         "intermediate_summaries": (
                             final_result.intermediate_summaries if debug else None
                         ),
@@ -780,18 +804,42 @@ def summarize(
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
             console.print("\n[bold]Final Summary:[/bold]")
-            console.print(response.summary)
+            
+            # If we used a structured model, try to parse and display the JSON nicely
+            if model_name and model_schema_json:
+                try:
+                    import json
+                    structured_data = json.loads(response.summary)
+                    console.print("[dim]Structured output:[/dim]")
+                    for key, value in structured_data.items():
+                        if value is not None:
+                            console.print(f"[cyan]{key}:[/cyan] {value}")
+                except json.JSONDecodeError:
+                    # Fallback to raw text if JSON parsing fails
+                    console.print(response.summary)
+            else:
+                console.print(response.summary)
 
             # Save to output file if specified
             if output:
                 try:
+                    # If we used a structured model, parse the JSON summary for better storage
+                    summary_data = response.summary
+                    if model_name and model_schema_json:
+                        try:
+                            summary_data = json.loads(response.summary)
+                        except json.JSONDecodeError:
+                            # Keep as string if parsing fails
+                            pass
+                    
                     output_data = {
-                        "summary": response.summary,
+                        "summary": summary_data,
                         "subsummary_count": response.subsummary_count,
                         "levels_used": response.levels_used,
                         "total_tokens": response.total_tokens,
                         "source_file": str(jsonl_file),
                         "max_tokens": max_tokens,
+                        "model_used": model_name if model_name else None,
                         "intermediate_summaries": (
                             response.intermediate_summaries if debug else None
                         ),
