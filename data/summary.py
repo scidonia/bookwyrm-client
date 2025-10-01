@@ -5,7 +5,7 @@ from datetime import date
 
 class Summary(BaseModel):
     """Structured summary model for literary works."""
-    
+
     title: Optional[str] = None
     author: Optional[str] = None
     date_of_publication: Optional[date] = None
