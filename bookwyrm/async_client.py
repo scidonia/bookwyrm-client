@@ -1,8 +1,10 @@
 """Asynchronous client for BookWyrm API."""
 
 import json
+import platform
 from typing import AsyncIterator, Optional
 import httpx
+from . import __version__
 from .models import (
     CitationRequest,
     CitationResponse,
@@ -32,6 +34,14 @@ from .models import (
     PDFStreamError,
 )
 from .client import BookWyrmClientError, BookWyrmAPIError
+
+
+# User-Agent and client version headers
+UA = f"bookwyrm-client/{__version__} (python/{platform.python_version()}; {platform.system()})"
+
+DEFAULT_HEADERS = {
+    "User-Agent": UA,
+}
 
 
 class AsyncBookWyrmClient:
@@ -66,7 +76,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -96,7 +106,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {}
+        headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -137,7 +147,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -187,7 +197,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -239,7 +249,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {}
+        headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -302,7 +312,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {}
+        headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -428,7 +438,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -460,7 +470,7 @@ class AsyncBookWyrmClient:
         Raises:
             BookWyrmAPIError: If the API request fails
         """
-        headers = {"Content-Type": "application/json"}
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
