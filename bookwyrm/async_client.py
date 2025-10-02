@@ -23,6 +23,8 @@ from .models import (
     StreamingSummarizeResponse,
     SummarizeProgressUpdate,
     SummarizeErrorResponse,
+    RateLimitMessage,
+    StructuralErrorMessage,
     ProcessTextRequest,
     StreamingPhrasalResponse,
     PhraseProgressUpdate,
@@ -500,6 +502,10 @@ class AsyncBookWyrmClient:
                                 yield SummaryResponse.model_validate(data)
                             elif response_type == "error":
                                 yield SummarizeErrorResponse.model_validate(data)
+                            elif response_type == "rate_limit":
+                                yield RateLimitMessage.model_validate(data)
+                            elif response_type == "structural_error":
+                                yield StructuralErrorMessage.model_validate(data)
                             else:
                                 # Unknown response type, skip
                                 continue

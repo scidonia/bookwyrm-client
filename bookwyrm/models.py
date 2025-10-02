@@ -210,10 +210,34 @@ class SummarizeErrorResponse(BaseModel):
     error: str
 
 
+class RateLimitMessage(BaseModel):
+    """Rate limit retry message during summarization."""
+
+    type: Literal["rate_limit"] = "rate_limit"
+    message: str
+    attempt: int
+    max_attempts: int
+    wait_time: float
+    error_details: Optional[str] = None
+
+
+class StructuralErrorMessage(BaseModel):
+    """Structural output error message during summarization."""
+
+    type: Literal["structural_error"] = "structural_error"
+    message: str
+    attempt: int
+    max_attempts: int
+    error_type: str
+    error_details: Optional[str] = None
+
+
 StreamingSummarizeResponse = Union[
     SummarizeProgressUpdate,
     SummaryResponse,
     SummarizeErrorResponse,
+    RateLimitMessage,
+    StructuralErrorMessage,
 ]
 
 

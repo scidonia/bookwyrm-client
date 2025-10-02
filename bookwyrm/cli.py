@@ -40,6 +40,8 @@ from .models import (
     SummarizeProgressUpdate,
     SummaryResponse,
     SummarizeErrorResponse,
+    RateLimitMessage,
+    StructuralErrorMessage,
     ProcessTextRequest,
     ResponseFormat,
     PhraseProgressUpdate,
@@ -683,6 +685,12 @@ def summarize(
                             completed=response.chunks_processed,
                             description=f"Level {response.current_level}/{response.total_levels}: {response.message}",
                         )
+
+                    elif isinstance(response, RateLimitMessage):
+                        console.print(f"[orange1]⚠ {response.message} (attempt {response.attempt}/{response.max_attempts})[/orange1]")
+
+                    elif isinstance(response, StructuralErrorMessage):
+                        console.print(f"[orange1]⚠ {response.message} (attempt {response.attempt}/{response.max_attempts})[/orange1]")
 
                     elif isinstance(response, SummaryResponse):
                         final_result = response
