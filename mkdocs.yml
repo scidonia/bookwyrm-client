@@ -52,10 +52,6 @@ plugins:
             show_root_heading: true
             show_root_toc_entry: false
             merge_init_into_class: true
-  - mkdocs-typer:
-      module: bookwyrm.cli
-      command: app
-      prog_name: bookwyrm
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -73,6 +69,7 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
+  - mkdocs-typer
 
 extra:
   social:

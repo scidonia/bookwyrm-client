@@ -130,4 +130,4 @@ except BookWyrmAPIError as e:
 
 - Check out [Examples](examples.md) for more detailed use cases
 - Read the [CLI Reference](cli.md) for command-line usage
-- Explore the [API Reference](api/) for detailed documentation
+- Explore the [API Reference](api/index.md) for detailed documentation
