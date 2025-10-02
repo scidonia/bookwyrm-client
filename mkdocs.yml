@@ -1,0 +1,43 @@
+site_name: BookWyrm Client
+site_url: https://scidonia.github.io/bookwyrm-client/
+repo_url: https://github.com/scidonia/bookwyrm-client
+repo_name: scidonia/bookwyrm-client
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.tabs.link
+    - content.code.annotate
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Examples: examples.md
+  - API Reference:
+      - Client: api/client.md
+      - Async Client: api/async-client.md
+      - Data Models: api/models.md
+  - CLI Reference: cli.md
+  - Contributing: contributing.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature: true
+            show_signature_annotations: true
+  - mkdocs-click     # or: mkdocs-typer
+  - section-index
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
