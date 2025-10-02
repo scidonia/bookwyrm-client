@@ -52,6 +52,13 @@ plugins:
             show_root_heading: true
             show_root_toc_entry: false
             merge_init_into_class: true
+            show_bases: true
+            show_inheritance_diagram: false
+            members_order: source
+            filters:
+              - "!^_"  # Hide private methods
+            show_signature_annotations: true
+            separate_signature: true
 
 markdown_extensions:
   - pymdownx.highlight:
