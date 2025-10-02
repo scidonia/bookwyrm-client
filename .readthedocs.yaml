@@ -9,10 +9,11 @@ build:
   tools:
     python: "3.11"
 
-# Ask RTD to install your project with the "dev" extra
+# Install documentation dependencies
 python:
   install:
     - method: pip
       path: .
       extra_requirements:
         - dev
+    - requirements: docs/requirements.txt
