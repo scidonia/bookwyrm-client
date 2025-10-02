@@ -52,6 +52,11 @@ plugins:
             show_root_heading: true
             show_root_toc_entry: false
             merge_init_into_class: true
+  - mkdocs-click:
+      module: bookwyrm.cli
+      command: app
+      prog_name: bookwyrm
+      depth: 2
 
 markdown_extensions:
   - pymdownx.highlight:
