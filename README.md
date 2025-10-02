@@ -2,6 +2,10 @@
 
 A Python client library and CLI designed to accelerate the development of RAG (Retrieval Augmented Generation) systems and AI agents. BookWyrm provides powerful text processing capabilities through a simple API, making it easy to build sophisticated document analysis and citation systems.
 
+## Documentation
+
+📖 **[Full Documentation](https://bookwyrm-client.readthedocs.io)**
+
 ## Key Capabilities
 
 BookWyrm simplifies RAG and agent development by providing these core endpoints:
