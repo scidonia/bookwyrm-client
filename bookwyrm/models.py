@@ -1,28 +1,50 @@
 """Pydantic models for the BookWyrm client."""
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Union, Literal
 from enum import Enum
 
 
 class TextChunk(BaseModel):
-    """Model for a single text chunk with phrasal offsets."""
+    """A chunk of text with position information.
+    
+    This model represents a segment of text along with its character
+    position within the original document.
+    
+    Attributes:
+        text: The text content of the chunk
+        start_char: Starting character position in the original text
+        end_char: Ending character position in the original text
+    """
 
-    text: str
-    start_char: int
-    end_char: int
+    text: str = Field(..., description="The text content of the chunk")
+    start_char: int = Field(..., description="Starting character position in the original text")
+    end_char: int = Field(..., description="Ending character position in the original text")
 
 
 class CitationRequest(BaseModel):
-    """Request model for citation processing."""
+    """Request model for citation processing.
+    
+    Use this model to request citations for a question from text chunks.
+    Provide exactly one of: chunks, jsonl_content, or jsonl_url.
+    
+    Attributes:
+        chunks: List of text chunks to search
+        jsonl_content: Raw JSONL content as string
+        jsonl_url: URL to fetch JSONL content from
+        question: The question to find citations for
+        start: Starting chunk index (0-based)
+        limit: Maximum number of chunks to process
+        max_tokens_per_chunk: Maximum tokens per chunk
+    """
 
-    chunks: Optional[List[TextChunk]] = None
-    jsonl_content: Optional[str] = None
-    jsonl_url: Optional[str] = None
-    question: str
-    start: Optional[int] = 0
-    limit: Optional[int] = None
-    max_tokens_per_chunk: Optional[int] = 1000
+    chunks: Optional[List[TextChunk]] = Field(None, description="List of text chunks to search")
+    jsonl_content: Optional[str] = Field(None, description="Raw JSONL content as string")
+    jsonl_url: Optional[str] = Field(None, description="URL to fetch JSONL content from")
+    question: str = Field(..., description="The question to find citations for")
+    start: Optional[int] = Field(0, description="Starting chunk index (0-based)")
+    limit: Optional[int] = Field(None, description="Maximum number of chunks to process")
+    max_tokens_per_chunk: Optional[int] = Field(1000, description="Maximum tokens per chunk")
 
     @model_validator(mode="after")
     def validate_input_source(self):
@@ -45,66 +67,130 @@ class CitationRequest(BaseModel):
 
 
 class Citation(BaseModel):
-    """Model for a single citation with phrasal information."""
+    """A citation found in response to a question.
+    
+    Citations include the relevant text, reasoning for why it's relevant,
+    and a quality score indicating how well it answers the question.
+    
+    Attributes:
+        start_chunk: Starting chunk index (inclusive)
+        end_chunk: Ending chunk index (inclusive)
+        text: The citation text content
+        reasoning: Explanation of why this citation is relevant
+        quality: Quality score (0-4): 0=unrelated, 4=perfectly answers
+    """
 
-    start_chunk: int
-    end_chunk: int
-    text: str
-    reasoning: str
-    quality: int  # 0-4 scale, 0=unrelated, 4=perfectly answers
+    start_chunk: int = Field(..., description="Starting chunk index (inclusive)")
+    end_chunk: int = Field(..., description="Ending chunk index (inclusive)")
+    text: str = Field(..., description="The citation text content")
+    reasoning: str = Field(..., description="Explanation of why this citation is relevant")
+    quality: int = Field(..., description="Quality score (0-4): 0=unrelated, 4=perfectly answers")
 
 
 class UsageInfo(BaseModel):
-    """Usage tracking information."""
+    """Usage and billing information for API requests.
+    
+    Tracks token usage, processing statistics, and cost estimates.
+    
+    Attributes:
+        tokens_processed: Total tokens processed in the request
+        chunks_processed: Number of text chunks processed
+        estimated_cost: Estimated cost in USD
+        remaining_credits: Remaining account credits
+    """
 
-    tokens_processed: int
-    chunks_processed: int
-    estimated_cost: Optional[float] = None
-    remaining_credits: Optional[float] = None
+    tokens_processed: int = Field(..., description="Total tokens processed in the request")
+    chunks_processed: int = Field(..., description="Number of text chunks processed")
+    estimated_cost: Optional[float] = Field(None, description="Estimated cost in USD")
+    remaining_credits: Optional[float] = Field(None, description="Remaining account credits")
 
 
 class CitationResponse(BaseModel):
-    """Response model for citation results."""
+    """Response containing citation results and usage information.
+    
+    This is the response from non-streaming citation requests.
+    
+    Attributes:
+        citations: List of found citations
+        total_citations: Total number of citations found
+        usage: Usage and billing information
+    """
 
-    citations: List[Citation]
-    total_citations: int
-    usage: Optional[UsageInfo] = None
+    citations: List[Citation] = Field(..., description="List of found citations")
+    total_citations: int = Field(..., description="Total number of citations found")
+    usage: Optional[UsageInfo] = Field(None, description="Usage and billing information")
 
 
 class CitationProgressUpdate(BaseModel):
-    """Progress update during citation processing."""
+    """Progress update during citation processing.
+    
+    Sent during streaming citation requests to show processing progress.
+    
+    Attributes:
+        type: Message type identifier
+        chunks_processed: Number of chunks processed so far
+        total_chunks: Total number of chunks to process
+        citations_found: Number of citations found so far
+        current_chunk_range: Range of chunks currently being processed
+        message: Human-readable progress message
+    """
 
-    type: Literal["progress"] = "progress"
-    chunks_processed: int
-    total_chunks: int
-    citations_found: int
-    current_chunk_range: str
-    message: str
+    type: Literal["progress"] = Field("progress", description="Message type identifier")
+    chunks_processed: int = Field(..., description="Number of chunks processed so far")
+    total_chunks: int = Field(..., description="Total number of chunks to process")
+    citations_found: int = Field(..., description="Number of citations found so far")
+    current_chunk_range: str = Field(..., description="Range of chunks currently being processed")
+    message: str = Field(..., description="Human-readable progress message")
 
 
 class CitationStreamResponse(BaseModel):
-    """Individual citation found during streaming."""
+    """Individual citation found during streaming.
+    
+    Sent when a citation is found during streaming citation requests.
+    
+    Attributes:
+        type: Message type identifier
+        citation: The found citation
+    """
 
-    type: Literal["citation"] = "citation"
-    citation: Citation
+    type: Literal["citation"] = Field("citation", description="Message type identifier")
+    citation: Citation = Field(..., description="The found citation")
 
 
 class CitationSummaryResponse(BaseModel):
-    """Final summary of citation processing."""
+    """Final summary of citation processing.
+    
+    Sent at the end of streaming citation requests with final statistics.
+    
+    Attributes:
+        type: Message type identifier
+        total_citations: Total number of citations found
+        chunks_processed: Total number of chunks processed
+        token_chunks_processed: Number of token chunks processed
+        start_offset: Starting offset used for processing
+        usage: Usage and billing information
+    """
 
-    type: Literal["summary"] = "summary"
-    total_citations: int
-    chunks_processed: int
-    token_chunks_processed: int
-    start_offset: int
-    usage: UsageInfo
+    type: Literal["summary"] = Field("summary", description="Message type identifier")
+    total_citations: int = Field(..., description="Total number of citations found")
+    chunks_processed: int = Field(..., description="Total number of chunks processed")
+    token_chunks_processed: int = Field(..., description="Number of token chunks processed")
+    start_offset: int = Field(..., description="Starting offset used for processing")
+    usage: UsageInfo = Field(..., description="Usage and billing information")
 
 
 class CitationErrorResponse(BaseModel):
-    """Error during citation processing."""
+    """Error during citation processing.
+    
+    Sent when an error occurs during streaming citation requests.
+    
+    Attributes:
+        type: Message type identifier
+        error: Error message describing what went wrong
+    """
 
-    type: Literal["error"] = "error"
-    error: str
+    type: Literal["error"] = Field("error", description="Message type identifier")
+    error: str = Field(..., description="Error message describing what went wrong")
 
 
 StreamingCitationResponse = Union[
@@ -116,11 +202,19 @@ StreamingCitationResponse = Union[
 
 
 class Phrase(BaseModel):
-    """Model for a phrase with text and optional position information."""
+    """A phrase extracted from text with optional position information.
+    
+    Used in summarization and phrasal processing operations.
+    
+    Attributes:
+        text: The phrase text content
+        start_char: Starting character position (optional)
+        end_char: Ending character position (optional)
+    """
 
-    text: str
-    start_char: Optional[int] = None
-    end_char: Optional[int] = None
+    text: str = Field(..., description="The phrase text content")
+    start_char: Optional[int] = Field(None, description="Starting character position (optional)")
+    end_char: Optional[int] = Field(None, description="Ending character position (optional)")
 
 
 class SummarizeRequest(BaseModel):
@@ -180,57 +274,107 @@ class SummarizeRequest(BaseModel):
 
 
 class SummarizeProgressUpdate(BaseModel):
-    """Progress update during summarization processing."""
+    """Progress update during summarization processing.
+    
+    Sent during streaming summarization to show hierarchical processing progress.
+    
+    Attributes:
+        type: Message type identifier
+        current_level: Current hierarchical level being processed
+        total_levels: Total number of hierarchical levels
+        chunks_processed: Number of chunks processed at current level
+        total_chunks: Total number of chunks at current level
+        summaries_created: Number of summaries created so far
+        message: Human-readable progress message
+    """
 
-    type: Literal["progress"] = "progress"
-    current_level: int
-    total_levels: int
-    chunks_processed: int
-    total_chunks: int
-    summaries_created: int
-    message: str
+    type: Literal["progress"] = Field("progress", description="Message type identifier")
+    current_level: int = Field(..., description="Current hierarchical level being processed")
+    total_levels: int = Field(..., description="Total number of hierarchical levels")
+    chunks_processed: int = Field(..., description="Number of chunks processed at current level")
+    total_chunks: int = Field(..., description="Total number of chunks at current level")
+    summaries_created: int = Field(..., description="Number of summaries created so far")
+    message: str = Field(..., description="Human-readable progress message")
 
 
 class SummaryResponse(BaseModel):
-    """Response model for summarization results."""
+    """Response model for summarization results.
+    
+    Contains the final summary and metadata about the summarization process.
+    
+    Attributes:
+        type: Message type identifier
+        summary: The final summary text or structured JSON
+        subsummary_count: Number of intermediate summaries created
+        levels_used: Number of hierarchical levels used
+        total_tokens: Total tokens processed
+        intermediate_summaries: Debug information with summaries by level
+    """
 
-    type: Literal["summary"] = "summary"
-    summary: str
-    subsummary_count: int
-    levels_used: int
-    total_tokens: int
-    intermediate_summaries: Optional[List[List[str]]] = (
-        None  # Debug: summaries by level
-    )
+    type: Literal["summary"] = Field("summary", description="Message type identifier")
+    summary: str = Field(..., description="The final summary text or structured JSON")
+    subsummary_count: int = Field(..., description="Number of intermediate summaries created")
+    levels_used: int = Field(..., description="Number of hierarchical levels used")
+    total_tokens: int = Field(..., description="Total tokens processed")
+    intermediate_summaries: Optional[List[List[str]]] = Field(None, description="Debug information with summaries by level")
 
 
 class SummarizeErrorResponse(BaseModel):
-    """Error during summarization processing."""
+    """Error during summarization processing.
+    
+    Sent when an error occurs during streaming summarization requests.
+    
+    Attributes:
+        type: Message type identifier
+        error: Error message describing what went wrong
+    """
 
-    type: Literal["error"] = "error"
-    error: str
+    type: Literal["error"] = Field("error", description="Message type identifier")
+    error: str = Field(..., description="Error message describing what went wrong")
 
 
 class RateLimitMessage(BaseModel):
-    """Rate limit retry message during summarization."""
+    """Rate limit retry message during summarization.
+    
+    Sent when rate limits are encountered and retries are being attempted.
+    
+    Attributes:
+        type: Message type identifier
+        message: Human-readable message about the rate limit
+        attempt: Current retry attempt number
+        max_attempts: Maximum number of retry attempts
+        wait_time: Time to wait before retry (seconds)
+        error_details: Additional error details if available
+    """
 
-    type: Literal["rate_limit"] = "rate_limit"
-    message: str
-    attempt: int
-    max_attempts: int
-    wait_time: float
-    error_details: Optional[str] = None
+    type: Literal["rate_limit"] = Field("rate_limit", description="Message type identifier")
+    message: str = Field(..., description="Human-readable message about the rate limit")
+    attempt: int = Field(..., description="Current retry attempt number")
+    max_attempts: int = Field(..., description="Maximum number of retry attempts")
+    wait_time: float = Field(..., description="Time to wait before retry (seconds)")
+    error_details: Optional[str] = Field(None, description="Additional error details if available")
 
 
 class StructuralErrorMessage(BaseModel):
-    """Structural output error message during summarization."""
+    """Structural output error message during summarization.
+    
+    Sent when structured output parsing fails and retries are being attempted.
+    
+    Attributes:
+        type: Message type identifier
+        message: Human-readable message about the structural error
+        attempt: Current retry attempt number
+        max_attempts: Maximum number of retry attempts
+        error_type: Type of structural error encountered
+        error_details: Additional error details if available
+    """
 
-    type: Literal["structural_error"] = "structural_error"
-    message: str
-    attempt: int
-    max_attempts: int
-    error_type: str
-    error_details: Optional[str] = None
+    type: Literal["structural_error"] = Field("structural_error", description="Message type identifier")
+    message: str = Field(..., description="Human-readable message about the structural error")
+    attempt: int = Field(..., description="Current retry attempt number")
+    max_attempts: int = Field(..., description="Maximum number of retry attempts")
+    error_type: str = Field(..., description="Type of structural error encountered")
+    error_details: Optional[str] = Field(None, description="Additional error details if available")
 
 
 StreamingSummarizeResponse = Union[
@@ -243,7 +387,14 @@ StreamingSummarizeResponse = Union[
 
 
 class ResponseFormat(str, Enum):
-    """Response format options for phrasal processing."""
+    """Response format options for phrasal processing.
+    
+    Determines whether position information is included in phrasal responses.
+    
+    Attributes:
+        TEXT_ONLY: Return only text content without position data
+        WITH_OFFSETS: Include character position information (start_char, end_char)
+    """
 
     TEXT_ONLY = "text_only"
     WITH_OFFSETS = "with_offsets"
@@ -277,22 +428,41 @@ class ProcessTextRequest(BaseModel):
 
 
 class PhraseProgressUpdate(BaseModel):
-    """Progress update for phrasal processing."""
+    """Progress update for phrasal processing.
+    
+    Sent during streaming phrasal processing to show progress.
+    
+    Attributes:
+        type: Message type identifier
+        phrases_processed: Number of phrases processed so far
+        chunks_created: Number of chunks created so far
+        bytes_processed: Number of bytes processed
+        message: Human-readable progress message
+    """
 
-    type: Literal["progress"] = "progress"
-    phrases_processed: int
-    chunks_created: int
-    bytes_processed: int
-    message: str
+    type: Literal["progress"] = Field("progress", description="Message type identifier")
+    phrases_processed: int = Field(..., description="Number of phrases processed so far")
+    chunks_created: int = Field(..., description="Number of chunks created so far")
+    bytes_processed: int = Field(..., description="Number of bytes processed")
+    message: str = Field(..., description="Human-readable progress message")
 
 
 class PhraseResult(BaseModel):
-    """Result containing a phrase or chunk."""
+    """Result containing a phrase or chunk.
+    
+    Individual phrase or chunk found during phrasal processing.
+    
+    Attributes:
+        type: Message type identifier
+        text: The phrase or chunk text content
+        start_char: Starting character position (if with_offsets format)
+        end_char: Ending character position (if with_offsets format)
+    """
 
-    type: Literal["phrase"] = "phrase"
-    text: str
-    start_char: Optional[int] = None
-    end_char: Optional[int] = None
+    type: Literal["phrase"] = Field("phrase", description="Message type identifier")
+    text: str = Field(..., description="The phrase or chunk text content")
+    start_char: Optional[int] = Field(None, description="Starting character position (if with_offsets format)")
+    end_char: Optional[int] = Field(None, description="Ending character position (if with_offsets format)")
 
 
 StreamingPhrasalResponse = Union[
@@ -321,26 +491,42 @@ class ClassifyRequest(BaseModel):
 
 
 class FileClassification(BaseModel):
-    """Model for file classification results."""
+    """Classification results for a file.
+    
+    Contains detailed information about the file's format, content type,
+    and confidence in the classification.
+    
+    Attributes:
+        format_type: General file format (e.g., 'text', 'image', 'binary', 'archive')
+        content_type: Specific content type (e.g., 'python_code', 'json_data', 'jpeg_image')
+        mime_type: Detected MIME type
+        confidence: Classification confidence score (0.0-1.0)
+        details: Additional classification details (encoding, language, etc.)
+        classification_methods: Methods used for classification
+    """
 
-    format_type: str  # General file format (e.g., "text", "image", "binary", "archive")
-    content_type: (
-        str  # Specific content type (e.g., "python_code", "json_data", "jpeg_image")
-    )
-    mime_type: str  # MIME type detected
-    confidence: float  # Confidence score 0.0-1.0
-    details: dict  # Additional classification details (encoding, pygments_lexer, etc.)
-    classification_methods: Optional[List[str]] = (
-        None  # Methods used for classification
-    )
+    format_type: str = Field(..., description="General file format (e.g., 'text', 'image', 'binary', 'archive')")
+    content_type: str = Field(..., description="Specific content type (e.g., 'python_code', 'json_data', 'jpeg_image')")
+    mime_type: str = Field(..., description="Detected MIME type")
+    confidence: float = Field(..., description="Classification confidence score (0.0-1.0)")
+    details: dict = Field(..., description="Additional classification details (encoding, language, etc.)")
+    classification_methods: Optional[List[str]] = Field(None, description="Methods used for classification")
 
 
 class ClassifyResponse(BaseModel):
-    """Response model for classification results."""
+    """Response model for classification results.
+    
+    Contains the classification results along with file metadata.
+    
+    Attributes:
+        classification: The file classification results
+        file_size: Size of the file in bytes
+        sample_preview: First few characters if text-based file
+    """
 
-    classification: FileClassification
-    file_size: int
-    sample_preview: Optional[str] = None  # First few characters if text-based
+    classification: FileClassification = Field(..., description="The file classification results")
+    file_size: int = Field(..., description="Size of the file in bytes")
+    sample_preview: Optional[str] = Field(None, description="First few characters if text-based file")
 
 
 class PDFExtractRequest(BaseModel):
@@ -371,47 +557,91 @@ class PDFExtractRequest(BaseModel):
 
 
 class PDFBoundingBox(BaseModel):
-    """Bounding box coordinates."""
+    """Bounding box coordinates for PDF text elements.
+    
+    Represents a rectangular bounding box with top-left and bottom-right coordinates.
+    
+    Attributes:
+        x1: Left edge x-coordinate
+        y1: Top edge y-coordinate
+        x2: Right edge x-coordinate
+        y2: Bottom edge y-coordinate
+    """
 
-    x1: float
-    y1: float
-    x2: float
-    y2: float
+    x1: float = Field(..., description="Left edge x-coordinate")
+    y1: float = Field(..., description="Top edge y-coordinate")
+    x2: float = Field(..., description="Right edge x-coordinate")
+    y2: float = Field(..., description="Bottom edge y-coordinate")
 
 
 class PDFTextElement(BaseModel):
-    """A text element extracted from PDF with position and confidence."""
+    """A text element extracted from PDF with position and confidence.
+    
+    Represents a piece of text found in a PDF with its location and OCR confidence.
+    
+    Attributes:
+        text: The extracted text content
+        confidence: OCR confidence score (0.0-1.0)
+        bbox: Raw bounding box polygon coordinates
+        coordinates: Simplified rectangular bounding box
+    """
 
-    text: str
-    confidence: float
-    bbox: List[List[float]]  # Raw bounding box polygon
-    coordinates: PDFBoundingBox  # Simplified rectangular coordinates
+    text: str = Field(..., description="The extracted text content")
+    confidence: float = Field(..., description="OCR confidence score (0.0-1.0)")
+    bbox: List[List[float]] = Field(..., description="Raw bounding box polygon coordinates")
+    coordinates: PDFBoundingBox = Field(..., description="Simplified rectangular bounding box")
 
 
 class PDFPage(BaseModel):
-    """Data for a single PDF page."""
+    """Data for a single PDF page.
+    
+    Contains all extracted elements from a PDF page including text, tables, and images.
+    
+    Attributes:
+        page_number: The page number (1-based)
+        text_blocks: List of text elements found on the page
+        tables: List of table data (placeholder for future feature)
+        images: List of image data (placeholder for future feature)
+    """
 
-    page_number: int
-    text_blocks: List[PDFTextElement]
-    tables: List[dict] = []  # Placeholder for future table extraction
-    images: List[dict] = []  # Placeholder for future image extraction
+    page_number: int = Field(..., description="The page number (1-based)")
+    text_blocks: List[PDFTextElement] = Field(..., description="List of text elements found on the page")
+    tables: List[dict] = Field(default_factory=list, description="List of table data (placeholder for future feature)")
+    images: List[dict] = Field(default_factory=list, description="List of image data (placeholder for future feature)")
 
 
 class PDFStructuredData(BaseModel):
-    """Complete structured data from PDF extraction."""
+    """Complete structured data from PDF extraction.
+    
+    Contains all pages and metadata from PDF extraction process.
+    
+    Attributes:
+        pages: List of extracted page data
+        total_pages: Total number of pages processed
+        extraction_method: OCR method used for extraction
+    """
 
-    pages: List[PDFPage]
-    total_pages: int
-    extraction_method: str = "paddleocr"
+    pages: List[PDFPage] = Field(..., description="List of extracted page data")
+    total_pages: int = Field(..., description="Total number of pages processed")
+    extraction_method: str = Field("paddleocr", description="OCR method used for extraction")
 
 
 class PDFExtractResponse(BaseModel):
-    """Response model for PDF extraction results."""
+    """Response model for PDF extraction results.
+    
+    Contains the extracted PDF data and processing metadata.
+    
+    Attributes:
+        pages: List of extracted page data
+        total_pages: Total number of pages processed
+        extraction_method: OCR method used for extraction
+        processing_time: Time taken for processing (seconds)
+    """
 
-    pages: List[PDFPage]
-    total_pages: int
-    extraction_method: str = "paddleocr"
-    processing_time: Optional[float] = None
+    pages: List[PDFPage] = Field(..., description="List of extracted page data")
+    total_pages: int = Field(..., description="Total number of pages processed")
+    extraction_method: str = Field("paddleocr", description="OCR method used for extraction")
+    processing_time: Optional[float] = Field(None, description="Time taken for processing (seconds)")
 
 
 class PDFStreamMetadata(BaseModel):
