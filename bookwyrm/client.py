@@ -65,36 +65,133 @@ class BookWyrmAPIError(BookWyrmClientError):
 
 
 class BookWyrmClient:
-    """Synchronous client for BookWyrm API."""
+    """Synchronous client for BookWyrm API.
+    
+    The synchronous client provides access to all BookWyrm API endpoints using the
+    `requests` library. It supports both streaming and non-streaming operations,
+    automatic session management, and comprehensive error handling.
+    
+    Examples:
+        Basic client initialization:
+        
+        ```python
+        from bookwyrm import BookWyrmClient
+        
+        # Using environment variable for API key
+        client = BookWyrmClient()
+        
+        # Explicit API key
+        client = BookWyrmClient(api_key="your-api-key")
+        
+        # Custom base URL
+        client = BookWyrmClient(
+            base_url="https://custom-api.example.com",
+            api_key="your-api-key"
+        )
+        ```
+        
+        Context manager usage for automatic cleanup:
+        
+        ```python
+        with BookWyrmClient() as client:
+            response = client.get_citations(request)
+            # Client is automatically closed when exiting the context
+        ```
+    """
 
     def __init__(
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
     ):
-        """
-        Initialize the BookWyrm client.
+        """Initialize the BookWyrm client.
 
         Args:
-            base_url: Base URL of the BookWyrm API
-            api_key: API key for authentication
+            base_url: Base URL of the BookWyrm API. Defaults to "https://api.bookwyrm.ai:443"
+            api_key: API key for authentication. If not provided, will attempt to read
+                from BOOKWYRM_API_KEY environment variable
+                
+        Examples:
+            ```python
+            # Basic initialization
+            client = BookWyrmClient()
+            
+            # With explicit API key
+            client = BookWyrmClient(api_key="your-api-key")
+            
+            # With custom endpoint
+            client = BookWyrmClient(
+                base_url="https://localhost:8000",
+                api_key="dev-key"
+            )
+            ```
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.session = requests.Session()
 
     def get_citations(self, request: CitationRequest) -> CitationResponse:
-        """
-        Get citations for a question from text chunks.
+        """Get citations for a question from text chunks.
+        
+        This method finds relevant citations that answer a specific question by analyzing
+        the provided text chunks. Each citation includes a quality score (0-4) and reasoning
+        for why it's relevant to the question.
 
         Args:
-            request: Citation request with chunks and question
+            request: Citation request containing chunks/URL and question to answer
 
         Returns:
-            Citation response with found citations
+            Citation response with found citations, total count, and usage information
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Using text chunks directly:
+            
+            ```python
+            from bookwyrm.models import CitationRequest, TextChunk
+            
+            chunks = [
+                TextChunk(text="The sky is blue.", start_char=0, end_char=16),
+                TextChunk(text="Water is wet.", start_char=17, end_char=30)
+            ]
+            
+            request = CitationRequest(
+                chunks=chunks,
+                question="Why is the sky blue?"
+            )
+            
+            response = client.get_citations(request)
+            print(f"Found {response.total_citations} citations")
+            
+            for citation in response.citations:
+                print(f"Quality: {citation.quality}/4")
+                print(f"Text: {citation.text}")
+                print(f"Reasoning: {citation.reasoning}")
+            ```
+            
+            Using a JSONL URL:
+            
+            ```python
+            request = CitationRequest(
+                jsonl_url="https://example.com/chunks.jsonl",
+                question="What is machine learning?",
+                start=0,
+                limit=100
+            )
+            
+            response = client.get_citations(request)
+            ```
+            
+            With usage tracking:
+            
+            ```python
+            response = client.get_citations(request)
+            if response.usage:
+                print(f"Tokens processed: {response.usage.tokens_processed}")
+                print(f"Estimated cost: ${response.usage.estimated_cost:.4f}")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -114,17 +211,81 @@ class BookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     def classify(self, request: ClassifyRequest) -> ClassifyResponse:
-        """
-        Classify file content to determine file type and format.
+        """Classify file content to determine file type and format.
+        
+        This method analyzes file content to determine format type, content type, MIME type,
+        and other classification details. It supports both binary and text files, providing
+        confidence scores and additional metadata about the detected format.
 
         Args:
-            request: Classification request with base64-encoded content
+            request: Classification request with base64-encoded content and optional filename hint
 
         Returns:
-            Classification response with detected file type and details
+            Classification response with detected file type, confidence score, and additional details
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Classify a binary file:
+            
+            ```python
+            import base64
+            from bookwyrm.models import ClassifyRequest
+            
+            # Read file as binary and encode
+            with open("document.pdf", "rb") as f:
+                content = base64.b64encode(f.read()).decode('ascii')
+            
+            request = ClassifyRequest(
+                content=content,
+                filename="document.pdf"
+            )
+            
+            response = client.classify(request)
+            print(f"Format: {response.classification.format_type}")
+            print(f"Content Type: {response.classification.content_type}")
+            print(f"MIME Type: {response.classification.mime_type}")
+            print(f"Confidence: {response.classification.confidence:.2%}")
+            ```
+            
+            Classify text content:
+            
+            ```python
+            import base64
+            
+            code = '''
+            import pandas as pd
+            import numpy as np
+            
+            def analyze_data(df):
+                return df.describe()
+            '''
+            
+            request = ClassifyRequest(
+                content=base64.b64encode(code.encode()).decode('ascii'),
+                filename="script.py"
+            )
+            
+            response = client.classify(request)
+            print(f"Detected as: {response.classification.content_type}")
+            
+            if response.classification.details:
+                print("Details:")
+                for key, value in response.classification.details.items():
+                    print(f"  {key}: {value}")
+            ```
+            
+            With classification methods information:
+            
+            ```python
+            response = client.classify(request)
+            if response.classification.classification_methods:
+                print(f"Methods used: {', '.join(response.classification.classification_methods)}")
+            
+            if response.sample_preview:
+                print(f"Preview: {response.sample_preview[:100]}...")
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -155,17 +316,95 @@ class BookWyrmClient:
     def process_text(
         self, request: ProcessTextRequest
     ) -> Iterator[StreamingPhrasalResponse]:
-        """
-        Process text using phrasal analysis and return streaming response.
+        """Process text using phrasal analysis with streaming results.
+        
+        This method breaks down text into meaningful phrases or chunks using NLP,
+        supporting both direct text input and URLs. It can create fixed-size chunks
+        or extract individual phrases with optional position information.
 
         Args:
-            request: ProcessTextRequest containing text/URL and processing parameters
+            request: Text processing request with text/URL, chunking options, and format preferences
 
         Yields:
-            Streaming phrasal responses (progress updates and phrase results)
+            StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Extract phrases from text with position offsets:
+            
+            ```python
+            from bookwyrm.models import ProcessTextRequest, ResponseFormat
+            
+            text = '''
+            Natural language processing (NLP) is a subfield of linguistics, computer science, 
+            and artificial intelligence concerned with the interactions between computers and human language.
+            '''
+            
+            request = ProcessTextRequest(
+                text=text,
+                response_format=ResponseFormat.WITH_OFFSETS,
+                spacy_model="en_core_web_sm"
+            )
+            
+            phrases = []
+            for response in client.process_text(request):
+                if hasattr(response, 'text'):  # Phrase result
+                    phrases.append(response)
+                    print(f"Phrase: {response.text}")
+                    if response.start_char is not None:
+                        print(f"Position: {response.start_char}-{response.end_char}")
+            ```
+            
+            Create fixed-size chunks:
+            
+            ```python
+            request = ProcessTextRequest(
+                text=long_text,
+                chunk_size=1000,  # ~1000 characters per chunk
+                response_format=ResponseFormat.WITH_OFFSETS
+            )
+            
+            chunks = []
+            for response in client.process_text(request):
+                if hasattr(response, 'text'):
+                    chunks.append(response)
+            
+            print(f"Created {len(chunks)} chunks")
+            ```
+            
+            Process text from URL:
+            
+            ```python
+            request = ProcessTextRequest(
+                text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+                chunk_size=2000,
+                response_format=ResponseFormat.WITH_OFFSETS
+            )
+            
+            # Save to JSONL file
+            with open("alice_phrases.jsonl", "w") as f:
+                for response in client.process_text(request):
+                    if hasattr(response, 'text'):
+                        f.write(response.model_dump_json() + "\n")
+            ```
+            
+            Text-only format without position data:
+            
+            ```python
+            request = ProcessTextRequest(
+                text=text,
+                response_format=ResponseFormat.TEXT_ONLY,
+                spacy_model="en_core_web_lg"  # Use larger model
+            )
+            
+            for response in client.process_text(request):
+                if hasattr(response, 'text'):
+                    print(f"Phrase: {response.text}")
+                elif hasattr(response, 'message'):
+                    print(f"Progress: {response.message}")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -205,17 +444,62 @@ class BookWyrmClient:
     def stream_citations(
         self, request: CitationRequest
     ) -> Iterator[StreamingCitationResponse]:
-        """
-        Stream citations as they are found.
+        """Stream citations as they are found with real-time progress updates.
+        
+        This method provides real-time streaming of citation results, allowing you to
+        process citations as they're found rather than waiting for all results. Useful
+        for large datasets or when you want to show progress to users.
 
         Args:
-            request: Citation request with chunks and question
+            request: Citation request containing chunks/URL and question to answer
 
         Yields:
-            Streaming citation responses (progress, citations, summary, or errors)
+            StreamingCitationResponse: Union of progress updates, individual citations,
+            final summary, or error messages
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic streaming with progress tracking:
+            
+            ```python
+            citations = []
+            for response in client.stream_citations(request):
+                if hasattr(response, 'message'):  # Progress update
+                    print(f"Progress: {response.message}")
+                elif hasattr(response, 'citation'):  # Citation found
+                    citations.append(response.citation)
+                    print(f"Found: {response.citation.text[:50]}...")
+                elif hasattr(response, 'total_citations'):  # Summary
+                    print(f"Complete: {response.total_citations} citations found")
+            ```
+            
+            With Rich progress bar:
+            
+            ```python
+            from rich.progress import Progress, SpinnerColumn, TextColumn
+            
+            with Progress(SpinnerColumn(), TextColumn("{task.description}")) as progress:
+                task = progress.add_task("Finding citations...", total=None)
+                
+                citations = []
+                for update in client.stream_citations(request):
+                    if hasattr(update, 'message'):
+                        progress.update(task, description=update.message)
+                    elif hasattr(update, 'citation'):
+                        citations.append(update.citation)
+            ```
+            
+            Error handling in streaming:
+            
+            ```python
+            for response in client.stream_citations(request):
+                if hasattr(response, 'error'):
+                    print(f"Error occurred: {response.error}")
+                    break
+                # Handle other response types...
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -257,17 +541,82 @@ class BookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     def extract_pdf(self, request: PDFExtractRequest) -> PDFExtractResponse:
-        """
-        Extract structured data from a PDF file.
+        """Extract structured data from a PDF file using OCR.
+        
+        This method extracts text elements from PDF files with position coordinates,
+        confidence scores, and bounding box information. It supports both local files
+        (base64-encoded) and remote URLs, with optional page range selection.
 
         Args:
-            request: PDF extraction request with URL or content
+            request: PDF extraction request with URL/content, optional page range, and filename
 
         Returns:
-            PDF extraction response with structured data
+            PDF extraction response with structured page data, text elements, and metadata
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Extract from local PDF file:
+            
+            ```python
+            import base64
+            from bookwyrm.models import PDFExtractRequest
+            
+            # Load PDF file
+            with open("document.pdf", "rb") as f:
+                pdf_bytes = f.read()
+                pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
+            
+            request = PDFExtractRequest(
+                pdf_content=pdf_content,
+                filename="document.pdf"
+            )
+            
+            response = client.extract_pdf(request)
+            print(f"Extracted {response.total_pages} pages")
+            
+            for page in response.pages:
+                print(f"Page {page.page_number}: {len(page.text_blocks)} text elements")
+                for element in page.text_blocks[:3]:  # Show first 3 elements
+                    print(f"  - {element.text[:50]}...")
+                    print(f"    Confidence: {element.confidence:.2f}")
+                    print(f"    Position: ({element.coordinates.x1}, {element.coordinates.y1})")
+            ```
+            
+            Extract from URL with page range:
+            
+            ```python
+            request = PDFExtractRequest(
+                pdf_url="https://example.com/document.pdf",
+                start_page=5,
+                num_pages=10
+            )
+            
+            response = client.extract_pdf(request)
+            print(f"Extracted pages 5-14: {response.total_pages} pages")
+            
+            if response.processing_time:
+                print(f"Processing time: {response.processing_time:.2f}s")
+            ```
+            
+            Access detailed text element information:
+            
+            ```python
+            response = client.extract_pdf(request)
+            
+            for page in response.pages:
+                for element in page.text_blocks:
+                    # Raw bounding box polygon
+                    print(f"Raw bbox: {element.bbox}")
+                    
+                    # Simplified rectangular coordinates
+                    coords = element.coordinates
+                    print(f"Rectangle: ({coords.x1}, {coords.y1}) to ({coords.x2}, {coords.y2})")
+                    
+                    # Text and confidence
+                    print(f"Text: '{element.text}' (confidence: {element.confidence:.2f})")
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -320,17 +669,95 @@ class BookWyrmClient:
     def stream_extract_pdf(
         self, request: PDFExtractRequest
     ) -> Iterator[StreamingPDFResponse]:
-        """
-        Stream PDF extraction with progress updates.
+        """Stream PDF extraction with real-time progress updates.
+        
+        This method provides real-time streaming of PDF extraction progress, yielding
+        metadata, individual page results, and completion status. Useful for large PDFs
+        where you want to show progress or process pages as they become available.
 
         Args:
-            request: PDF extraction request with URL or content
+            request: PDF extraction request with URL/content, optional page range, and filename
 
         Yields:
-            Streaming PDF responses (metadata, pages, completion, or errors)
+            StreamingPDFResponse: Union of metadata, page responses, page errors, completion, or general errors
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic streaming with progress tracking:
+            
+            ```python
+            pages = []
+            for response in client.stream_extract_pdf(request):
+                if hasattr(response, 'total_pages'):  # Metadata
+                    print(f"Processing {response.total_pages} pages")
+                elif hasattr(response, 'page_data'):  # Page extracted
+                    pages.append(response.page_data)
+                    print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
+                elif hasattr(response, 'error') and hasattr(response, 'document_page'):  # Page error
+                    print(f"Error on page {response.document_page}: {response.error}")
+            
+            print(f"Extracted {len(pages)} pages total")
+            ```
+            
+            With Rich progress bar:
+            
+            ```python
+            from rich.progress import Progress, BarColumn, TaskProgressColumn
+            
+            pages = []
+            with Progress(BarColumn(), TaskProgressColumn()) as progress:
+                task = progress.add_task("Extracting PDF...", total=100)
+                
+                for response in client.stream_extract_pdf(request):
+                    if hasattr(response, 'total_pages'):  # Metadata
+                        progress.update(task, total=response.total_pages)
+                    elif hasattr(response, 'page_data'):  # Page response
+                        pages.append(response.page_data)
+                        progress.update(task, completed=response.current_page)
+            ```
+            
+            Processing pages as they arrive:
+            
+            ```python
+            def process_page(page_data):
+                # Process individual page immediately
+                text_content = " ".join(element.text for element in page_data.text_blocks)
+                return text_content
+            
+            processed_pages = []
+            for response in client.stream_extract_pdf(request):
+                if hasattr(response, 'page_data'):
+                    processed_text = process_page(response.page_data)
+                    processed_pages.append({
+                        'page_number': response.page_data.page_number,
+                        'text': processed_text
+                    })
+                elif hasattr(response, 'error') and not hasattr(response, 'document_page'):
+                    print(f"General error: {response.error}")
+                    break
+            ```
+            
+            Handling different response types:
+            
+            ```python
+            for response in client.stream_extract_pdf(request):
+                response_type = response.type
+                
+                if response_type == "metadata":
+                    print(f"Document has {response.total_pages_in_document} total pages")
+                    print(f"Processing {response.total_pages} pages starting from {response.start_page}")
+                elif response_type == "page":
+                    print(f"Extracted page {response.document_page}")
+                elif response_type == "page_error":
+                    print(f"Failed to extract page {response.document_page}: {response.error}")
+                elif response_type == "complete":
+                    print("Extraction completed successfully")
+                elif response_type == "error":
+                    print(f"Extraction failed: {response.error}")
+                    break
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -420,17 +847,84 @@ class BookWyrmClient:
         self.close()
 
     def summarize(self, request: SummarizeRequest) -> SummaryResponse:
-        """
-        Get a summary of the provided content.
+        """Get a summary of the provided content using hierarchical summarization.
+        
+        This method performs intelligent summarization of text content, supporting both
+        plain text summaries and structured output using Pydantic models. It can handle
+        large documents through hierarchical chunking and summarization.
 
         Args:
-            request: Summarization request with content and options
+            request: Summarization request with content, options, and optional structured output settings
 
         Returns:
-            Summary response with the generated summary
+            Summary response containing the generated summary, metadata, and optional debug information
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic text summarization:
+            
+            ```python
+            from bookwyrm.models import SummarizeRequest
+            
+            # Load JSONL content
+            with open("book_phrases.jsonl", "r") as f:
+                content = f.read()
+            
+            request = SummarizeRequest(
+                content=content,
+                max_tokens=5000,
+                debug=True  # Include intermediate summaries
+            )
+            
+            response = client.summarize(request)
+            print("Summary:")
+            print(response.summary)
+            print(f"Used {response.levels_used} levels")
+            print(f"Created {response.subsummary_count} subsummaries")
+            ```
+            
+            Structured summarization with Pydantic models:
+            
+            ```python
+            from pydantic import BaseModel, Field
+            from typing import Optional, List
+            import json
+            
+            class BookSummary(BaseModel):
+                title: Optional[str] = Field(None, description="The book's title")
+                author: Optional[str] = Field(None, description="The book's author")
+                main_themes: Optional[List[str]] = Field(None, description="Key themes")
+                plot_summary: Optional[str] = Field(None, description="Brief plot summary")
+            
+            request = SummarizeRequest(
+                content=content,
+                model_name="BookSummary",
+                model_schema_json=json.dumps(BookSummary.model_json_schema()),
+                max_tokens=8000
+            )
+            
+            response = client.summarize(request)
+            structured_summary = json.loads(response.summary)
+            book_summary = BookSummary.model_validate(structured_summary)
+            
+            print(f"Title: {book_summary.title}")
+            print(f"Author: {book_summary.author}")
+            ```
+            
+            Custom prompts for domain-specific summarization:
+            
+            ```python
+            request = SummarizeRequest(
+                content=content,
+                chunk_prompt="Extract key scientific concepts and findings",
+                summary_of_summaries_prompt="Create a comprehensive scientific overview",
+                max_tokens=10000
+            )
+            
+            response = client.summarize(request)
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -452,17 +946,80 @@ class BookWyrmClient:
     def stream_summarize(
         self, request: SummarizeRequest
     ) -> Iterator[StreamingSummarizeResponse]:
-        """
-        Stream summarization progress and results.
+        """Stream summarization progress and results with real-time updates.
+        
+        This method provides real-time streaming of summarization progress, including
+        hierarchical processing updates, retry attempts, and final results. Useful for
+        long-running summarization tasks where you want to show progress to users.
 
         Args:
-            request: Summarization request with content and options
+            request: Summarization request with content, options, and optional structured output settings
 
         Yields:
-            Streaming summarization responses (progress, summary, or errors)
+            StreamingSummarizeResponse: Union of progress updates, final summary, rate limit messages,
+            structural error messages, or general errors
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic streaming with progress tracking:
+            
+            ```python
+            final_result = None
+            for response in client.stream_summarize(request):
+                if hasattr(response, 'message'):  # Progress update
+                    print(f"Progress: {response.message}")
+                elif hasattr(response, 'summary'):  # Final summary
+                    final_result = response
+                    print(f"Summary complete!")
+            
+            if final_result:
+                print(final_result.summary)
+            ```
+            
+            With Rich progress bars for hierarchical processing:
+            
+            ```python
+            from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+            
+            final_result = None
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+            ) as progress:
+                level_tasks = {}
+                
+                for response in client.stream_summarize(request):
+                    if hasattr(response, 'current_level'):  # Progress update
+                        task_id = f"level_{response.current_level}"
+                        if task_id not in level_tasks:
+                            level_tasks[task_id] = progress.add_task(
+                                f"Level {response.current_level}/{response.total_levels}",
+                                total=response.total_chunks,
+                            )
+                        progress.update(
+                            level_tasks[task_id],
+                            completed=response.chunks_processed,
+                            description=f"Level {response.current_level}: {response.message}",
+                        )
+                    elif hasattr(response, 'summary'):  # Final result
+                        final_result = response
+            ```
+            
+            Handling retry messages and errors:
+            
+            ```python
+            for response in client.stream_summarize(request):
+                if hasattr(response, 'attempt'):  # Rate limit or structural error
+                    print(f"Retry {response.attempt}/{response.max_attempts}: {response.message}")
+                elif hasattr(response, 'error'):  # General error
+                    print(f"Error: {response.error}")
+                    break
+                # Handle other response types...
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

@@ -52,36 +52,155 @@ DEFAULT_HEADERS = {
 
 
 class AsyncBookWyrmClient:
-    """Asynchronous client for BookWyrm API."""
+    """Asynchronous client for BookWyrm API.
+    
+    The asynchronous client provides full async/await support for all BookWyrm API endpoints
+    using the `httpx` library. It supports concurrent operations, streaming responses,
+    and automatic session management with proper cleanup.
+    
+    Examples:
+        Basic async client usage:
+        
+        ```python
+        import asyncio
+        from bookwyrm import AsyncBookWyrmClient
+        
+        async def main():
+            # Using environment variable for API key
+            client = AsyncBookWyrmClient()
+            
+            # Explicit API key
+            client = AsyncBookWyrmClient(api_key="your-api-key")
+            
+            # Custom base URL
+            client = AsyncBookWyrmClient(
+                base_url="https://custom-api.example.com",
+                api_key="your-api-key"
+            )
+        
+        asyncio.run(main())
+        ```
+        
+        Async context manager for automatic cleanup:
+        
+        ```python
+        async def example():
+            async with AsyncBookWyrmClient() as client:
+                response = await client.get_citations(request)
+                # Client is automatically closed when exiting the context
+        ```
+        
+        Concurrent operations:
+        
+        ```python
+        async def concurrent_operations():
+            async with AsyncBookWyrmClient() as client:
+                # Run multiple operations concurrently
+                tasks = [
+                    client.get_citations(request1),
+                    client.get_citations(request2),
+                    client.summarize(summarize_request)
+                ]
+                
+                results = await asyncio.gather(*tasks)
+                return results
+        ```
+    """
 
     def __init__(
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
     ):
-        """
-        Initialize the async BookWyrm client.
+        """Initialize the async BookWyrm client.
 
         Args:
-            base_url: Base URL of the BookWyrm API
-            api_key: API key for authentication
+            base_url: Base URL of the BookWyrm API. Defaults to "https://api.bookwyrm.ai:443"
+            api_key: API key for authentication. If not provided, will attempt to read
+                from BOOKWYRM_API_KEY environment variable
+                
+        Examples:
+            ```python
+            # Basic initialization
+            client = AsyncBookWyrmClient()
+            
+            # With explicit API key
+            client = AsyncBookWyrmClient(api_key="your-api-key")
+            
+            # With custom endpoint
+            client = AsyncBookWyrmClient(
+                base_url="https://localhost:8000",
+                api_key="dev-key"
+            )
+            ```
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.client = httpx.AsyncClient()
 
     async def get_citations(self, request: CitationRequest) -> CitationResponse:
-        """
-        Get citations for a question from text chunks.
+        """Get citations for a question from text chunks asynchronously.
+        
+        This async method finds relevant citations that answer a specific question by analyzing
+        the provided text chunks. Each citation includes a quality score (0-4) and reasoning
+        for why it's relevant to the question.
 
         Args:
-            request: Citation request with chunks and question
+            request: Citation request containing chunks/URL and question to answer
 
         Returns:
-            Citation response with found citations
+            Citation response with found citations, total count, and usage information
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async citation finding:
+            
+            ```python
+            from bookwyrm.models import CitationRequest, TextChunk
+            
+            async def find_citations():
+                chunks = [
+                    TextChunk(text="The sky is blue.", start_char=0, end_char=16),
+                    TextChunk(text="Water is wet.", start_char=17, end_char=30)
+                ]
+                
+                request = CitationRequest(
+                    chunks=chunks,
+                    question="Why is the sky blue?"
+                )
+                
+                async with AsyncBookWyrmClient() as client:
+                    response = await client.get_citations(request)
+                    print(f"Found {response.total_citations} citations")
+                    
+                    for citation in response.citations:
+                        print(f"Quality: {citation.quality}/4")
+                        print(f"Text: {citation.text}")
+            
+            asyncio.run(find_citations())
+            ```
+            
+            Concurrent citation requests:
+            
+            ```python
+            async def concurrent_citations():
+                requests = [
+                    CitationRequest(chunks=chunks1, question="Question 1"),
+                    CitationRequest(chunks=chunks2, question="Question 2"),
+                    CitationRequest(chunks=chunks3, question="Question 3")
+                ]
+                
+                async with AsyncBookWyrmClient() as client:
+                    # Process all requests concurrently
+                    responses = await asyncio.gather(*[
+                        client.get_citations(req) for req in requests
+                    ])
+                    
+                    for i, response in enumerate(responses):
+                        print(f"Request {i+1}: {response.total_citations} citations")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -101,17 +220,69 @@ class AsyncBookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     async def classify(self, request: ClassifyRequest) -> ClassifyResponse:
-        """
-        Classify file content to determine file type and format.
+        """Classify file content to determine file type and format asynchronously.
+        
+        This async method analyzes file content to determine format type, content type, MIME type,
+        and other classification details. It supports both binary and text files, providing
+        confidence scores and additional metadata about the detected format.
 
         Args:
-            request: Classification request with base64-encoded content
+            request: Classification request with base64-encoded content and optional filename hint
 
         Returns:
-            Classification response with detected file type and details
+            Classification response with detected file type, confidence score, and additional details
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async file classification:
+            
+            ```python
+            import base64
+            from bookwyrm.models import ClassifyRequest
+            
+            async def classify_file():
+                # Read file as binary and encode
+                with open("document.pdf", "rb") as f:
+                    content = base64.b64encode(f.read()).decode('ascii')
+                
+                request = ClassifyRequest(
+                    content=content,
+                    filename="document.pdf"
+                )
+                
+                async with AsyncBookWyrmClient() as client:
+                    response = await client.classify(request)
+                    print(f"File type: {response.classification.format_type}")
+                    print(f"Confidence: {response.classification.confidence:.2%}")
+            
+            asyncio.run(classify_file())
+            ```
+            
+            Classify multiple files concurrently:
+            
+            ```python
+            async def classify_multiple_files():
+                files = ["doc1.pdf", "script.py", "data.json", "image.jpg"]
+                
+                async def classify_single(filename):
+                    with open(filename, "rb") as f:
+                        content = base64.b64encode(f.read()).decode('ascii')
+                    
+                    request = ClassifyRequest(content=content, filename=filename)
+                    
+                    async with AsyncBookWyrmClient() as client:
+                        response = await client.classify(request)
+                        return filename, response.classification
+                
+                results = await asyncio.gather(*[
+                    classify_single(f) for f in files
+                ])
+                
+                for filename, classification in results:
+                    print(f"{filename}: {classification.content_type} ({classification.confidence:.1%})")
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -142,17 +313,71 @@ class AsyncBookWyrmClient:
     async def process_text(
         self, request: ProcessTextRequest
     ) -> AsyncIterator[StreamingPhrasalResponse]:
-        """
-        Process text using phrasal analysis and return streaming response.
+        """Process text using phrasal analysis with async streaming results.
+        
+        This async method breaks down text into meaningful phrases or chunks using NLP,
+        supporting both direct text input and URLs. It can create fixed-size chunks
+        or extract individual phrases with optional position information.
 
         Args:
-            request: ProcessTextRequest containing text/URL and processing parameters
+            request: Text processing request with text/URL, chunking options, and format preferences
 
         Yields:
-            Streaming phrasal responses (progress updates and phrase results)
+            StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async phrasal processing:
+            
+            ```python
+            from bookwyrm.models import ProcessTextRequest, ResponseFormat
+            
+            async def process_text_example():
+                request = ProcessTextRequest(
+                    text="Your text here",
+                    response_format=ResponseFormat.WITH_OFFSETS
+                )
+                
+                phrases = []
+                async with AsyncBookWyrmClient() as client:
+                    async for response in client.process_text(request):
+                        if hasattr(response, 'text'):  # Phrase result
+                            phrases.append(response)
+                        elif hasattr(response, 'message'):  # Progress
+                            print(f"Progress: {response.message}")
+                
+                print(f"Extracted {len(phrases)} phrases")
+            
+            asyncio.run(process_text_example())
+            ```
+            
+            Process multiple texts concurrently:
+            
+            ```python
+            async def process_multiple_texts():
+                requests = [
+                    ProcessTextRequest(text=text1, chunk_size=500),
+                    ProcessTextRequest(text=text2, chunk_size=500),
+                    ProcessTextRequest(text_url="https://example.com/text.txt")
+                ]
+                
+                async def process_single(req, name):
+                    phrases = []
+                    async with AsyncBookWyrmClient() as client:
+                        async for response in client.process_text(req):
+                            if hasattr(response, 'text'):
+                                phrases.append(response)
+                    return name, phrases
+                
+                results = await asyncio.gather(*[
+                    process_single(req, f"Text{i+1}") for i, req in enumerate(requests)
+                ])
+                
+                for name, phrases in results:
+                    print(f"{name}: {len(phrases)} phrases")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -192,17 +417,72 @@ class AsyncBookWyrmClient:
     async def stream_citations(
         self, request: CitationRequest
     ) -> AsyncIterator[StreamingCitationResponse]:
-        """
-        Stream citations as they are found.
+        """Stream citations as they are found with real-time progress updates.
+        
+        This async method provides real-time streaming of citation results, allowing you to
+        process citations as they're found rather than waiting for all results. Useful
+        for large datasets or when you want to show progress to users.
 
         Args:
-            request: Citation request with chunks and question
+            request: Citation request containing chunks/URL and question to answer
 
         Yields:
-            Streaming citation responses (progress, citations, summary, or errors)
+            StreamingCitationResponse: Union of progress updates, individual citations,
+            final summary, or error messages
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async streaming:
+            
+            ```python
+            async def stream_citations_example():
+                async with AsyncBookWyrmClient() as client:
+                    citations = []
+                    async for response in client.stream_citations(request):
+                        if hasattr(response, 'message'):  # Progress update
+                            print(f"Progress: {response.message}")
+                        elif hasattr(response, 'citation'):  # Citation found
+                            citations.append(response.citation)
+                            print(f"Found: {response.citation.text[:50]}...")
+                        elif hasattr(response, 'total_citations'):  # Summary
+                            print(f"Complete: {response.total_citations} citations found")
+            
+            asyncio.run(stream_citations_example())
+            ```
+            
+            Multiple concurrent streams:
+            
+            ```python
+            async def handle_multiple_streams():
+                async with AsyncBookWyrmClient() as client:
+                    async def handle_stream_1():
+                        async for response in client.stream_citations(request1):
+                            print(f"Stream 1: {response}")
+                    
+                    async def handle_stream_2():
+                        async for response in client.stream_citations(request2):
+                            print(f"Stream 2: {response}")
+                    
+                    # Run both streams concurrently
+                    await asyncio.gather(handle_stream_1(), handle_stream_2())
+            ```
+            
+            With async context and error handling:
+            
+            ```python
+            async def safe_streaming():
+                try:
+                    async with AsyncBookWyrmClient() as client:
+                        async for response in client.stream_citations(request):
+                            if hasattr(response, 'error'):
+                                print(f"Error: {response.error}")
+                                break
+                            # Process other response types...
+                except BookWyrmAPIError as e:
+                    print(f"API Error: {e}")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -244,17 +524,63 @@ class AsyncBookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     async def extract_pdf(self, request: PDFExtractRequest) -> PDFExtractResponse:
-        """
-        Extract structured data from a PDF file.
+        """Extract structured data from a PDF file using OCR asynchronously.
+        
+        This async method extracts text elements from PDF files with position coordinates,
+        confidence scores, and bounding box information. It supports both local files
+        (base64-encoded) and remote URLs, with optional page range selection.
 
         Args:
-            request: PDF extraction request with URL or content
+            request: PDF extraction request with URL/content, optional page range, and filename
 
         Returns:
-            PDF extraction response with structured data
+            PDF extraction response with structured page data, text elements, and metadata
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async PDF extraction:
+            
+            ```python
+            from bookwyrm.models import PDFExtractRequest
+            
+            async def extract_pdf_example():
+                request = PDFExtractRequest(
+                    pdf_url="https://example.com/document.pdf",
+                    start_page=1,
+                    num_pages=5
+                )
+                
+                async with AsyncBookWyrmClient() as client:
+                    response = await client.extract_pdf(request)
+                    print(f"Extracted {response.total_pages} pages")
+                    
+                    for page in response.pages:
+                        print(f"Page {page.page_number}: {len(page.text_blocks)} elements")
+            
+            asyncio.run(extract_pdf_example())
+            ```
+            
+            Extract multiple PDFs concurrently:
+            
+            ```python
+            async def extract_multiple_pdfs():
+                requests = [
+                    PDFExtractRequest(pdf_url="https://example.com/doc1.pdf"),
+                    PDFExtractRequest(pdf_url="https://example.com/doc2.pdf"),
+                    PDFExtractRequest(pdf_url="https://example.com/doc3.pdf")
+                ]
+                
+                async with AsyncBookWyrmClient() as client:
+                    responses = await asyncio.gather(*[
+                        client.extract_pdf(req) for req in requests
+                    ])
+                    
+                    for i, response in enumerate(responses):
+                        total_elements = sum(len(page.text_blocks) for page in response.pages)
+                        print(f"PDF {i+1}: {response.total_pages} pages, {total_elements} elements")
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -307,17 +633,88 @@ class AsyncBookWyrmClient:
     async def stream_extract_pdf(
         self, request: PDFExtractRequest
     ) -> AsyncIterator[StreamingPDFResponse]:
-        """
-        Stream PDF extraction with progress updates.
+        """Stream PDF extraction with real-time progress updates asynchronously.
+        
+        This async method provides real-time streaming of PDF extraction progress, yielding
+        metadata, individual page results, and completion status. Useful for large PDFs
+        where you want to show progress or process pages as they become available.
 
         Args:
-            request: PDF extraction request with URL or content
+            request: PDF extraction request with URL/content, optional page range, and filename
 
         Yields:
-            Streaming PDF responses (metadata, pages, completion, or errors)
+            StreamingPDFResponse: Union of metadata, page responses, page errors, completion, or general errors
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async streaming PDF extraction:
+            
+            ```python
+            async def stream_extract_pdf_example():
+                pages = []
+                async with AsyncBookWyrmClient() as client:
+                    async for response in client.stream_extract_pdf(request):
+                        if hasattr(response, 'page_data'):  # Page extracted
+                            pages.append(response.page_data)
+                            print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
+                        elif hasattr(response, 'total_pages'):  # Metadata
+                            print(f"Processing {response.total_pages} pages")
+                        elif hasattr(response, 'error') and hasattr(response, 'document_page'):
+                            print(f"Error on page {response.document_page}: {response.error}")
+                
+                print(f"Extracted {len(pages)} pages total")
+            
+            asyncio.run(stream_extract_pdf_example())
+            ```
+            
+            Process multiple PDFs concurrently with streaming:
+            
+            ```python
+            async def stream_multiple_pdfs():
+                requests = [
+                    PDFExtractRequest(pdf_url="https://example.com/doc1.pdf"),
+                    PDFExtractRequest(pdf_url="https://example.com/doc2.pdf")
+                ]
+                
+                async def stream_single_pdf(req, name):
+                    pages = []
+                    async with AsyncBookWyrmClient() as client:
+                        async for response in client.stream_extract_pdf(req):
+                            if hasattr(response, 'page_data'):
+                                pages.append(response.page_data)
+                                print(f"{name} - Page {response.document_page} extracted")
+                    return name, pages
+                
+                results = await asyncio.gather(*[
+                    stream_single_pdf(req, f"PDF{i+1}") for i, req in enumerate(requests)
+                ])
+                
+                for name, pages in results:
+                    print(f"{name}: {len(pages)} pages extracted")
+            ```
+            
+            Real-time page processing:
+            
+            ```python
+            async def process_pages_realtime():
+                async def process_page(page_data):
+                    # Process page immediately when received
+                    text = " ".join(element.text for element in page_data.text_blocks)
+                    # Could save to database, send to another service, etc.
+                    return len(text)
+                
+                total_chars = 0
+                async with AsyncBookWyrmClient() as client:
+                    async for response in client.stream_extract_pdf(request):
+                        if hasattr(response, 'page_data'):
+                            char_count = await process_page(response.page_data)
+                            total_chars += char_count
+                            print(f"Processed page {response.document_page}: {char_count} chars")
+                
+                print(f"Total characters processed: {total_chars}")
+            ```
         """
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -433,17 +830,63 @@ class AsyncBookWyrmClient:
         await self.close()
 
     async def summarize(self, request: SummarizeRequest) -> SummaryResponse:
-        """
-        Get a summary of the provided content.
+        """Get a summary of the provided content using hierarchical summarization.
+        
+        This async method performs intelligent summarization of text content, supporting both
+        plain text summaries and structured output using Pydantic models. It can handle
+        large documents through hierarchical chunking and summarization.
 
         Args:
-            request: Summarization request with content and options
+            request: Summarization request with content, options, and optional structured output settings
 
         Returns:
-            Summary response with the generated summary
+            Summary response containing the generated summary, metadata, and optional debug information
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async summarization:
+            
+            ```python
+            from bookwyrm.models import SummarizeRequest
+            
+            async def summarize_text():
+                with open("book_phrases.jsonl", "r") as f:
+                    content = f.read()
+                
+                request = SummarizeRequest(
+                    content=content,
+                    max_tokens=10000,
+                    debug=True
+                )
+                
+                async with AsyncBookWyrmClient() as client:
+                    response = await client.summarize(request)
+                    print(response.summary)
+                    print(f"Used {response.levels_used} levels")
+            
+            asyncio.run(summarize_text())
+            ```
+            
+            Concurrent summarization of multiple documents:
+            
+            ```python
+            async def summarize_multiple():
+                requests = [
+                    SummarizeRequest(content=content1, max_tokens=5000),
+                    SummarizeRequest(content=content2, max_tokens=5000),
+                    SummarizeRequest(content=content3, max_tokens=5000)
+                ]
+                
+                async with AsyncBookWyrmClient() as client:
+                    summaries = await asyncio.gather(*[
+                        client.summarize(req) for req in requests
+                    ])
+                    
+                    for i, summary in enumerate(summaries):
+                        print(f"Document {i+1} summary: {summary.summary[:100]}...")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -465,17 +908,80 @@ class AsyncBookWyrmClient:
     async def stream_summarize(
         self, request: SummarizeRequest
     ) -> AsyncIterator[StreamingSummarizeResponse]:
-        """
-        Stream summarization progress and results.
+        """Stream summarization progress and results with real-time updates.
+        
+        This async method provides real-time streaming of summarization progress, including
+        hierarchical processing updates, retry attempts, and final results. Useful for
+        long-running summarization tasks where you want to show progress to users.
 
         Args:
-            request: Summarization request with content and options
+            request: Summarization request with content, options, and optional structured output settings
 
         Yields:
-            Streaming summarization responses (progress, summary, or errors)
+            StreamingSummarizeResponse: Union of progress updates, final summary, rate limit messages,
+            structural error messages, or general errors
 
         Raises:
-            BookWyrmAPIError: If the API request fails
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+            
+        Examples:
+            Basic async streaming summarization:
+            
+            ```python
+            async def stream_summarize_example():
+                async with AsyncBookWyrmClient() as client:
+                    final_result = None
+                    async for response in client.stream_summarize(request):
+                        if hasattr(response, 'message'):  # Progress update
+                            print(f"Progress: {response.message}")
+                        elif hasattr(response, 'summary'):  # Final summary
+                            final_result = response
+                            print("Summary complete!")
+                    
+                    if final_result:
+                        print(final_result.summary)
+            
+            asyncio.run(stream_summarize_example())
+            ```
+            
+            Concurrent streaming of multiple summarizations:
+            
+            ```python
+            async def concurrent_streaming():
+                async with AsyncBookWyrmClient() as client:
+                    async def handle_summarization(req, name):
+                        async for response in client.stream_summarize(req):
+                            if hasattr(response, 'message'):
+                                print(f"{name}: {response.message}")
+                            elif hasattr(response, 'summary'):
+                                print(f"{name}: Complete!")
+                    
+                    # Run multiple summarizations concurrently
+                    await asyncio.gather(
+                        handle_summarization(request1, "Doc1"),
+                        handle_summarization(request2, "Doc2"),
+                        handle_summarization(request3, "Doc3")
+                    )
+            ```
+            
+            With progress tracking and error handling:
+            
+            ```python
+            async def advanced_streaming():
+                async with AsyncBookWyrmClient() as client:
+                    try:
+                        async for response in client.stream_summarize(request):
+                            if hasattr(response, 'attempt'):  # Retry message
+                                print(f"Retry {response.attempt}/{response.max_attempts}")
+                            elif hasattr(response, 'current_level'):  # Progress
+                                progress = response.chunks_processed / response.total_chunks
+                                print(f"Level {response.current_level}: {progress:.1%}")
+                            elif hasattr(response, 'error'):  # Error
+                                print(f"Error: {response.error}")
+                                break
+                    except BookWyrmAPIError as e:
+                        print(f"API Error: {e}")
+            ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
