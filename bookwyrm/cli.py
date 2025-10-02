@@ -687,10 +687,13 @@ def summarize(
                         )
 
                     elif isinstance(response, RateLimitMessage):
-                        console.print(f"[orange1]⚠ {response.message} (attempt {response.attempt}/{response.max_attempts})[/orange1]")
+                        console.print(f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]", end="\r")
 
                     elif isinstance(response, StructuralErrorMessage):
-                        console.print(f"[orange1]⚠ {response.message} (attempt {response.attempt}/{response.max_attempts})[/orange1]")
+                        if response.error_type == "fallback":
+                            console.print(f"[orange1]⚠ {response.message}[/orange1]")
+                        else:
+                            console.print(f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]", end="\r")
 
                     elif isinstance(response, SummaryResponse):
                         final_result = response
