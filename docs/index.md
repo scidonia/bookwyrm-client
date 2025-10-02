@@ -41,7 +41,7 @@ pip install bookwyrm
 - [Getting Started](getting-started.md) - Installation and basic usage
 - [Examples](examples.md) - Code examples for common use cases
 - [CLI Reference](cli.md) - Command-line interface documentation
-- [API Reference](api/) - Detailed API documentation
+- [API Reference](api/index.md) - Detailed API documentation
 - [Contributing](contributing.md) - How to contribute to the project
 
 ## API Key

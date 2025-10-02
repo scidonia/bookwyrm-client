@@ -1,10 +1,5 @@
 # CLI Reference
 
-::: mkdocs-typer
-    :module: bookwyrm.cli
-    :command: app
-    :prog_name: bookwyrm
-    :depth: 2
 # CLI Reference
 
 The BookWyrm client includes a command-line interface for common operations.
