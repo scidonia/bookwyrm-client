@@ -216,37 +216,40 @@ def display_verbose_citation(citation):
 
 
 app = typer.Typer(
-    help="""
-    BookWyrm Client CLI - Accelerate RAG and AI agent development.
-    
-    The BookWyrm client provides powerful text processing capabilities through a simple CLI,
-    making it easy to build sophisticated document analysis and citation systems.
-    
-    Key capabilities:
-    • Citation Finding - Find relevant citations for questions in text chunks
-    • Text Summarization - Generate summaries with custom Pydantic models  
-    • Phrasal Analysis - Extract phrases and chunks from text using NLP
-    • PDF Extraction - Extract structured text data from PDFs with OCR
-    • File Classification - Intelligently classify files by format and type
-    • Streaming Support - Real-time progress updates for all operations
-    
-    Environment Variables:
-    • BOOKWYRM_API_KEY - Your BookWyrm API key (required)
-    • BOOKWYRM_API_URL - Base URL (default: https://api.bookwyrm.ai:443)
-    • BOOKWYRM_PDF_API_URL - PDF API URL (falls back to BOOKWYRM_API_URL)
-    
-    Get your API key at: https://api.bookwyrm.ai
-    """,
-    epilog="""
-    Examples:
-      bookwyrm cite "What is machine learning?" data/chunks.jsonl
-      bookwyrm summarize book.jsonl --model-class-file models/summary.py --model-class-name BookSummary -o summary.json
-      bookwyrm phrasal -f document.txt --chunk-size 1000 -o chunks.jsonl
-      bookwyrm extract-pdf document.pdf --start-page 5 --num-pages 10 -o extracted.json
-      bookwyrm classify document.pdf -o classification.json
-    
-    For detailed help on any command, use: bookwyrm COMMAND --help
-    """
+    help="""BookWyrm Client CLI - Accelerate RAG and AI agent development.
+
+The BookWyrm client provides powerful text processing capabilities through a simple CLI,
+making it easy to build sophisticated document analysis and citation systems.
+
+## Key Capabilities
+
+- **Citation Finding** - Find relevant citations for questions in text chunks
+- **Text Summarization** - Generate summaries with custom Pydantic models  
+- **Phrasal Analysis** - Extract phrases and chunks from text using NLP
+- **PDF Extraction** - Extract structured text data from PDFs with OCR
+- **File Classification** - Intelligently classify files by format and type
+- **Streaming Support** - Real-time progress updates for all operations
+
+## Environment Variables
+
+- `BOOKWYRM_API_KEY` - Your BookWyrm API key (required)
+- `BOOKWYRM_API_URL` - Base URL (default: https://api.bookwyrm.ai:443)
+- `BOOKWYRM_PDF_API_URL` - PDF API URL (falls back to BOOKWYRM_API_URL)
+
+Get your API key at: https://api.bookwyrm.ai
+""",
+    epilog="""## Examples
+
+```bash
+bookwyrm cite "What is machine learning?" data/chunks.jsonl
+bookwyrm summarize book.jsonl --model-class-file models/summary.py --model-class-name BookSummary -o summary.json
+bookwyrm phrasal -f document.txt --chunk-size 1000 -o chunks.jsonl
+bookwyrm extract-pdf document.pdf --start-page 5 --num-pages 10 -o extracted.json
+bookwyrm classify document.pdf -o classification.json
+```
+
+For detailed help on any command, use: `bookwyrm COMMAND --help`
+"""
 )
 
 def version_callback(value: bool):
@@ -261,8 +264,7 @@ def main(
         typer.Option("--version", callback=version_callback, help="Show version and exit")
     ] = None,
 ):
-    """
-    BookWyrm Client CLI - Accelerate RAG and AI agent development.
+    """BookWyrm Client CLI - Accelerate RAG and AI agent development.
     
     The BookWyrm client provides powerful text processing capabilities for building
     sophisticated document analysis and citation systems.
@@ -358,34 +360,41 @@ def cite(
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
 ):
-    """
-    Find citations for a question in text chunks.
+    """Find citations for a question in text chunks.
     
     This command searches through text chunks to find relevant citations that answer
     a specific question. It supports both local JSONL files and remote URLs.
     
+    ## Input Format
+    
     The JSONL file should contain text chunks in this format:
+    ```json
     {"text": "chunk text", "start_char": 0, "end_char": 10}
+    ```
     
-    Examples:
-      # Basic citation finding
-      bookwyrm cite "What is machine learning?" ml_chunks.jsonl
-      
-      # With output file  
-      bookwyrm cite "Climate change causes" data.jsonl -o citations.json
-      
-      # Streaming with verbose output
-      bookwyrm cite "AI applications" chunks.jsonl --stream -v
-      
-      # From URL
-      bookwyrm cite "Question here" --url https://example.com/chunks.jsonl
-      
-      # Limit processing
-      bookwyrm cite "Question" data.jsonl --start 10 --limit 50
+    ## Examples
     
-    Output Formats:
-      JSON (non-streaming): Array of citation objects
-      JSONL (streaming): One citation per line as they're found
+    ```bash
+    # Basic citation finding
+    bookwyrm cite "What is machine learning?" ml_chunks.jsonl
+    
+    # With output file  
+    bookwyrm cite "Climate change causes" data.jsonl -o citations.json
+    
+    # Streaming with verbose output
+    bookwyrm cite "AI applications" chunks.jsonl --stream -v
+    
+    # From URL
+    bookwyrm cite "Question here" --url https://example.com/chunks.jsonl
+    
+    # Limit processing
+    bookwyrm cite "Question" data.jsonl --start 10 --limit 50
+    ```
+    
+    ## Output Formats
+    
+    - **JSON (non-streaming)**: Array of citation objects
+    - **JSONL (streaming)**: One citation per line as they're found
     """
 
     # Set global state
@@ -594,48 +603,56 @@ def summarize(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """
-    Summarize text content from JSONL files.
+    """Summarize text content from JSONL files.
     
     This command performs hierarchical summarization of text phrases, with support for
     structured output using Pydantic models and custom prompts.
     
+    ## Input Format
+    
     The JSONL file should contain phrases in this format:
+    ```json
     {"text": "phrase text", "start_char": 0, "end_char": 15}
+    ```
     
-    # Structured Output (temporarily disabled):
-    #   Use --model-class-file and --model-class-name to generate structured summaries
-    #   that conform to your Pydantic model schema. The output file is required when
-    #   using structured output.
+    ## Features (Some Temporarily Disabled)
     
-    # Custom Prompts (temporarily disabled):
-    #   Use --chunk-prompt and --summary-prompt together to customize the summarization
-    #   process. Both prompts are required when using custom prompts.
+    - **Structured Output** (temporarily disabled): Use `--model-class-file` and `--model-class-name` to generate structured summaries that conform to your Pydantic model schema. The output file is required when using structured output.
     
-    Examples:
-      # Basic summarization
-      bookwyrm summarize book_phrases.jsonl --output summary.json
-      
-      # With debug information
-      bookwyrm summarize data.jsonl --debug --output detailed_summary.json
-      
-      # Structured output with Pydantic model (temporarily disabled)
-      # bookwyrm summarize book.jsonl \\
-      #   --model-class-file models/book_summary.py \\
-      #   --model-class-name BookSummary \\
-      #   --output structured_summary.json
-      
-      # Custom prompts (temporarily disabled)
-      # bookwyrm summarize scientific_text.jsonl \\
-      #   --chunk-prompt "Extract key scientific concepts and findings" \\
-      #   --summary-prompt "Create a comprehensive scientific overview" \\
-      #   --output science_summary.json
-      
-      # Larger chunks
-      bookwyrm summarize large_text.jsonl --max-tokens 20000 --output summary.json
+    - **Custom Prompts** (temporarily disabled): Use `--chunk-prompt` and `--summary-prompt` together to customize the summarization process. Both prompts are required when using custom prompts.
     
-    Output Format:
-      JSON file containing summary, metadata, and optionally intermediate summaries
+    ## Examples
+    
+    ```bash
+    # Basic summarization
+    bookwyrm summarize book_phrases.jsonl --output summary.json
+    
+    # With debug information
+    bookwyrm summarize data.jsonl --debug --output detailed_summary.json
+    
+    # Larger chunks
+    bookwyrm summarize large_text.jsonl --max-tokens 20000 --output summary.json
+    ```
+    
+    ### Temporarily Disabled Examples
+    
+    ```bash
+    # Structured output with Pydantic model (temporarily disabled)
+    # bookwyrm summarize book.jsonl \
+    #   --model-class-file models/book_summary.py \
+    #   --model-class-name BookSummary \
+    #   --output structured_summary.json
+    
+    # Custom prompts (temporarily disabled)
+    # bookwyrm summarize scientific_text.jsonl \
+    #   --chunk-prompt "Extract key scientific concepts and findings" \
+    #   --summary-prompt "Create a comprehensive scientific overview" \
+    #   --output science_summary.json
+    ```
+    
+    ## Output Format
+    
+    JSON file containing summary, metadata, and optionally intermediate summaries
     """
 
     # Set global state
@@ -1021,42 +1038,49 @@ def phrasal(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """
-    Process text using phrasal analysis to extract phrases or chunks.
+    """Process text using phrasal analysis to extract phrases or chunks.
     
     This command breaks down text into meaningful phrases or chunks using NLP.
     It supports processing from direct text input, files, or URLs.
     
-    Response Formats:
-      with_offsets: Include character position information (start_char, end_char)
-      text_only: Return only the text content without position data
+    ## Response Formats
     
-    Chunking:
-      Use --chunk-size to create chunks of approximately the specified character count.
-      Without --chunk-size, returns individual phrases.
+    - **with_offsets**: Include character position information (start_char, end_char)
+    - **text_only**: Return only the text content without position data
     
-    Examples:
-      # Process text directly
-      bookwyrm phrasal "Natural language processing is fascinating." -o phrases.jsonl
-      
-      # Process file
-      bookwyrm phrasal -f document.txt --output phrases.jsonl
-      
-      # Create chunks of specific size
-      bookwyrm phrasal -f large_text.txt --chunk-size 1000 --output chunks.jsonl
-      
-      # Process from URL
-      bookwyrm phrasal --url https://example.com/text.txt --output phrases.jsonl
-      
-      # Text only format (no position offsets)
-      bookwyrm phrasal -f text.txt --format text_only --output simple_phrases.jsonl
-      
-      # Different SpaCy model
-      bookwyrm phrasal -f text.txt --spacy-model en_core_web_lg --output phrases.jsonl
+    ## Chunking
     
-    Output Format:
-      JSONL file with one phrase/chunk per line:
-      {"type": "phrase", "text": "phrase text", "start_char": 0, "end_char": 12}
+    Use `--chunk-size` to create chunks of approximately the specified character count.
+    Without `--chunk-size`, returns individual phrases.
+    
+    ## Examples
+    
+    ```bash
+    # Process text directly
+    bookwyrm phrasal "Natural language processing is fascinating." -o phrases.jsonl
+    
+    # Process file
+    bookwyrm phrasal -f document.txt --output phrases.jsonl
+    
+    # Create chunks of specific size
+    bookwyrm phrasal -f large_text.txt --chunk-size 1000 --output chunks.jsonl
+    
+    # Process from URL
+    bookwyrm phrasal --url https://example.com/text.txt --output phrases.jsonl
+    
+    # Text only format (no position offsets)
+    bookwyrm phrasal -f text.txt --format text_only --output simple_phrases.jsonl
+    
+    # Different SpaCy model
+    bookwyrm phrasal -f text.txt --spacy-model en_core_web_lg --output phrases.jsonl
+    ```
+    
+    ## Output Format
+    
+    JSONL file with one phrase/chunk per line:
+    ```json
+    {"type": "phrase", "text": "phrase text", "start_char": 0, "end_char": 12}
+    ```
     """
 
     # Set global state
@@ -1250,35 +1274,39 @@ def classify(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """
-    Classify files to determine their type and format.
+    """Classify files to determine their type and format.
     
     This command analyzes files or URLs to determine their format type, content type,
     MIME type, and other classification details. It supports both local files and
     remote URLs.
     
-    Classification includes:
-      • Format type (text, image, binary, archive, etc.)
-      • Content type (python_code, json_data, jpeg_image, etc.)
-      • MIME type detection
-      • Confidence score (0.0-1.0)
-      • Additional details (encoding, language, etc.)
+    ## Classification Includes
     
-    Examples:
-      # Classify local file
-      bookwyrm classify document.pdf
-      
-      # Classify from URL
-      bookwyrm classify --url https://example.com/file.dat
-      
-      # With output file
-      bookwyrm classify unknown_file.bin --output classification.json
-      
-      # With filename hint
-      bookwyrm classify data.txt --filename "research_data.csv" --output results.json
+    - **Format type** (text, image, binary, archive, etc.)
+    - **Content type** (python_code, json_data, jpeg_image, etc.)
+    - **MIME type** detection
+    - **Confidence score** (0.0-1.0)
+    - **Additional details** (encoding, language, etc.)
     
-    Output Format:
-      JSON file containing classification results, file size, and sample preview
+    ## Examples
+    
+    ```bash
+    # Classify local file
+    bookwyrm classify document.pdf
+    
+    # Classify from URL
+    bookwyrm classify --url https://example.com/file.dat
+    
+    # With output file
+    bookwyrm classify unknown_file.bin --output classification.json
+    
+    # With filename hint
+    bookwyrm classify data.txt --filename "research_data.csv" --output results.json
+    ```
+    
+    ## Output Format
+    
+    JSON file containing classification results, file size, and sample preview
     """
 
     # Set global state
@@ -1487,47 +1515,52 @@ def extract_pdf(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """
-    Extract structured data from PDF files using OCR.
+    """Extract structured data from PDF files using OCR.
     
     This command extracts text elements from PDF files with position coordinates,
     confidence scores, and bounding box information. It supports both local files
     and remote URLs, with optional page range selection.
     
-    Features:
-      • OCR-based text extraction with confidence scores
-      • Bounding box coordinates for each text element
-      • Page range selection (start_page + num_pages)
-      • Streaming progress updates
-      • Support for both local files and URLs
+    ## Features
     
-    Page Selection:
-      • start_page: 1-based page number to begin extraction
-      • num_pages: Number of pages to process from start_page
-      • Omit both to process entire document
+    - **OCR-based text extraction** with confidence scores
+    - **Bounding box coordinates** for each text element
+    - **Page range selection** (start_page + num_pages)
+    - **Streaming progress updates**
+    - **Support for both local files and URLs**
     
-    Examples:
-      # Extract entire PDF
-      bookwyrm extract-pdf document.pdf --output extracted.json
-      
-      # Extract specific pages
-      bookwyrm extract-pdf large_doc.pdf --start-page 5 --num-pages 10 --output pages_5_14.json
-      
-      # Extract from URL
-      bookwyrm extract-pdf --url https://example.com/document.pdf --output extracted.json
-      
-      # Non-streaming mode
-      bookwyrm extract-pdf doc.pdf --no-stream --output extracted.json
-      
-      # Verbose output
-      bookwyrm extract-pdf document.pdf -v --output extracted.json
-      
-      # Auto-save with generated filename (no --output needed)
-      bookwyrm extract-pdf my_document.pdf --start-page 5 --num-pages 3
-      # Saves to: my_document_pages_5-7_extracted.json
+    ## Page Selection
     
-    Output Format:
-      JSON file containing pages array with text elements, coordinates, and metadata
+    - `start_page`: 1-based page number to begin extraction
+    - `num_pages`: Number of pages to process from start_page
+    - Omit both to process entire document
+    
+    ## Examples
+    
+    ```bash
+    # Extract entire PDF
+    bookwyrm extract-pdf document.pdf --output extracted.json
+    
+    # Extract specific pages
+    bookwyrm extract-pdf large_doc.pdf --start-page 5 --num-pages 10 --output pages_5_14.json
+    
+    # Extract from URL
+    bookwyrm extract-pdf --url https://example.com/document.pdf --output extracted.json
+    
+    # Non-streaming mode
+    bookwyrm extract-pdf doc.pdf --no-stream --output extracted.json
+    
+    # Verbose output
+    bookwyrm extract-pdf document.pdf -v --output extracted.json
+    
+    # Auto-save with generated filename (no --output needed)
+    bookwyrm extract-pdf my_document.pdf --start-page 5 --num-pages 3
+    # Saves to: my_document_pages_5-7_extracted.json
+    ```
+    
+    ## Output Format
+    
+    JSON file containing pages array with text elements, coordinates, and metadata
     """
 
     # Set global state
