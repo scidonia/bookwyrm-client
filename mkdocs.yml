@@ -41,3 +41,82 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+site_name: BookWyrm Client
+site_description: Python client library for the BookWyrm API
+site_url: https://bookwyrm.ai
+repo_url: https://github.com/scidonia/bookwyrm
+repo_name: scidonia/bookwyrm
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Examples: examples.md
+  - CLI Reference: cli.md
+  - API Reference:
+    - api/index.md
+    - Synchronous Client: api/client.md
+    - Asynchronous Client: api/async-client.md
+    - Models: api/models.md
+  - Contributing: contributing.md
+
+plugins:
+  - search
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: false
+            merge_init_into_class: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/scidonia/bookwyrm
+    - icon: fontawesome/solid/globe
+      link: https://bookwyrm.ai
