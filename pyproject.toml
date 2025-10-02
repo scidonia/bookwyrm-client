@@ -26,6 +26,7 @@ dependencies = [
     "rich>=13.0.0",
     "click>=8.0.0",
     "typer>=0.19.2",
+    "mkdocs-typer>=0.0.3",
 ]
 
 [project.optional-dependencies]
