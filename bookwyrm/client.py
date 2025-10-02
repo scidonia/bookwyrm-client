@@ -1,8 +1,9 @@
 """Synchronous client for BookWyrm API."""
 
 import json
+import os
 import platform
-from typing import List, Iterator, Optional
+from typing import List, Iterator, Optional, Union, Dict, Any
 import requests
 
 try:
@@ -103,7 +104,7 @@ class BookWyrmClient:
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
-    ):
+    ) -> None:
         """Initialize the BookWyrm client.
 
         Args:
@@ -126,9 +127,9 @@ class BookWyrmClient:
             )
             ```
         """
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.session = requests.Session()
+        self.base_url: str = base_url.rstrip("/")
+        self.api_key: Optional[str] = api_key or os.getenv("BOOKWYRM_API_KEY")
+        self.session: requests.Session = requests.Session()
 
     def get_citations(self, request: CitationRequest) -> CitationResponse:
         """Get citations for a question from text chunks.
@@ -193,20 +194,22 @@ class BookWyrmClient:
                 print(f"Estimated cost: ${response.usage.estimated_cost:.4f}")
             ```
         """
-        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
+        headers: Dict[str, str] = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = self.session.post(
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/cite",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
             )
             response.raise_for_status()
-            return CitationResponse.model_validate(response.json())
+            response_data: Dict[str, Any] = response.json()
+            return CitationResponse.model_validate(response_data)
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            status_code: Optional[int] = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+            raise BookWyrmAPIError(f"API request failed: {e}", status_code)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -287,7 +290,7 @@ class BookWyrmClient:
                 print(f"Preview: {response.sample_preview[:100]}...")
             ```
         """
-        headers = {**DEFAULT_HEADERS}
+        headers: Dict[str, str] = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -297,17 +300,18 @@ class BookWyrmClient:
                 
             # Decode base64 content and send as multipart form data
             import base64
-            file_bytes = base64.b64decode(request.content)
+            file_bytes: bytes = base64.b64decode(request.content)
             
-            files = {"file": (request.filename or "document", file_bytes)}
-            response = self.session.post(
+            files: Dict[str, tuple] = {"file": (request.filename or "document", file_bytes)}
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/classify",
                 files=files,
                 headers=headers,
             )
 
             response.raise_for_status()
-            return ClassifyResponse.model_validate(response.json())
+            response_data: Dict[str, Any] = response.json()
+            return ClassifyResponse.model_validate(response_data)
         except requests.HTTPError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except requests.RequestException as e:
@@ -411,7 +415,7 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = self.session.post(
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/phrasal",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
@@ -420,10 +424,10 @@ class BookWyrmClient:
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
-                if line.strip():
+                if line and line.strip():
                     try:
-                        data = json.loads(line)
-                        response_type = data.get("type")
+                        data: Dict[str, Any] = json.loads(line)
+                        response_type: Optional[str] = data.get("type")
 
                         if response_type == "progress":
                             yield PhraseProgressUpdate.model_validate(data)
@@ -506,7 +510,7 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = self.session.post(
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/cite/stream",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
@@ -515,10 +519,10 @@ class BookWyrmClient:
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
-                if line.strip():
+                if line and line.strip():
                     try:
-                        data = json.loads(line)
-                        response_type = data.get("type")
+                        data: Dict[str, Any] = json.loads(line)
+                        response_type: Optional[str] = data.get("type")
 
                         if response_type == "progress":
                             yield CitationProgressUpdate.model_validate(data)
@@ -626,16 +630,16 @@ class BookWyrmClient:
             if request.pdf_content:
                 # Handle base64-encoded file content using form data
                 import base64
-                pdf_bytes = base64.b64decode(request.pdf_content)
+                pdf_bytes: bytes = base64.b64decode(request.pdf_content)
                 
-                files = {"file": (request.filename or "document.pdf", pdf_bytes, "application/pdf")}
-                data = {}
+                files: Dict[str, tuple] = {"file": (request.filename or "document.pdf", pdf_bytes, "application/pdf")}
+                data: Dict[str, Union[int, str]] = {}
                 if request.start_page is not None:
                     data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     data["num_pages"] = request.num_pages
                     
-                response = self.session.post(
+                response: requests.Response = self.session.post(
                     f"{self.base_url}/extract-structure",
                     files=files,
                     data=data,
@@ -644,7 +648,7 @@ class BookWyrmClient:
             elif request.pdf_url:
                 # Handle URL using JSON endpoint
                 headers["Content-Type"] = "application/json"
-                json_data = {"pdf_url": request.pdf_url}
+                json_data: Dict[str, Union[str, int]] = {"pdf_url": request.pdf_url}
                 if request.start_page is not None:
                     json_data["start_page"] = request.start_page
                 if request.num_pages is not None:
@@ -659,7 +663,7 @@ class BookWyrmClient:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
 
             response.raise_for_status()
-            response_data = response.json()
+            response_data: Dict[str, Any] = response.json()
             return PDFExtractResponse.model_validate(response_data)
         except requests.HTTPError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
@@ -804,10 +808,10 @@ class BookWyrmClient:
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
-                if line.strip():
+                if line and line.strip():
                     try:
-                        data = json.loads(line)
-                        response_type = data.get("type")
+                        data: Dict[str, Any] = json.loads(line)
+                        response_type: Optional[str] = data.get("type")
 
                         if response_type == "metadata":
                             yield PDFStreamMetadata.model_validate(data)
@@ -834,15 +838,15 @@ class BookWyrmClient:
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    def close(self):
+    def close(self) -> None:
         """Close the client session."""
         self.session.close()
 
-    def __enter__(self):
+    def __enter__(self) -> "BookWyrmClient":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
         """Context manager exit."""
         self.close()
 
@@ -909,15 +913,17 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = self.session.post(
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/summarize",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
             )
             response.raise_for_status()
-            return SummaryResponse.model_validate(response.json())
+            response_data: Dict[str, Any] = response.json()
+            return SummaryResponse.model_validate(response_data)
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            status_code: Optional[int] = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+            raise BookWyrmAPIError(f"API request failed: {e}", status_code)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -1004,7 +1010,7 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            response = self.session.post(
+            response: requests.Response = self.session.post(
                 f"{self.base_url}/summarize",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
@@ -1013,10 +1019,10 @@ class BookWyrmClient:
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
-                if line.strip() and line.startswith("data: "):
+                if line and line.strip() and line.startswith("data: "):
                     try:
-                        data = json.loads(line[6:])  # Remove "data: " prefix
-                        response_type = data.get("type")
+                        data: Dict[str, Any] = json.loads(line[6:])  # Remove "data: " prefix
+                        response_type: Optional[str] = data.get("type")
 
                         if response_type == "progress":
                             yield SummarizeProgressUpdate.model_validate(data)
