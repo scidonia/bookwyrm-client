@@ -885,45 +885,23 @@ class BookWyrmClient:
             print(f"Created {response.subsummary_count} subsummaries")
             ```
             
-            Structured summarization with Pydantic models:
+            Concurrent summarization of multiple documents:
             
             ```python
-            from pydantic import BaseModel, Field
-            from typing import Optional, List
-            import json
-            
-            class BookSummary(BaseModel):
-                title: Optional[str] = Field(None, description="The book's title")
-                author: Optional[str] = Field(None, description="The book's author")
-                main_themes: Optional[List[str]] = Field(None, description="Key themes")
-                plot_summary: Optional[str] = Field(None, description="Brief plot summary")
-            
-            request = SummarizeRequest(
-                content=content,
-                model_name="BookSummary",
-                model_schema_json=json.dumps(BookSummary.model_json_schema()),
-                max_tokens=8000
-            )
-            
-            response = client.summarize(request)
-            structured_summary = json.loads(response.summary)
-            book_summary = BookSummary.model_validate(structured_summary)
-            
-            print(f"Title: {book_summary.title}")
-            print(f"Author: {book_summary.author}")
-            ```
-            
-            Custom prompts for domain-specific summarization:
-            
-            ```python
-            request = SummarizeRequest(
-                content=content,
-                chunk_prompt="Extract key scientific concepts and findings",
-                summary_of_summaries_prompt="Create a comprehensive scientific overview",
-                max_tokens=10000
-            )
-            
-            response = client.summarize(request)
+            async def summarize_multiple():
+                requests = [
+                    SummarizeRequest(content=content1, max_tokens=5000),
+                    SummarizeRequest(content=content2, max_tokens=5000),
+                    SummarizeRequest(content=content3, max_tokens=5000)
+                ]
+                
+                async with AsyncBookWyrmClient() as client:
+                    summaries = await asyncio.gather(*[
+                        client.summarize(req) for req in requests
+                    ])
+                    
+                    for i, summary in enumerate(summaries):
+                        print(f"Document {i+1} summary: {summary.summary[:100]}...")
             ```
         """
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
