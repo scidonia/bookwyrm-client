@@ -421,15 +421,16 @@ class BookWyrmClient:
             from bookwyrm.models import TextResult, TextSpanResult
 
             client = BookWyrmClient(api_key="your-api-key")
-            with open("phrases.jsonl", "w") as f:
-                for response in client.process_text(
-                    text_url="https://www.gutenberg.org/files/11/11-0.txt",
-                    chunk_size=2000,
-                    text_only=True
-                ):
-                    if isinstance(response, (TextResult, TextSpanResult)):
-
-
+            phrases = []
+            for response in client.process_text(
+                text_url="https://www.gutenberg.org/files/11/11-0.txt",
+                chunk_size=2000,
+                text_only=True
+            ):
+                if isinstance(response, (TextResult, TextSpanResult)):
+                    phrases.append(response)
+            
+            print(f"Processed {len(phrases)} phrases from URL")
             ```
         """
         if text is None and text_url is None:
