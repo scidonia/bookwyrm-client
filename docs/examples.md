@@ -21,10 +21,9 @@ and artificial intelligence concerned with the interactions between computers an
 
 # Using function arguments (recommended)
 phrases: List[TextSpanResult] = []
-for response in client.process_text(
+for response in client.stream_process_text(
     text=text,
     offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
-    spacy_model="en_core_web_sm"
 ):
     if isinstance(response, TextSpanResult):
         phrases.append(response)
@@ -53,7 +52,7 @@ Modern NLP applications include chatbots, translation, and sentiment analysis.""
 
 # Create phrasal chunks bounded by size - fit as many complete phrases as possible
 chunks: List[TextSpanResult] = []
-for response in client.process_text(
+for response in client.stream_process_text(
     text=text,
     chunk_size=125,  # Bounded by 125 characters per chunk (smaller for demo)
     offsets=True  # boolean flag for WITH_OFFSETS
@@ -83,7 +82,7 @@ from typing import TextIO
 # Save to JSONL file
 with open("alice_phrases.jsonl", "w") as f:
     f: TextIO
-    for response in client.process_text(
+    for response in client.stream_process_text(
         text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
         chunk_size=2000,
         text_only=True  # boolean flag for TEXT_ONLY
