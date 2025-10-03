@@ -417,15 +417,26 @@ StreamingPhrasalResponse = Union[
 class ClassifyRequest(BaseModel):
     """Request model for file classification."""
 
-    content: str  # Base64-encoded file content
+    content: Optional[str] = None  # Base64-encoded file content
+    content_bytes: Optional[bytes] = None  # Raw file bytes (will be encoded to base64)
     filename: Optional[str] = None  # Optional hint for classification
     content_encoding: str = "base64"  # Always base64 for multipart uploads
 
     @model_validator(mode="after")
     def validate_input_source(self):
-        """Validate that content is provided and properly encoded."""
-        if not self.content:
-            raise ValueError("Content must be provided")
+        """Validate that exactly one of content or content_bytes is provided."""
+        sources = [self.content, self.content_bytes]
+        provided_sources = [s for s in sources if s is not None]
+
+        if len(provided_sources) != 1:
+            raise ValueError(
+                "Exactly one of 'content' or 'content_bytes' must be provided"
+            )
+
+        # If content_bytes is provided, encode it to base64 and set content
+        if self.content_bytes is not None:
+            self.content = base64.b64encode(self.content_bytes).decode('ascii')
+            delattr(self, 'content_bytes')  # Remove the field completely
 
         if self.content_encoding != "base64":
             raise ValueError("Content must be base64-encoded")
