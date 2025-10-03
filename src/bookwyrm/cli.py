@@ -36,7 +36,7 @@ from bookwyrm.models import (
     TextSpan,
     CitationProgressUpdate,
     CitationStreamResponse,
-    CitationSummaryResponse,
+    CitationSummaryResponse as BW_CitationSummaryResponse,
     CitationErrorResponse,
     SummarizeRequest,
     SummarizeProgressUpdate,
@@ -377,7 +377,7 @@ def cite(
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
 ):
-    console.print(f"CitationSummaryResponse = {CitationSummaryResponse!r}")
+    console.print(f"CitationSummaryResponse = {BW_CitationSummaryResponse!r}")
     print(dis.code_info(cite))
     """Find citations for a question in text chunks.
 
@@ -506,7 +506,7 @@ def cite(
                         # Immediately append to output file if specified
                         if output:
                             append_citation_to_jsonl(response.citation, output)
-                    elif isinstance(response, CitationSummaryResponse):
+                    elif isinstance(response, BW_CitationSummaryResponse):
                         progress.update(
                             task,
                             completed=response.chunks_processed,
