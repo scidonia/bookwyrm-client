@@ -49,12 +49,12 @@ response = client.extract_pdf(
     filename="research_paper.pdf"
 )
 
-# Get the extracted text
+# Get the extracted text by concatenating all text elements
 extracted_text = ""
 for page in response.pages:
     for element in page.elements:
         if element.type == "text":
-            extracted_text += element.text + " "
+            extracted_text += element.text + "\n"
 
 print(f"Extracted {len(extracted_text)} characters from PDF")
 ```
