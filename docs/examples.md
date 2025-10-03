@@ -7,30 +7,33 @@ This page contains practical examples of using the BookWyrm client library.
 ### Extract Phrases from Text
 
 ```python
+from typing import List
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import ProcessTextRequest, ResponseFormat
+from bookwyrm.models import ProcessTextRequest, ResponseFormat, PhraseResult, PhraseProgressUpdate
 
 # Create client
-client = BookWyrmClient()
+client: BookWyrmClient = BookWyrmClient()
 
-text = """
+text: str = """
 Natural language processing (NLP) is a subfield of linguistics, computer science, 
 and artificial intelligence concerned with the interactions between computers and human language.
 """
 
-request = ProcessTextRequest(
+request: ProcessTextRequest = ProcessTextRequest(
     text=text,
     response_format=ResponseFormat.WITH_OFFSETS,
     spacy_model="en_core_web_sm"
 )
 
-phrases = []
+phrases: List[PhraseResult] = []
 for response in client.process_text(request):
-    if hasattr(response, 'text'):  # PhraseResult
+    if isinstance(response, PhraseResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
         if response.start_char is not None:
             print(f"Position: {response.start_char}-{response.end_char}")
+    elif isinstance(response, PhraseProgressUpdate):
+        print(f"Progress: {response.message}")
 
 # phrases is now List[PhraseResult] where each PhraseResult has:
 # - type: Literal["phrase"] 
@@ -42,16 +45,20 @@ for response in client.process_text(request):
 ### Create Text Chunks
 
 ```python
+from typing import List
+
+long_text: str = "Your long text content here..."
+
 # Create chunks of specific size
-request = ProcessTextRequest(
+request: ProcessTextRequest = ProcessTextRequest(
     text=long_text,
     chunk_size=1000,  # ~1000 characters per chunk
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
-chunks = []
+chunks: List[PhraseResult] = []
 for response in client.process_text(request):
-    if hasattr(response, 'text'):
+    if isinstance(response, PhraseResult):
         chunks.append(response)
 
 print(f"Created {len(chunks)} chunks")
@@ -66,7 +73,9 @@ print(f"Created {len(chunks)} chunks")
 ### Process Text from URL
 
 ```python
-request = ProcessTextRequest(
+from typing import TextIO
+
+request: ProcessTextRequest = ProcessTextRequest(
     text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
     chunk_size=2000,
     response_format=ResponseFormat.WITH_OFFSETS
@@ -74,8 +83,9 @@ request = ProcessTextRequest(
 
 # Save to JSONL file
 with open("alice_phrases.jsonl", "w") as f:
+    f: TextIO
     for response in client.process_text(request):
-        if hasattr(response, 'text'):
+        if isinstance(response, PhraseResult):
             f.write(response.model_dump_json() + "\n")
 ```
 
@@ -84,10 +94,11 @@ with open("alice_phrases.jsonl", "w") as f:
 ### Basic Citation Finding
 
 ```python
-from bookwyrm.models import CitationRequest, TextChunk
+from typing import List
+from bookwyrm.models import CitationRequest, TextChunk, CitationResponse, Citation
 
 # Prepare text chunks (you can get these from phrasal analysis above)
-chunks = [
+chunks: List[TextChunk] = [
     TextChunk(
         text="Climate change refers to long-term shifts in global temperatures and weather patterns.",
         start_char=0,
@@ -106,14 +117,15 @@ chunks = [
 ]
 
 # Find citations
-request = CitationRequest(
+request: CitationRequest = CitationRequest(
     chunks=chunks,
     question="What causes climate change?"
 )
 
-response = client.get_citations(request)
+response: CitationResponse = client.get_citations(request)
 
 print(f"Found {response.total_citations} citations:")
+citation: Citation
 for citation in response.citations:
     print(f"- Quality {citation.quality}/4: {citation.text}")
 
@@ -133,18 +145,30 @@ for citation in response.citations:
 ### Streaming Citations with Progress
 
 ```python
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from typing import List
+from rich.progress import Progress, SpinnerColumn, TextColumn, TaskID
+from bookwyrm.models import (
+    CitationProgressUpdate, 
+    CitationStreamResponse, 
+    CitationSummaryResponse, 
+    CitationErrorResponse,
+    Citation
+)
 
 with Progress(SpinnerColumn(), TextColumn("{task.description}")) as progress:
-    task = progress.add_task("Finding citations...", total=None)
+    task: TaskID = progress.add_task("Finding citations...", total=None)
     
-    citations = []
+    citations: List[Citation] = []
     for update in client.stream_citations(request):
-        if hasattr(update, 'message'):
+        if isinstance(update, CitationProgressUpdate):
             progress.update(task, description=update.message)
-        elif hasattr(update, 'citation'):
+        elif isinstance(update, CitationStreamResponse):
             citations.append(update.citation)
             print(f"Found: {update.citation.text[:50]}...")
+        elif isinstance(update, CitationSummaryResponse):
+            print(f"Complete: {update.total_citations} citations found")
+        elif isinstance(update, CitationErrorResponse):
+            print(f"Error: {update.error}")
 
 print(f"Total citations found: {len(citations)}")
 
@@ -161,14 +185,14 @@ print(f"Total citations found: {len(citations)}")
 
 ```python
 # Load from JSONL file
-request = CitationRequest(
+request: CitationRequest = CitationRequest(
     jsonl_url="https://example.com/chunks.jsonl",
     question="What is machine learning?",
     start=0,
     limit=100
 )
 
-response = client.get_citations(request)
+response: CitationResponse = client.get_citations(request)
 ```
 
 ## Text Summarization
@@ -176,19 +200,21 @@ response = client.get_citations(request)
 ### Basic Summarization
 
 ```python
-from bookwyrm.models import SummarizeRequest
+from typing import TextIO
+from bookwyrm.models import SummarizeRequest, SummaryResponse
 
 # Load JSONL content
 with open("book_phrases.jsonl", "r") as f:
-    content = f.read()
+    f: TextIO
+    content: str = f.read()
 
-request = SummarizeRequest(
+request: SummarizeRequest = SummarizeRequest(
     content=content,
     max_tokens=5000,
     debug=True  # Include intermediate summaries
 )
 
-response = client.summarize(request)
+response: SummaryResponse = client.summarize(request)
 
 print("Summary:")
 print(response.summary)
@@ -211,24 +237,28 @@ print(f"Created {response.subsummary_count} subsummaries")
 ### Extract Text from PDF
 
 ```python
-from bookwyrm.models import PDFExtractRequest
+from typing import BinaryIO
 import base64
+from bookwyrm.models import PDFExtractRequest, PDFExtractResponse, PDFPage, PDFTextElement
 
 # Load PDF file
 with open("document.pdf", "rb") as f:
-    pdf_bytes = f.read()
-    pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
+    f: BinaryIO
+    pdf_bytes: bytes = f.read()
+    pdf_content: str = base64.b64encode(pdf_bytes).decode('ascii')
 
-request = PDFExtractRequest(
+request: PDFExtractRequest = PDFExtractRequest(
     pdf_content=pdf_content,
     filename="document.pdf"
 )
 
-response = client.extract_pdf(request)
+response: PDFExtractResponse = client.extract_pdf(request)
 
 print(f"Extracted {response.total_pages} pages")
+page: PDFPage
 for page in response.pages:
     print(f"Page {page.page_number}: {len(page.text_blocks)} text elements")
+    element: PDFTextElement
     for element in page.text_blocks[:3]:  # Show first 3 elements
         print(f"  - {element.text[:50]}...")
 
@@ -254,24 +284,40 @@ for page in response.pages:
 ### Stream PDF Extraction with Progress
 
 ```python
-from rich.progress import Progress, BarColumn, TaskProgressColumn
+from typing import List
+from rich.progress import Progress, BarColumn, TaskProgressColumn, TaskID
+from bookwyrm.models import (
+    PDFExtractRequest, 
+    PDFStreamMetadata, 
+    PDFStreamPageResponse, 
+    PDFStreamPageError,
+    PDFStreamComplete,
+    PDFStreamError,
+    PDFPage
+)
 
-request = PDFExtractRequest(
+request: PDFExtractRequest = PDFExtractRequest(
     pdf_url="https://example.com/document.pdf",
     start_page=1,
     num_pages=10
 )
 
-pages = []
+pages: List[PDFPage] = []
 with Progress(BarColumn(), TaskProgressColumn()) as progress:
-    task = progress.add_task("Extracting PDF...", total=100)
+    task: TaskID = progress.add_task("Extracting PDF...", total=100)
     
     for response in client.stream_extract_pdf(request):
-        if hasattr(response, 'total_pages'):  # Metadata
+        if isinstance(response, PDFStreamMetadata):
             progress.update(task, total=response.total_pages)
-        elif hasattr(response, 'page_data'):  # Page response
+        elif isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
             progress.update(task, completed=response.current_page)
+        elif isinstance(response, PDFStreamPageError):
+            print(f"Error on page {response.document_page}: {response.error}")
+        elif isinstance(response, PDFStreamComplete):
+            print("PDF extraction completed")
+        elif isinstance(response, PDFStreamError):
+            print(f"Extraction error: {response.error}")
 
 print(f"Extracted {len(pages)} pages")
 
@@ -290,20 +336,22 @@ print(f"Extracted {len(pages)} pages")
 ### Classify File Content
 
 ```python
-from bookwyrm.models import ClassifyRequest
+from typing import BinaryIO, Any
 import base64
+from bookwyrm.models import ClassifyRequest, ClassifyResponse
 
 # Read file as binary
 with open("unknown_file.dat", "rb") as f:
-    file_bytes = f.read()
-    content = base64.b64encode(file_bytes).decode('ascii')
+    f: BinaryIO
+    file_bytes: bytes = f.read()
+    content: str = base64.b64encode(file_bytes).decode('ascii')
 
-request = ClassifyRequest(
+request: ClassifyRequest = ClassifyRequest(
     content=content,
     filename="unknown_file.dat"
 )
 
-response = client.classify(request)
+response: ClassifyResponse = client.classify(request)
 
 print(f"Format: {response.classification.format_type}")
 print(f"Content Type: {response.classification.content_type}")
@@ -312,6 +360,8 @@ print(f"Confidence: {response.classification.confidence:.2%}")
 
 if response.classification.details:
     print("Details:")
+    key: str
+    value: Any
     for key, value in response.classification.details.items():
         print(f"  {key}: {value}")
 
@@ -336,16 +386,18 @@ if response.classification.details:
 ```python
 import asyncio
 from bookwyrm import AsyncBookWyrmClient
+from bookwyrm.models import CitationResponse, CitationStreamResponse
 
-async def main():
+async def main() -> None:
+    client: AsyncBookWyrmClient
     async with AsyncBookWyrmClient() as client:
         # Async citation finding
-        response = await client.get_citations(request)
+        response: CitationResponse = await client.get_citations(request)
         print(f"Found {response.total_citations} citations")
         
         # Async streaming
         async for update in client.stream_citations(request):
-            if hasattr(update, 'citation'):
+            if isinstance(update, CitationStreamResponse):
                 print(f"Citation: {update.citation.text}")
 
 # Run async code
@@ -365,16 +417,19 @@ asyncio.run(main())
 ### Comprehensive Error Handling
 
 ```python
+from typing import Optional
 from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError
+from bookwyrm.models import CitationResponse
 
 try:
-    response = client.get_citations(request)
+    response: CitationResponse = client.get_citations(request)
 except BookWyrmAPIError as e:
-    if e.status_code == 401:
+    status_code: Optional[int] = e.status_code
+    if status_code == 401:
         print("Authentication failed - check your API key")
-    elif e.status_code == 429:
+    elif status_code == 429:
         print("Rate limit exceeded - please wait")
-    elif e.status_code == 500:
+    elif status_code == 500:
         print("Server error - please try again later")
     else:
         print(f"API error: {e}")
