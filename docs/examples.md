@@ -211,24 +211,29 @@ with open("document.pdf", "rb") as f:
     f: BinaryIO
     pdf_bytes: bytes = f.read()
 
-response: PDFExtractResponse = client.extract_pdf(
+pages: List[PDFPage] = []
+for response in client.stream_extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="document.pdf"
-)
+):
+    if hasattr(response, 'page_data'):
+        pages.append(response.page_data)
+    elif hasattr(response, 'total_pages') and hasattr(response, 'type') and response.type == "metadata":
+        print(f"Starting extraction of {response.total_pages} pages")
 
-print(f"Extracted {response.total_pages} pages")
+print(f"Extracted {len(pages)} pages")
 page: PDFPage
-for page in response.pages:
+for page in pages:
     print(f"Page {page.page_number}: {len(page.text_blocks)} text elements")
     element: PDFTextElement
     for element in page.text_blocks[:3]:  # Show first 3 elements
         print(f"  - {element.text[:50]}...")
 
-# response is PDFExtractResponse with:
-# - pages: List[PDFPage]
-# - total_pages: int
-# - extraction_method: str (e.g., "paddleocr")
-# - processing_time: Optional[float]
+# pages is List[PDFPage] where each PDFPage has:
+# - page_number: int (1-based)
+# - text_blocks: List[PDFTextElement]
+# - tables: List[dict] (placeholder)
+# - images: List[dict] (placeholder)
 #
 # Each PDFPage has:
 # - page_number: int (1-based)
