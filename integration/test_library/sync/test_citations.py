@@ -328,13 +328,12 @@ def test_stream_citations_progress_tracking(client, sample_chunks):
 
 def test_get_citations_empty_chunks(client):
     """Test citation finding with empty chunks list."""
-    response = client.get_citations(
-        chunks=[], question="What is AI?", max_tokens_per_chunk=1000
-    )
-
-    assert isinstance(response, CitationResponse)
-    assert response.total_citations == 0
-    assert len(response.citations) == 0
+    # API rejects empty chunks, so this should raise an error
+    from bookwyrm.client import BookWyrmAPIError
+    with pytest.raises(BookWyrmAPIError, match="400 Client Error"):
+        client.get_citations(
+            chunks=[], question="What is AI?", max_tokens_per_chunk=1000
+        )
 
 
 def test_get_citations_single_chunk(client):
