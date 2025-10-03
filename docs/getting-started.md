@@ -30,19 +30,44 @@ client = BookWyrmClient(api_key="your-api-key")
 
 ## Basic Usage
 
-### Step 1: Process Text into Chunks
+### Step 1: Extract Content from PDFs
 
-First, process your text into meaningful chunks using `stream_process_text`:
+Start by extracting structured content from PDF documents:
 
 ```python
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import TextResult, TextSpanResult
 
 # Initialize client
 client = BookWyrmClient(api_key="your-api-key")
 
-# Process text into chunks
-text = """
+# Extract content from a PDF file
+with open("research_paper.pdf", "rb") as f:
+    pdf_bytes = f.read()
+
+response = client.extract_pdf(
+    pdf_bytes=pdf_bytes,
+    filename="research_paper.pdf"
+)
+
+# Get the extracted text
+extracted_text = ""
+for page in response.pages:
+    for element in page.elements:
+        if element.type == "text":
+            extracted_text += element.text + " "
+
+print(f"Extracted {len(extracted_text)} characters from PDF")
+```
+
+### Step 2: Process Text into Chunks
+
+Process the extracted text (or any text) into meaningful chunks using `stream_process_text`:
+
+```python
+from bookwyrm.models import TextResult, TextSpanResult
+
+# Use the extracted text from Step 1, or provide your own text
+text = extracted_text or """
 The sky appears blue due to a phenomenon called Rayleigh scattering. 
 When sunlight enters Earth's atmosphere, it collides with gas molecules. 
 Blue light waves are shorter than red light waves, so they get scattered 
@@ -66,7 +91,7 @@ for response in client.stream_process_text(
 print(f"Created {len(chunks)} chunks")
 ```
 
-### Step 2: Find Citations
+### Step 3: Find Citations
 
 Use the generated chunks to find citations that answer specific questions:
 
@@ -83,7 +108,7 @@ for citation in response.citations:
     print(f"Reasoning: {citation.reasoning}")
 ```
 
-### Step 3: Text Summarization
+### Step 4: Text Summarization
 
 Summarize your processed chunks or phrases:
 
@@ -106,11 +131,21 @@ print(response.summary)
 # )
 ```
 
-### Step 4: Streaming Operations
+### Step 5: Streaming Operations
 
 Use streaming for real-time progress updates on any operation:
 
 ```python
+# Stream PDF extraction
+for response in client.stream_extract_pdf(
+    pdf_bytes=pdf_bytes,
+    filename="document.pdf"
+):
+    if hasattr(response, 'page_number'):
+        print(f"Processing page {response.page_number}")
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
 # Stream text processing (always streaming)
 for response in client.stream_process_text(
     text_url="https://www.gutenberg.org/files/11/11-0.txt",
@@ -143,11 +178,11 @@ bookwyrm cite "Why is the sky blue?" data/chunks.jsonl
 # Summarize text
 bookwyrm summarize data/phrases.jsonl --output summary.json
 
+# Extract PDF content first
+bookwyrm extract-pdf document.pdf --output extracted.json
+
 # Process text into phrases/chunks
 bookwyrm phrasal "Your text here" --output phrases.jsonl --chunk-size 1000
-
-# Extract PDF content
-bookwyrm extract-pdf document.pdf --output extracted.json
 ```
 
 ## Error Handling
