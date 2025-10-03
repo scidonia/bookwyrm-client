@@ -4,12 +4,10 @@ This page provides the essential models and function signatures needed for AI ag
 
 ## Core Models
 
-### Input/Output Models
-
 ::: bookwyrm.models.TextSpan
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -17,7 +15,7 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.Citation
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -25,7 +23,7 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.CitationResponse
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -33,7 +31,7 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.PDFExtractResponse
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -41,7 +39,7 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.ClassifyResponse
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -49,17 +47,15 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.SummaryResponse
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
 
-### Streaming Response Models
-
 ::: bookwyrm.models.TextResult
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -67,7 +63,7 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.models.TextSpanResult
     options:
       show_root_heading: true
-      show_source: false
+      show_source: true
       members_order: source
       show_bases: true
       inherited_members: true
@@ -77,100 +73,51 @@ This page provides the essential models and function signatures needed for AI ag
 ::: bookwyrm.BookWyrmClient.classify
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.BookWyrmClient.extract_pdf
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.BookWyrmClient.stream_process_text
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.BookWyrmClient.get_citations
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.BookWyrmClient.summarize
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ## Asynchronous Client Methods
 
 ::: bookwyrm.AsyncBookWyrmClient.classify
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.AsyncBookWyrmClient.extract_pdf
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.AsyncBookWyrmClient.stream_process_text
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.AsyncBookWyrmClient.get_citations
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
+      show_source: true
 
 ::: bookwyrm.AsyncBookWyrmClient.summarize
     options:
       show_root_heading: true
-      show_source: false
-      show_signature: true
-      separate_signature: true
-
-## Quick Reference
-
-### Typical Workflow
-
-1. **Classify** → `classify()` → `ClassifyResponse`
-2. **Extract** → `extract_pdf()` → `PDFExtractResponse`
-3. **Process** → `stream_process_text()` → `Iterator[TextResult|TextSpanResult]`
-4. **Cite** → `get_citations()` → `CitationResponse`
-5. **Summarize** → `summarize()` → `SummaryResponse`
-
-### Key Type Signatures
-
-```python
-# Classification
-def classify(*, content_bytes: bytes, filename: str) -> ClassifyResponse
-
-# PDF Extraction  
-def extract_pdf(*, pdf_bytes: bytes, filename: str) -> PDFExtractResponse
-
-# Text Processing (always streaming)
-def stream_process_text(*, text: str, chunk_size: int, offsets: bool) -> Iterator[TextResult|TextSpanResult]
-
-# Citation Finding
-def get_citations(*, chunks: List[TextSpan], question: str) -> CitationResponse
-
-# Summarization
-def summarize(*, content: str, max_tokens: int) -> SummaryResponse
-```
+      show_source: true
