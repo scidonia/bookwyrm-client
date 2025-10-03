@@ -82,10 +82,10 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
                     console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
                     sys.exit(1)
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]")
+        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]")
+        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
         sys.exit(1)
 
     return chunks
@@ -111,10 +111,10 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
                     console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
                     sys.exit(1)
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]")
+        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]")
+        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
         sys.exit(1)
 
     return phrases
@@ -125,10 +125,10 @@ def load_jsonl_content(file_path: Path) -> str:
     try:
         return file_path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]")
+        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]")
+        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
         sys.exit(1)
 
 
@@ -425,7 +425,7 @@ def cite(
 
     if len(provided_sources) != 1:
         console.print(
-            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
+            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]", file=sys.stderr
         )
         raise typer.Exit(1)
 
@@ -552,12 +552,12 @@ def cite(
                 save_citations_to_json(response.citations, output)
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        console.print(f"[red]API Error: {e}[/red]", file=sys.stderr)
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            console.print(f"[red]Status Code: {e.status_code}[/red]", file=sys.stderr)
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        console.print(f"[red]Unexpected error: {e}[/red]", file=sys.stderr)
         raise typer.Exit(1)
     finally:
         client.close()
