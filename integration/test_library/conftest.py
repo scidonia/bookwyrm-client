@@ -14,4 +14,4 @@ def pytest_collection_modifyitems(config, items):
         if "/sync/" in test_path:
             item.add_marker(pytest.mark.sync)
         elif "/async/" in test_path:
-            item.add_marker(pytest.mark.async)
+            item.add_marker(getattr(pytest.mark, "async"))
