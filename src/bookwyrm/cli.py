@@ -79,7 +79,7 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     chunks.append(chunk)
                 except (json.JSONDecodeError, KeyError) as e:
-                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
+                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]", file=sys.stderr)
                     sys.exit(1)
     except FileNotFoundError:
         console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
@@ -108,7 +108,7 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     phrases.append(phrase)
                 except (json.JSONDecodeError, KeyError) as e:
-                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
+                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]", file=sys.stderr)
                     sys.exit(1)
     except FileNotFoundError:
         console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
