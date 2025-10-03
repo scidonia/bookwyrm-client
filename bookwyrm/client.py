@@ -298,7 +298,7 @@ class BookWyrmClient:
         """
         if content is None and content_bytes is None:
             raise ValueError("Either content or content_bytes is required")
-        
+
         request = ClassifyRequest(
             content=content,
             content_bytes=content_bytes,
@@ -316,9 +316,12 @@ class BookWyrmClient:
             elif request.content is not None:
                 # Decode base64 content
                 import base64
+
                 file_bytes = base64.b64decode(request.content)
             else:
-                raise BookWyrmAPIError("Either content or content_bytes must be provided")
+                raise BookWyrmAPIError(
+                    "Either content or content_bytes must be provided"
+                )
 
             files: Dict[str, tuple] = {
                 "file": (request.filename or "document", file_bytes)
@@ -343,7 +346,9 @@ class BookWyrmClient:
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: Union[ResponseFormat, Literal["with_offsets", "offsets", "text_only", "text"]] = ResponseFormat.WITH_OFFSETS,
+        response_format: Union[
+            ResponseFormat, Literal["offsets", "text_only"]
+        ] = ResponseFormat.WITH_OFFSETS,
         # Boolean flags for response format
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
@@ -358,7 +363,7 @@ class BookWyrmClient:
             text: Text content to process
             text_url: URL to fetch text from
             chunk_size: Optional chunk size for fixed-size chunking
-            response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
+            response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
             offsets: Set to True for WITH_OFFSETS format (boolean flag)
             text_only: Set to True for TEXT_ONLY format (boolean flag)
 
@@ -429,20 +434,20 @@ class BookWyrmClient:
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
-        
+
         # Handle boolean flags for response format
         boolean_flags = [offsets, text_only]
         true_flags = [flag for flag in boolean_flags if flag is True]
-        
+
         if len(true_flags) > 1:
             raise ValueError("Only one response format flag can be True")
-        
+
         if len(true_flags) == 1:
             if offsets:
                 response_format = ResponseFormat.WITH_OFFSETS
             elif text_only:
                 response_format = ResponseFormat.TEXT_ONLY
-        
+
         # Convert string to enum if needed
         if isinstance(response_format, str):
             if response_format.lower() in ("with_offsets", "offsets"):
@@ -450,8 +455,10 @@ class BookWyrmClient:
             elif response_format.lower() in ("text_only", "text"):
                 response_format = ResponseFormat.TEXT_ONLY
             else:
-                raise ValueError(f"Invalid response_format: {response_format}. Use 'with_offsets'/'offsets' or 'text_only'/'text'")
-        
+                raise ValueError(
+                    f"Invalid response_format: {response_format}. Use 'with_offsets'/'offsets' or 'text_only'/'text'"
+                )
+
         request = ProcessTextRequest(
             text=text,
             text_url=text_url,
@@ -688,8 +695,10 @@ class BookWyrmClient:
         sources = [pdf_url, pdf_content, pdf_bytes]
         provided_sources = [s for s in sources if s is not None]
         if len(provided_sources) != 1:
-            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-        
+            raise ValueError(
+                "Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"
+            )
+
         request = PDFExtractRequest(
             pdf_url=pdf_url,
             pdf_content=pdf_content,
@@ -710,6 +719,7 @@ class BookWyrmClient:
                 else:
                     # Handle base64-encoded file content
                     import base64
+
                     pdf_bytes = base64.b64decode(request.pdf_content)
 
                 files: Dict[str, tuple] = {
@@ -809,8 +819,10 @@ class BookWyrmClient:
         sources = [pdf_url, pdf_content, pdf_bytes]
         provided_sources = [s for s in sources if s is not None]
         if len(provided_sources) != 1:
-            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-        
+            raise ValueError(
+                "Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"
+            )
+
         request = PDFExtractRequest(
             pdf_url=pdf_url,
             pdf_content=pdf_content,
@@ -831,6 +843,7 @@ class BookWyrmClient:
                 else:
                     # Handle base64-encoded file content using form data
                     import base64
+
                     pdf_bytes = base64.b64decode(request.pdf_content)
 
                 files = {
@@ -993,7 +1006,7 @@ class BookWyrmClient:
         provided_sources = [s for s in sources if s is not None]
         if len(provided_sources) != 1:
             raise ValueError("Exactly one of content, url, or phrases must be provided")
-        
+
         request = SummarizeRequest(
             content=content,
             url=url,
@@ -1077,7 +1090,7 @@ class BookWyrmClient:
         provided_sources = [s for s in sources if s is not None]
         if len(provided_sources) != 1:
             raise ValueError("Exactly one of content, url, or phrases must be provided")
-        
+
         request = SummarizeRequest(
             content=content,
             url=url,
