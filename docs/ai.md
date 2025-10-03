@@ -272,9 +272,6 @@ inherited_members: true
 options:
 show_root_heading: true
 
-::: bookwyrm.BookWyrmClient.extract_pdf
-options:
-show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.stream_process_text
 options:
@@ -294,9 +291,6 @@ show_root_heading: true
 options:
 show_root_heading: true
 
-::: bookwyrm.AsyncBookWyrmClient.extract_pdf
-options:
-show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.stream_process_text
 options:
