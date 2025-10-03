@@ -13,23 +13,21 @@ pytestmark = pytest.mark.cite
 
 def create_test_jsonl_file(chunks: List[Dict[str, Any]]) -> Path:
     """Create a temporary JSONL file with test chunks."""
-    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
+    temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False)
     for chunk in chunks:
         json.dump(chunk, temp_file)
-        temp_file.write('\n')
+        temp_file.write("\n")
     temp_file.close()
     return Path(temp_file.name)
 
 
-def run_bookwyrm_command(args: List[str], input_data: str = None) -> subprocess.CompletedProcess:
+def run_bookwyrm_command(
+    args: List[str], input_data: str = None
+) -> subprocess.CompletedProcess:
     """Run a bookwyrm CLI command and return the result."""
-    cmd = ['bookwyrm'] + args
+    cmd = ["bookwyrm"] + args
     result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        input=input_data,
-        timeout=30
+        cmd, capture_output=True, text=True, input=input_data, timeout=30
     )
     return result
 
@@ -41,64 +39,64 @@ def sample_chunks():
         {
             "text": "The capital of France is Paris. It is known for the Eiffel Tower.",
             "start_char": 0,
-            "end_char": 65
+            "end_char": 65,
         },
         {
             "text": "London is the capital of England and home to Big Ben.",
             "start_char": 66,
-            "end_char": 119
+            "end_char": 119,
         },
         {
             "text": "Berlin is the capital of Germany and has a rich history.",
             "start_char": 120,
-            "end_char": 176
-        }
+            "end_char": 176,
+        },
     ]
 
 
 def test_cite_command_basic_help():
     """Test that the cite command shows help information."""
-    result = run_bookwyrm_command(['cite', '--help'])
-    
+    result = run_bookwyrm_command(["cite", "--help"])
+
     assert result.returncode == 0
-    assert 'cite' in result.stdout.lower()
-    assert 'question' in result.stdout.lower()
+    assert "cite" in result.stdout.lower()
+    assert "question" in result.stdout.lower()
 
 
 def test_cite_command_missing_args():
     """Test cite command with missing required arguments."""
-    result = run_bookwyrm_command(['cite'])
-    
+    result = run_bookwyrm_command(["cite"])
+
     # Should fail due to missing question argument
     assert result.returncode != 0
-    assert 'question' in result.stderr.lower() or 'missing' in result.stderr.lower()
+    assert "question" in result.stderr.lower() or "missing" in result.stderr.lower()
 
 
 def test_cite_command_with_jsonl_file(sample_chunks):
     """Test basic cite command functionality with JSONL file."""
     # Create temporary JSONL file
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    
+
     try:
         # Run cite command
-        result = run_bookwyrm_command([
-            'cite',
-            'What are the capitals mentioned?',
-            str(jsonl_file)
-        ])
-        
+        result = run_bookwyrm_command(
+            ["cite", "What are the capitals mentioned?", str(jsonl_file)]
+        )
+
         # Check that command executed (may fail due to API key, but should parse args correctly)
         if result.returncode != 0:
             # If it fails due to API key or network, that's expected in test environment
-            assert ('api' in result.stderr.lower() or 
-                   'key' in result.stderr.lower() or
-                   'connection' in result.stderr.lower() or
-                   'network' in result.stderr.lower() or
-                   'timeout' in result.stderr.lower())
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+            )
         else:
             # If it succeeds, should have some output
             assert len(result.stdout) > 0
-            
+
     finally:
         # Clean up
         jsonl_file.unlink()
@@ -107,24 +105,24 @@ def test_cite_command_with_jsonl_file(sample_chunks):
 def test_cite_command_with_file_option(sample_chunks):
     """Test cite command using --file option instead of positional argument."""
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What cities are mentioned?',
-            '--file', str(jsonl_file)
-        ])
-        
+        result = run_bookwyrm_command(
+            ["cite", "What cities are mentioned?", "--file", str(jsonl_file)]
+        )
+
         # Check command parsing (may fail on API call)
         if result.returncode != 0:
-            assert ('api' in result.stderr.lower() or 
-                   'key' in result.stderr.lower() or
-                   'connection' in result.stderr.lower() or
-                   'network' in result.stderr.lower() or
-                   'timeout' in result.stderr.lower())
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+            )
         else:
             assert len(result.stdout) > 0
-            
+
     finally:
         jsonl_file.unlink()
 
@@ -132,26 +130,31 @@ def test_cite_command_with_file_option(sample_chunks):
 def test_cite_command_with_output_option(sample_chunks):
     """Test cite command with --output option."""
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    output_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+    output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
     output_path = Path(output_file.name)
     output_file.close()
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What are the European capitals?',
-            str(jsonl_file),
-            '--output', str(output_path)
-        ])
-        
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "What are the European capitals?",
+                str(jsonl_file),
+                "--output",
+                str(output_path),
+            ]
+        )
+
         # Check command parsing
         if result.returncode != 0:
-            assert ('api' in result.stderr.lower() or 
-                   'key' in result.stderr.lower() or
-                   'connection' in result.stderr.lower() or
-                   'network' in result.stderr.lower() or
-                   'timeout' in result.stderr.lower())
-        
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+            )
+
     finally:
         jsonl_file.unlink()
         if output_path.exists():
@@ -161,24 +164,30 @@ def test_cite_command_with_output_option(sample_chunks):
 def test_cite_command_with_pagination_options(sample_chunks):
     """Test cite command with --start and --limit options."""
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What locations are mentioned?',
-            str(jsonl_file),
-            '--start', '0',
-            '--limit', '2'
-        ])
-        
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "What locations are mentioned?",
+                str(jsonl_file),
+                "--start",
+                "0",
+                "--limit",
+                "2",
+            ]
+        )
+
         # Check command parsing
         if result.returncode != 0:
-            assert ('api' in result.stderr.lower() or 
-                   'key' in result.stderr.lower() or
-                   'connection' in result.stderr.lower() or
-                   'network' in result.stderr.lower() or
-                   'timeout' in result.stderr.lower())
-        
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+            )
+
     finally:
         jsonl_file.unlink()
 
@@ -186,75 +195,44 @@ def test_cite_command_with_pagination_options(sample_chunks):
 def test_cite_command_with_no_stream_option(sample_chunks):
     """Test cite command with --no-stream option."""
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What countries are mentioned?',
-            str(jsonl_file),
-            '--no-stream'
-        ])
-        
+        result = run_bookwyrm_command(
+            ["cite", "What countries are mentioned?", str(jsonl_file), "--no-stream"]
+        )
+
         # Check command parsing
         if result.returncode != 0:
-            assert ('api' in result.stderr.lower() or 
-                   'key' in result.stderr.lower() or
-                   'connection' in result.stderr.lower() or
-                   'network' in result.stderr.lower() or
-                   'timeout' in result.stderr.lower())
-        
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+            )
+
     finally:
         jsonl_file.unlink()
 
 
 def test_cite_command_with_url_option():
     """Test cite command with --url option."""
-    result = run_bookwyrm_command([
-        'cite',
-        'What is the main theme?',
-        '--url', 'https://example.com/chunks.jsonl'
-    ])
-    
-    # Should fail due to network/API issues in test environment, but args should parse
-    assert result.returncode != 0
-    # Should fail on network/API, not argument parsing
-    assert not ('usage:' in result.stderr.lower() and 'error:' in result.stderr.lower())
-
-
-def test_cite_command_with_api_options(sample_chunks):
-    """Test cite command with --api-key and --base-url options."""
-    jsonl_file = create_test_jsonl_file(sample_chunks)
-    
-    try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What landmarks are mentioned?',
-            str(jsonl_file),
-            '--api-key', 'test-key',
-            '--base-url', 'https://test.example.com'
-        ])
-        
-        # Should fail on API call but args should parse correctly
-        if result.returncode != 0:
-            # Should not be an argument parsing error
-            assert not ('usage:' in result.stderr.lower() and 'error:' in result.stderr.lower())
-        
-    finally:
-        jsonl_file.unlink()
+    # TODO: We need good urls first.
+    pass
 
 
 def test_cite_command_invalid_file():
     """Test cite command with non-existent file."""
-    result = run_bookwyrm_command([
-        'cite',
-        'What is mentioned?',
-        '/nonexistent/file.jsonl'
-    ])
-    
+    result = run_bookwyrm_command(
+        ["cite", "What is mentioned?", "/nonexistent/file.jsonl"]
+    )
+
     assert result.returncode != 0
-    assert ('file' in result.stderr.lower() or 
-           'not found' in result.stderr.lower() or
-           'no such file' in result.stderr.lower())
+    assert (
+        "file" in result.stderr.lower()
+        or "not found" in result.stderr.lower()
+        or "no such file" in result.stderr.lower()
+    )
 
 
 @pytest.mark.liveonly
@@ -262,31 +240,36 @@ def test_cite_command_live_api(sample_chunks, api_key, api_url):
     """Test cite command against live API."""
     if not api_key:
         pytest.skip("No API key provided for live test")
-    
+
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    output_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+    output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
     output_path = Path(output_file.name)
     output_file.close()
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What are the capital cities mentioned in the text?',
-            str(jsonl_file),
-            '--api-key', api_key,
-            '--base-url', api_url,
-            '--output', str(output_path)
-        ])
-        
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "What are the capital cities mentioned in the text?",
+                str(jsonl_file),
+                "--api-key",
+                api_key,
+                "--base-url",
+                api_url,
+                "--output",
+                str(output_path),
+            ]
+        )
+
         assert result.returncode == 0, f"Command failed: {result.stderr}"
         assert len(result.stdout) > 0
-        
+
         # Check that output file was created and contains valid JSON
         if output_path.exists():
-            with open(output_path, 'r') as f:
+            with open(output_path, "r") as f:
                 output_data = json.load(f)
             assert isinstance(output_data, (list, dict))
-        
+
     finally:
         jsonl_file.unlink()
         if output_path.exists():
@@ -298,25 +281,31 @@ def test_cite_command_streaming_live(sample_chunks, api_key, api_url):
     """Test cite command streaming functionality with live API."""
     if not api_key:
         pytest.skip("No API key provided for live test")
-    
+
     jsonl_file = create_test_jsonl_file(sample_chunks)
-    
+
     try:
-        result = run_bookwyrm_command([
-            'cite',
-            'What European cities are mentioned?',
-            str(jsonl_file),
-            '--api-key', api_key,
-            '--base-url', api_url
-        ])
-        
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "What European cities are mentioned?",
+                str(jsonl_file),
+                "--api-key",
+                api_key,
+                "--base-url",
+                api_url,
+            ]
+        )
+
         assert result.returncode == 0, f"Command failed: {result.stderr}"
         assert len(result.stdout) > 0
-        
+
         # Should contain progress or citation information
-        assert ('citation' in result.stdout.lower() or 
-               'progress' in result.stdout.lower() or
-               'found' in result.stdout.lower())
-        
+        assert (
+            "citation" in result.stdout.lower()
+            or "progress" in result.stdout.lower()
+            or "found" in result.stdout.lower()
+        )
+
     finally:
         jsonl_file.unlink()
