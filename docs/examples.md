@@ -25,21 +25,20 @@ request: ProcessTextRequest = ProcessTextRequest(
     spacy_model="en_core_web_sm"
 )
 
-phrases: List[Union[TextResult, TextSpanResult]] = []
+phrases: List[TextSpanResult] = []
 for response in client.process_text(request):
     if isinstance(response, TextSpanResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
         print(f"Position: {response.start_char}-{response.end_char}")
-    elif isinstance(response, TextResult):
-        phrases.append(response)
-        print(f"Phrase: {response.text}")
     elif isinstance(response, PhraseProgressUpdate):
         print(f"Progress: {response.message}")
 
-# phrases is now List[Union[TextResult, TextSpanResult]] where:
-# - TextSpanResult has: type, text, start_char, end_char (when WITH_OFFSETS)
-# - TextResult has: type, text (when TEXT_ONLY)
+# phrases is now List[TextSpanResult] where each TextSpanResult has:
+# - type: Literal["phrase"]
+# - text: str (the phrase content)
+# - start_char: int (starting character position)
+# - end_char: int (ending character position)
 ```
 
 ### Create Text Chunks
@@ -56,16 +55,18 @@ request: ProcessTextRequest = ProcessTextRequest(
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
-chunks: List[Union[TextResult, TextSpanResult]] = []
+chunks: List[TextSpanResult] = []
 for response in client.process_text(request):
-    if isinstance(response, (TextResult, TextSpanResult)):
+    if isinstance(response, TextSpanResult):
         chunks.append(response)
 
 print(f"Created {len(chunks)} chunks")
 
-# chunks is now List[Union[TextResult, TextSpanResult]] where:
-# - TextSpanResult has: type, text, start_char, end_char (when WITH_OFFSETS)
-# - TextResult has: type, text (when TEXT_ONLY)
+# chunks is now List[TextSpanResult] where each chunk has:
+# - type: Literal["phrase"]
+# - text: str (the chunk content)
+# - start_char: int (starting character position)
+# - end_char: int (ending character position)
 ```
 
 ### Process Text from URL
@@ -83,7 +84,7 @@ request: ProcessTextRequest = ProcessTextRequest(
 with open("alice_phrases.jsonl", "w") as f:
     f: TextIO
     for response in client.process_text(request):
-        if isinstance(response, (TextResult, TextSpanResult)):
+        if isinstance(response, TextSpanResult):
             f.write(response.model_dump_json() + "\n")
 ```
 
