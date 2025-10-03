@@ -339,7 +339,7 @@ class BookWyrmClient:
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS,
+        response_format: Union[ResponseFormat, str] = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
     ) -> Iterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with streaming results.
@@ -352,7 +352,7 @@ class BookWyrmClient:
             text: Text content to process
             text_url: URL to fetch text from
             chunk_size: Optional chunk size for fixed-size chunking
-            response_format: Response format (WITH_OFFSETS or TEXT_ONLY)
+            response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
             spacy_model: SpaCy model to use for processing
 
         Yields:
@@ -375,7 +375,7 @@ class BookWyrmClient:
             phrases = []
             for response in client.process_text(
                 text=text,
-                response_format=ResponseFormat.WITH_OFFSETS,
+                response_format="with_offsets",  # or ResponseFormat.WITH_OFFSETS
                 spacy_model="en_core_web_sm"
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
@@ -392,7 +392,7 @@ class BookWyrmClient:
             for response in client.process_text(
                 text=long_text,
                 chunk_size=1000,  # ~1000 characters per chunk
-                response_format=ResponseFormat.WITH_OFFSETS
+                response_format="offsets"  # shorthand for WITH_OFFSETS
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):
                     chunks.append(response)
@@ -408,7 +408,7 @@ class BookWyrmClient:
                 for response in client.process_text(
                     text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
                     chunk_size=2000,
-                    response_format=ResponseFormat.WITH_OFFSETS
+                    response_format="with_offsets"
                 ):
                     if isinstance(response, (TextResult, TextSpanResult)):
                         f.write(response.model_dump_json() + "\n")
@@ -416,6 +416,15 @@ class BookWyrmClient:
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
+        
+        # Convert string to enum if needed
+        if isinstance(response_format, str):
+            if response_format.lower() in ("with_offsets", "offsets"):
+                response_format = ResponseFormat.WITH_OFFSETS
+            elif response_format.lower() in ("text_only", "text"):
+                response_format = ResponseFormat.TEXT_ONLY
+            else:
+                raise ValueError(f"Invalid response_format: {response_format}. Use 'with_offsets'/'offsets' or 'text_only'/'text'")
         
         request = ProcessTextRequest(
             text=text,

@@ -358,7 +358,7 @@ class AsyncBookWyrmClient:
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS,
+        response_format: Union[ResponseFormat, str] = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
     ) -> AsyncIterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with async streaming results.
@@ -368,11 +368,10 @@ class AsyncBookWyrmClient:
         or extract individual phrases with optional position information.
 
         Args:
-            request: Text processing request with text/URL, chunking options, and format preferences (legacy)
-            text: Text content to process (alternative to request)
-            text_url: URL to fetch text from (alternative to request)
+            text: Text content to process
+            text_url: URL to fetch text from
             chunk_size: Optional chunk size for fixed-size chunking
-            response_format: Response format (WITH_OFFSETS or TEXT_ONLY)
+            response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
             spacy_model: SpaCy model to use for processing
 
         Yields:
@@ -392,7 +391,7 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     async for response in client.process_text(
                         text="Your text here",
-                        response_format=ResponseFormat.WITH_OFFSETS
+                        response_format="with_offsets"  # or ResponseFormat.WITH_OFFSETS
                     ):
                         if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
                             phrases.append(response)
@@ -444,6 +443,15 @@ class AsyncBookWyrmClient:
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
+        
+        # Convert string to enum if needed
+        if isinstance(response_format, str):
+            if response_format.lower() in ("with_offsets", "offsets"):
+                response_format = ResponseFormat.WITH_OFFSETS
+            elif response_format.lower() in ("text_only", "text"):
+                response_format = ResponseFormat.TEXT_ONLY
+            else:
+                raise ValueError(f"Invalid response_format: {response_format}. Use 'with_offsets'/'offsets' or 'text_only'/'text'")
         
         request = ProcessTextRequest(
             text=text,
