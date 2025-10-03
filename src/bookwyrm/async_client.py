@@ -270,7 +270,7 @@ class AsyncBookWyrmClient:
         content: Optional[str] = None,
         content_bytes: Optional[bytes] = None,
         filename: Optional[str] = None,
-        content_encoding: str = "base64",
+        content_encoding: str = "raw",
     ) -> ClassifyResponse:
         """Classify file content to determine file type and format asynchronously.
 
@@ -279,10 +279,10 @@ class AsyncBookWyrmClient:
         confidence scores and additional metadata about the detected format.
 
         Args:
-            content: Base64-encoded file content
+            content: File content as string (raw text or base64-encoded)
             content_bytes: Raw file bytes
             filename: Optional filename hint for classification
-            content_encoding: Content encoding format (always "base64")
+            content_encoding: Content encoding format ("raw" for plain text, "base64" for encoded)
 
         Returns:
             Classification response with detected file type, confidence score, and additional details
@@ -350,10 +350,13 @@ class AsyncBookWyrmClient:
             if request.content_bytes is not None:
                 file_bytes: bytes = request.content_bytes
             elif request.content is not None:
-                # Decode base64 content and send as multipart form data
-                import base64
-
-                file_bytes = base64.b64decode(request.content)
+                if request.content_encoding == "base64":
+                    # Decode base64 content and send as multipart form data
+                    import base64
+                    file_bytes = base64.b64decode(request.content)
+                else:
+                    # Handle raw text content
+                    file_bytes = request.content.encode('utf-8')
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
