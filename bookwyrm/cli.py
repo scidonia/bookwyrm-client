@@ -1180,11 +1180,12 @@ def phrasal(
                             f"[dim]Processed {response.phrases_processed} phrases, "
                             f"created {response.chunks_created} chunks[/dim]"
                         )
-                elif isinstance(response, (TextResult, TextSpanResult)):
+                elif hasattr(response, 'type') and response.type in ['text', 'text_span']:
+                    # Handle both TextResult and TextSpanResult by checking the type field
                     phrases.append(response)
 
                     if state.verbose:
-                        if isinstance(response, TextSpanResult):
+                        if hasattr(response, 'start_char') and hasattr(response, 'end_char'):
                             console.print(
                                 f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
                             )
@@ -1205,6 +1206,10 @@ def phrasal(
                             console.print(
                                 f"[red]Error writing to output file: {e}[/red]"
                             )
+                else:
+                    # Debug: print unknown response types
+                    if state.verbose:
+                        console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
 
             progress.update(task, description="Complete!")
 
