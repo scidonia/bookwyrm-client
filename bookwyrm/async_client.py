@@ -3,7 +3,7 @@
 import json
 import os
 import platform
-from typing import AsyncIterator, Optional, Union, Dict, Any, List
+from typing import AsyncIterator, Optional, Union, Dict, Any, List, Literal
 import httpx
 from pathlib import Path
 
@@ -358,7 +358,7 @@ class AsyncBookWyrmClient:
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: Union[ResponseFormat, str] = ResponseFormat.WITH_OFFSETS,
+        response_format: Union[ResponseFormat, Literal["with_offsets", "offsets", "text_only", "text"]] = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
     ) -> AsyncIterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with async streaming results.
