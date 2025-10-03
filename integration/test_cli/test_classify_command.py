@@ -100,12 +100,13 @@ def test_classify_command_basic_help():
     assert "content" in result.stdout.lower() or "file" in result.stdout.lower()
 
 
-def test_classify_command_missing_args():
-    """Test classify command with missing required arguments."""
-    result = run_bookwyrm_command(["classify"])
+def test_classify_command_with_empty_stdin():
+    """Test classify command with empty stdin."""
+    result = run_bookwyrm_command(["classify"], input_data="")
 
-    # Should fail due to missing content/file argument
+    # Should fail due to empty stdin
     assert result.returncode != 0
+    assert "no content" in result.stderr.lower()
 
 
 def test_classify_command_with_text_file(sample_python_content):
@@ -133,29 +134,6 @@ def test_classify_command_with_text_file(sample_python_content):
 
     finally:
         # Clean up
-        test_file.unlink()
-
-
-def test_classify_command_with_positional_file(sample_json_content):
-    """Test classify command using positional file argument."""
-    test_file = create_test_file(sample_json_content, ".json")
-
-    try:
-        result = run_bookwyrm_command(["classify", str(test_file)])
-
-        # Check command parsing (may fail on API call)
-        if result.returncode != 0:
-            assert (
-                "api" in result.stderr.lower()
-                or "key" in result.stderr.lower()
-                or "connection" in result.stderr.lower()
-                or "network" in result.stderr.lower()
-                or "timeout" in result.stderr.lower()
-            )
-        else:
-            assert len(result.stdout) > 0
-
-    finally:
         test_file.unlink()
 
 
@@ -216,15 +194,17 @@ def test_classify_command_with_filename_hint(sample_python_content):
         test_file.unlink()
 
 
-def test_classify_command_with_direct_content():
-    """Test classify command with direct content input."""
+def test_classify_command_with_stdin_content():
+    """Test classify command with stdin content input."""
+    stdin_content = "import pandas as pd\ndf = pd.DataFrame()"
+    
     result = run_bookwyrm_command(
         [
             "classify",
-            "import pandas as pd\ndf = pd.DataFrame()",
             "--filename",
             "script.py",
-        ]
+        ],
+        input_data=stdin_content
     )
 
     # Check command parsing
@@ -327,15 +307,14 @@ def test_classify_command_multiple_input_sources():
 
     try:
         result = run_bookwyrm_command(
-            ["classify", "direct content", "--file", str(test_file)]
+            ["classify", "--file", str(test_file), "--url", "https://example.com/file.txt"]
         )
 
         # Should fail due to multiple input sources
         assert result.returncode != 0
         assert (
-            "multiple" in result.stderr.lower()
-            or "one" in result.stderr.lower()
-            or "either" in result.stderr.lower()
+            "only one" in result.stderr.lower()
+            or "one of" in result.stderr.lower()
         )
 
     finally:
@@ -408,22 +387,24 @@ def test_classify_command_live_api_text_file(sample_python_content, api_key, api
 
 
 @pytest.mark.liveonly
-def test_classify_command_live_api_direct_content(api_key, api_url):
-    """Test classify command against live API with direct content."""
+def test_classify_command_live_api_stdin_content(api_key, api_url):
+    """Test classify command against live API with stdin content."""
     if not api_key:
         pytest.skip("No API key provided for live test")
 
+    stdin_content = '{"name": "test", "data": [1, 2, 3]}'
+    
     result = run_bookwyrm_command(
         [
             "classify",
-            '{"name": "test", "data": [1, 2, 3]}',
             "--filename",
             "data.json",
             "--api-key",
             api_key,
             "--base-url",
             api_url,
-        ]
+        ],
+        input_data=stdin_content
     )
 
     assert result.returncode == 0, f"Command failed: {result.stderr}"

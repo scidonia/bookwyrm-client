@@ -1219,10 +1219,6 @@ def phrasal(
 
 @app.command()
 def classify(
-    file_path: Annotated[
-        Optional[Path],
-        typer.Argument(help="File to classify (optional if using --file or --url)"),
-    ] = None,
     url: Annotated[
         Optional[str],
         typer.Option(help="URL to classify"),
@@ -1259,9 +1255,8 @@ def classify(
 ):
     """Classify files to determine their type and format.
 
-    This command analyzes files or URLs to determine their format type, content type,
-    MIME type, and other classification details. It supports both local files and
-    remote URLs.
+    This command analyzes files, URLs, or stdin content to determine their format type, 
+    content type, MIME type, and other classification details.
 
     ## Classification Includes
 
@@ -1275,16 +1270,19 @@ def classify(
 
     ```bash
     # Classify local file
-    bookwyrm classify document.pdf
+    bookwyrm classify --file document.pdf
 
     # Classify from URL
     bookwyrm classify --url https://example.com/file.dat
 
+    # Classify from stdin
+    echo "import pandas as pd" | bookwyrm classify --filename script.py
+
     # With output file
-    bookwyrm classify unknown_file.bin --output classification.json
+    bookwyrm classify --file unknown_file.bin --output classification.json
 
     # With filename hint
-    bookwyrm classify data.txt --filename "research_data.csv" --output results.json
+    bookwyrm classify --file data.txt --filename "research_data.csv" --output results.json
     ```
 
     ## Output Format
@@ -1297,40 +1295,34 @@ def classify(
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
-    # Validate input sources - allow positional file argument or --file or --url
-    input_sources = [file_path, url, file]
+    # Validate input sources - allow --file, --url, or stdin (no args)
+    input_sources = [url, file]
     provided_sources = [s for s in input_sources if s is not None]
 
-    if len(provided_sources) != 1:
+    if len(provided_sources) > 1:
         console.print(
-            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
+            "[red]Error: Only one of --url or --file can be provided[/red]"
         )
         raise typer.Exit(1)
 
-    # Check if positional file exists
-    if file_path and not file_path.exists():
-        console.print(f"[red]Error: File not found: {file_path}[/red]")
-        raise typer.Exit(1)
-
     # Get content from the appropriate source
-    actual_file = file_path or file
-    if actual_file:
+    if file:
         try:
             # Always read as binary and base64 encode for multipart upload
             import base64
 
-            binary_content = actual_file.read_bytes()
+            binary_content = file.read_bytes()
             content = base64.b64encode(binary_content).decode("ascii")
             console.print(
-                f"[blue]Classifying file: {actual_file} ({len(binary_content)} bytes)[/blue]"
+                f"[blue]Classifying file: {file} ({len(binary_content)} bytes)[/blue]"
             )
 
             # Use the actual filename if no hint provided
-            effective_filename = filename or actual_file.name
+            effective_filename = filename or file.name
         except Exception as e:
-            console.print(f"[red]Error reading file {actual_file}: {e}[/red]")
+            console.print(f"[red]Error reading file {file}: {e}[/red]")
             raise typer.Exit(1)
-    else:
+    elif url:
         # Handle URL - we'll fetch it and send as multipart
         console.print(f"[blue]Classifying URL resource: {url}[/blue]")
         try:
@@ -1361,6 +1353,26 @@ def classify(
                         )
         except Exception as e:
             console.print(f"[red]Error fetching URL {url}: {e}[/red]")
+            raise typer.Exit(1)
+    else:
+        # Read from stdin
+        console.print("[blue]Reading content from stdin...[/blue]")
+        try:
+            import base64
+            
+            stdin_content = sys.stdin.read()
+            if not stdin_content.strip():
+                console.print("[red]Error: No content provided via stdin[/red]")
+                raise typer.Exit(1)
+                
+            # Encode stdin content as base64
+            content = base64.b64encode(stdin_content.encode('utf-8')).decode("ascii")
+            console.print(f"[blue]Read {len(stdin_content)} characters from stdin[/blue]")
+            
+            # Use filename hint or default
+            effective_filename = filename or "stdin_content"
+        except Exception as e:
+            console.print(f"[red]Error reading from stdin: {e}[/red]")
             raise typer.Exit(1)
 
     # Create request
