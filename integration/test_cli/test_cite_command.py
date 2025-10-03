@@ -269,11 +269,14 @@ def test_cite_command_live_api(sample_chunks, api_key, api_url):
         assert result.returncode == 0, f"Command failed: {result.stderr}"
         assert len(result.stdout) > 0
 
-        # Check that output file was created and contains valid JSON
+        # Check that output file was created and contains valid JSONL
         if output_path.exists():
+            output_data = []
             with open(output_path, "r") as f:
-                output_data = json.load(f)
-            assert isinstance(output_data, (list, dict))
+                for line in f:
+                    if line.strip():
+                        output_data.append(json.loads(line))
+            assert isinstance(output_data, list)
 
     finally:
         jsonl_file.unlink()
