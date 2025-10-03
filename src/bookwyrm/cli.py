@@ -1439,7 +1439,7 @@ def classify(
                     "file_size": response.file_size,
                     "sample_preview": response.sample_preview,
                     "source": {
-                        "file": str(actual_file) if actual_file else None,
+                        "file": str(file) if file else None,
                         "url": url,
                         "filename_hint": filename,
                     },
