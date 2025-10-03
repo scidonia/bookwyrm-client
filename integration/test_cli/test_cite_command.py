@@ -23,7 +23,7 @@ def create_test_jsonl_file(chunks: List[Dict[str, Any]]) -> Path:
 
 def run_bookwyrm_command(args: List[str], input_data: str = None) -> subprocess.CompletedProcess:
     """Run a bookwyrm CLI command and return the result."""
-    cmd = ['python', '-m', 'bookwyrm.cli'] + args
+    cmd = ['bookwyrm'] + args
     result = subprocess.run(
         cmd,
         capture_output=True,
