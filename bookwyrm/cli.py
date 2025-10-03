@@ -1606,7 +1606,7 @@ def extract_pdf(
     base_url: Annotated[
         Optional[str],
         typer.Option(
-            help="Base URL of the PDF extraction API (overrides BOOKWYRM_PDF_API_URL env var)"
+            help="Base URL of the PDF extraction API (overrides BOOKWYRM_API_URL env var)"
         ),
     ] = None,
     api_key: Annotated[
@@ -1668,9 +1668,7 @@ def extract_pdf(
     """
 
     # Set global state
-    # Use PDF-specific base URL if available, otherwise fall back to main API
-    pdf_base_url = base_url or os.getenv("BOOKWYRM_PDF_API_URL") or get_base_url(None)
-    state.base_url = pdf_base_url
+    state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
