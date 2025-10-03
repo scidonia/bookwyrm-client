@@ -499,7 +499,7 @@ class PDFExtractRequest(BaseModel):
         # If pdf_bytes is provided, encode it to base64 and set pdf_content
         if self.pdf_bytes is not None:
             self.pdf_content = base64.b64encode(self.pdf_bytes).decode('ascii')
-            self.pdf_bytes = None  # Clear the bytes field after encoding
+            delattr(self, 'pdf_bytes')  # Remove the field completely
 
         if self.start_page is not None and self.start_page < 1:
             raise ValueError("start_page must be >= 1")
