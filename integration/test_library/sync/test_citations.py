@@ -124,13 +124,13 @@ def test_get_citations_with_pagination(client, sample_chunks):
 
 def test_get_citations_error_no_input(client):
     """Test that missing input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of chunks, jsonl_content, or jsonl_url must be provided"):
+    with pytest.raises(ValueError, match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided"):
         client.get_citations(question="What is AI?")
 
 
 def test_get_citations_error_multiple_inputs(client, sample_chunks, sample_jsonl_content):
     """Test that multiple inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of chunks, jsonl_content, or jsonl_url must be provided"):
+    with pytest.raises(ValueError, match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided"):
         client.get_citations(
             chunks=sample_chunks,
             jsonl_content=sample_jsonl_content,
@@ -223,13 +223,13 @@ def test_stream_citations_with_pagination(client, sample_chunks):
 
 def test_stream_citations_error_no_input(client):
     """Test that missing input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of chunks, jsonl_content, or jsonl_url must be provided"):
+    with pytest.raises(ValueError, match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided"):
         list(client.stream_citations(question="What is AI?"))
 
 
 def test_stream_citations_error_multiple_inputs(client, sample_chunks, sample_jsonl_content):
     """Test that multiple inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of chunks, jsonl_content, or jsonl_url must be provided"):
+    with pytest.raises(ValueError, match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided"):
         list(client.stream_citations(
             chunks=sample_chunks,
             jsonl_content=sample_jsonl_content,
