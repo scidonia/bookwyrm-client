@@ -78,7 +78,6 @@ chunks = [
 
 # Stream citations (real-time results) - function interface
 citations = []
-citations = []
 for stream_response in client.stream_citations(
     chunks=chunks,
     question="What are the chunks about?"
@@ -139,7 +138,6 @@ binary_response = client.classify(
 print(f"Binary file classified as: {binary_response.classification.content_type}")
 
 # Streaming PDF extraction with progress
-pages = []
 pages = []
 for stream_response in client.stream_extract_pdf(
     pdf_url="https://example.com/document.pdf",
@@ -203,7 +201,6 @@ async def main():
         
         # Stream citations
         citations = []
-        citations = []
         async for stream_response in client.stream_citations(
             jsonl_url="https://example.com/chunks.jsonl",
             question="What is the main topic?"
@@ -233,7 +230,6 @@ async def main():
         print(f"Confidence: {classification.classification.confidence:.2%}")
 
         # Streaming PDF extraction
-        pages = []
         pages = []
         async for stream_response in client.stream_extract_pdf(
             pdf_url="https://example.com/document.pdf",
