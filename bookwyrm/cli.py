@@ -279,7 +279,6 @@ class GlobalState:
         self.base_url: str = ""
         self.api_key: Optional[str] = None
         self.verbose: bool = False
-        self.debug: bool = False
 
 
 state = GlobalState()
@@ -361,9 +360,6 @@ def cite(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
-    debug: Annotated[
-        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
-    ] = False,
 ):
     """Find citations for a question in text chunks.
     
@@ -406,8 +402,6 @@ def cite(
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
-    state.debug = debug
-    state.debug = debug
 
     # Validate API key before proceeding
     validate_api_key(state.api_key)
@@ -608,9 +602,6 @@ def summarize(
     ] = None,
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
-    ] = False,
-    debug: Annotated[
-        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
     ] = False,
 ):
     """Summarize text content from JSONL files.
@@ -1044,9 +1035,6 @@ def phrasal(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
-    debug: Annotated[
-        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
-    ] = False,
 ):
     """Stream text processing using phrasal analysis to extract phrases or chunks.
     
@@ -1176,7 +1164,8 @@ def phrasal(
                 response_format=response_format
             ):
                 # Show ALL responses in debug mode FIRST
-                if state.debug:
+                debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
+                if debug_enabled:
                     console.print(f"[blue]DEBUG - Raw response received:[/blue]")
                     console.print(f"[dim]Type: {type(response)}[/dim]")
                     console.print(f"[dim]String representation: {response}[/dim]")
@@ -1189,7 +1178,7 @@ def phrasal(
 
                 # Handle raw line debug responses
                 if hasattr(response, 'type') and response.type == "raw_line_debug":
-                    if state.debug:
+                    if debug_enabled:
                         console.print(f"[cyan]RAW LINE DEBUG:[/cyan] length={response.line_length}")
                         console.print(f"[cyan]Raw line:[/cyan] {repr(response.raw_line)}")
                         console.print(f"[cyan]Stripped:[/cyan] {repr(response.line_stripped)}")
@@ -1233,7 +1222,8 @@ def phrasal(
                             )
                 else:
                     # Unknown response types - always show these in debug mode
-                    if state.debug or state.verbose:
+                    debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
+                    if debug_enabled or state.verbose:
                         console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
                         # Also show the raw data for unknown types
                         if hasattr(response, 'model_dump'):

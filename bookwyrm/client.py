@@ -473,10 +473,11 @@ class BookWyrmClient:
         try:
             request_data = request.model_dump(exclude_none=True)
             
-            # Debug: Print the HTTP request details
-            print(f"DEBUG: Making POST request to: {self.base_url}/phrasal")
-            print(f"DEBUG: Request headers: {headers}")
-            print(f"DEBUG: Request JSON data: {json.dumps(request_data, indent=2)}")
+            # Debug: Print the HTTP request details if BOOKWYRM_DEBUG is set
+            if os.getenv("BOOKWYRM_DEBUG") == "1":
+                print(f"DEBUG: Making POST request to: {self.base_url}/phrasal")
+                print(f"DEBUG: Request headers: {headers}")
+                print(f"DEBUG: Request JSON data: {json.dumps(request_data, indent=2)}")
             
             response: requests.Response = self.session.post(
                 f"{self.base_url}/phrasal",
@@ -485,9 +486,10 @@ class BookWyrmClient:
                 stream=True,
             )
             
-            # Debug: Print response details
-            print(f"DEBUG: Response status code: {response.status_code}")
-            print(f"DEBUG: Response headers: {dict(response.headers)}")
+            # Debug: Print response details if BOOKWYRM_DEBUG is set
+            if os.getenv("BOOKWYRM_DEBUG") == "1":
+                print(f"DEBUG: Response status code: {response.status_code}")
+                print(f"DEBUG: Response headers: {dict(response.headers)}")
             
             response.raise_for_status()
 
@@ -495,17 +497,19 @@ class BookWyrmClient:
             for line in response.iter_lines(decode_unicode=True):
                 line_count += 1
                 
-                # Debug: Print every line received
-                print(f"DEBUG: Line {line_count}: {repr(line)}")
+                # Debug: Print every line received if BOOKWYRM_DEBUG is set
+                if os.getenv("BOOKWYRM_DEBUG") == "1":
+                    print(f"DEBUG: Line {line_count}: {repr(line)}")
                 
-                # Always yield raw line info for debugging
-                from types import SimpleNamespace
-                raw_line_response = SimpleNamespace()
-                raw_line_response.type = "raw_line_debug"
-                raw_line_response.raw_line = line
-                raw_line_response.line_stripped = line.strip() if line else ""
-                raw_line_response.line_length = len(line) if line else 0
-                yield raw_line_response
+                # Always yield raw line info for debugging if BOOKWYRM_DEBUG is set
+                if os.getenv("BOOKWYRM_DEBUG") == "1":
+                    from types import SimpleNamespace
+                    raw_line_response = SimpleNamespace()
+                    raw_line_response.type = "raw_line_debug"
+                    raw_line_response.raw_line = line
+                    raw_line_response.line_stripped = line.strip() if line else ""
+                    raw_line_response.line_length = len(line) if line else 0
+                    yield raw_line_response
                 
                 if line and line.strip():
                     try:
