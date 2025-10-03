@@ -35,7 +35,7 @@ for response in client.process_text(request):
         print(f"Progress: {response.message}")
 
 # phrases is now List[TextSpanResult] where each TextSpanResult has:
-# - type: Literal["phrase"]
+# - type: Literal["text_span"]
 # - text: str (the phrase content)
 # - start_char: int (starting character position)
 # - end_char: int (ending character position)
@@ -72,7 +72,7 @@ print(f"Created {len(chunks)} phrasal chunks")
 
 # Each chunk is composed of complete phrases/sentences up to the size limit
 # chunks is now List[TextSpanResult] where each phrasal chunk has:
-# - type: Literal["phrase"]
+# - type: Literal["text_span"]
 # - text: str (the chunk content containing multiple phrases)
 # - start_char: int (starting character position)
 # - end_char: int (ending character position)

@@ -353,7 +353,7 @@ class TextResult(Text):
     Used when ResponseFormat.TEXT_ONLY is specified in phrasal processing.
     """
 
-    type: Literal["phrase"] = Field("phrase", description="Message type identifier")
+    type: Literal["text"] = Field("text", description="Message type identifier")
 
 
 class TextSpanResult(TextSpan):
@@ -363,7 +363,7 @@ class TextSpanResult(TextSpan):
     Inherits from TextSpan to include position data.
     """
 
-    type: Literal["phrase"] = Field("phrase", description="Message type identifier")
+    type: Literal["text_span"] = Field("text_span", description="Message type identifier")
 
 
 StreamingPhrasalResponse = Union[

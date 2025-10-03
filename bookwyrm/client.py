@@ -446,12 +446,10 @@ class BookWyrmClient:
                         match response_type:
                             case "progress":
                                 yield PhraseProgressUpdate.model_validate(data)
-                            case "phrase":
-                                # Determine if this is a TextResult or TextSpanResult based on presence of position data
-                                if data.get("start_char") is not None and data.get("end_char") is not None:
-                                    yield TextSpanResult.model_validate(data)
-                                else:
-                                    yield TextResult.model_validate(data)
+                            case "text":
+                                yield TextResult.model_validate(data)
+                            case "text_span":
+                                yield TextSpanResult.model_validate(data)
                             case _:
                                 # Unknown response type, skip
                                 continue

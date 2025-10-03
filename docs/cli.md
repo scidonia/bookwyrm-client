@@ -73,6 +73,6 @@ The CLI provides helpful error messages and exit codes:
 #### Phrases Output (JSONL)
 
 ```jsonl
-{"type": "phrase", "text": "First phrase", "start_char": 0, "end_char": 12}
-{"type": "phrase", "text": "Second phrase", "start_char": 13, "end_char": 26}
+{"type": "text_span", "text": "First phrase", "start_char": 0, "end_char": 12}
+{"type": "text_span", "text": "Second phrase", "start_char": 13, "end_char": 26}
 ```
