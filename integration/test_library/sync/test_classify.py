@@ -394,23 +394,27 @@ def test_classify_file_size_calculation(client, sample_text_content):
 
 def test_classify_content_encoding_parameter(client, sample_text_content):
     """Test classification with explicit content encoding."""
+    from bookwyrm.models import ContentEncoding
     import base64
     
-    # Encode content as base64
-    encoded_content = base64.b64encode(sample_text_content.encode('utf-8')).decode('ascii')
+    # Test UTF-8 encoding
+    response_utf8 = client.classify(
+        content=sample_text_content,
+        filename="script.py",
+        content_encoding=ContentEncoding.UTF8
+    )
+    assert isinstance(response_utf8, ClassifyResponse)
+    assert response_utf8.classification.confidence >= 0.0
     
-    response = client.classify(
+    # Test base64 encoding
+    encoded_content = base64.b64encode(sample_text_content.encode('utf-8')).decode('ascii')
+    response_base64 = client.classify(
         content=encoded_content,
         filename="script.py",
-        content_encoding="base64"
+        content_encoding=ContentEncoding.BASE64
     )
-
-    assert isinstance(response, ClassifyResponse)
-    classification = response.classification
-    detected_python = "python" in classification.content_type.lower() or "code" in classification.content_type.lower()
-    if not detected_python:
-        print(f"Note: Expected Python/code detection with base64, got: {classification.content_type}")
-    assert classification.confidence >= 0.0  # Basic validation
+    assert isinstance(response_base64, ClassifyResponse)
+    assert response_base64.classification.confidence >= 0.0
 
 
 def test_classify_various_file_extensions(client):

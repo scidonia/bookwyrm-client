@@ -34,6 +34,7 @@ from .models import (
     TextResult,
     TextSpanResult,
     ResponseFormat,
+    ContentEncoding,
     ClassifyRequest,
     ClassifyResponse,
     PDFExtractRequest,
@@ -143,7 +144,7 @@ class BookWyrmClient:
         content: Optional[str] = None,
         content_bytes: Optional[bytes] = None,
         filename: Optional[str] = None,
-        content_encoding: str = "utf-8",
+        content_encoding: ContentEncoding = ContentEncoding.RAW,
     ) -> ClassifyResponse:
         """Classify file content to determine file type and format.
 
@@ -152,10 +153,10 @@ class BookWyrmClient:
         confidence scores and additional metadata about the detected format.
 
         Args:
-            content: Base64-encoded file content
+            content: Text or encoded file content
             content_bytes: Raw file bytes
             filename: Optional filename hint for classification
-            content_encoding: Content encoding format (always "base64")
+            content_encoding: Content encoding format (ContentEncoding enum)
 
         Returns:
             Classification response with detected file type, confidence score, and additional details
@@ -164,7 +165,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Classify using raw bytes directly:
+            Classify using raw bytes directly (recommended):
 
             ```python
             # Read file as binary
@@ -181,13 +182,34 @@ class BookWyrmClient:
             print(f"Confidence: {response.classification.confidence:.2%}")
             ```
 
-            Classify from file path:
+            Classify text content with UTF-8 encoding:
 
             ```python
-            file_path = Path("script.py")
+            with open("script.py", "r") as f:
+                text_content = f.read()
+
             response = client.classify(
-                content_bytes=file_path.read_bytes(),
-                filename=file_path.name
+                content=text_content,
+                filename="script.py",
+                content_encoding=ContentEncoding.UTF8
+            )
+            print(f"Detected as: {response.classification.content_type}")
+            ```
+
+            Classify base64-encoded content:
+
+            ```python
+            import base64
+            
+            with open("image.png", "rb") as f:
+                raw_bytes = f.read()
+            
+            base64_content = base64.b64encode(raw_bytes).decode('ascii')
+            
+            response = client.classify(
+                content=base64_content,
+                filename="image.png",
+                content_encoding=ContentEncoding.BASE64
             )
             print(f"Detected as: {response.classification.content_type}")
             ```
@@ -195,25 +217,11 @@ class BookWyrmClient:
         if content is None and content_bytes is None:
             raise ValueError("Either content or content_bytes is required")
 
-        # Auto-detect content encoding if content is provided
-        if content is not None and content_encoding == "utf-8":
-            # Check if content looks like base64
-            try:
-                import base64
-                base64.b64decode(content, validate=True)
-                # If successful, it might be base64, but let's be conservative
-                # and only treat as base64 if explicitly specified
-                detected_encoding = "utf-8"
-            except Exception:
-                detected_encoding = "utf-8"
-        else:
-            detected_encoding = content_encoding
-
         request = ClassifyRequest(
             content=content,
             content_bytes=content_bytes,
             filename=filename,
-            content_encoding=detected_encoding,
+            content_encoding=content_encoding,
         )
         headers: Dict[str, str] = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -225,13 +233,19 @@ class BookWyrmClient:
                 file_bytes: bytes = request.content_bytes
             elif request.content is not None:
                 # Handle content based on encoding
-                if request.content_encoding == "base64":
+                if request.content_encoding == ContentEncoding.BASE64:
                     # Decode base64 content
                     import base64
                     file_bytes = base64.b64decode(request.content)
+                elif request.content_encoding == ContentEncoding.UTF8:
+                    # Encode UTF-8 text to bytes
+                    file_bytes = request.content.encode('utf-8')
+                elif request.content_encoding == ContentEncoding.RAW:
+                    # Treat as raw bytes (assume content is already bytes-like)
+                    # This case should typically use content_bytes instead
+                    file_bytes = request.content.encode('latin-1')  # Preserve raw bytes
                 else:
-                    # Treat as raw text content and encode to bytes
-                    file_bytes = request.content.encode(request.content_encoding if request.content_encoding != "utf-8" else 'utf-8')
+                    raise BookWyrmAPIError(f"Unsupported content encoding: {request.content_encoding}")
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
