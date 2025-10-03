@@ -75,7 +75,9 @@ def test_stream_summarize_with_content_basic(client, sample_content):
     """Test streaming summarization using text content."""
     final_summary = None
 
-    for response in client.stream_summarize(content=sample_content, max_tokens=5000, debug=False):
+    for response in client.stream_summarize(
+        content=sample_content, max_tokens=5000, debug=False
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -95,7 +97,9 @@ def test_stream_summarize_with_phrases_basic(client, sample_phrases):
     """Test streaming summarization using text phrases."""
     final_summary = None
 
-    for response in client.stream_summarize(phrases=sample_phrases, max_tokens=3000, debug=True):
+    for response in client.stream_summarize(
+        phrases=sample_phrases, max_tokens=3000, debug=True
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -126,9 +130,11 @@ def test_stream_summarize_error_multiple_inputs(client, sample_content, sample_p
     with pytest.raises(
         ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
     ):
-        list(client.stream_summarize(
-            content=sample_content, phrases=sample_phrases, max_tokens=5000
-        ))
+        list(
+            client.stream_summarize(
+                content=sample_content, phrases=sample_phrases, max_tokens=5000
+            )
+        )
 
 
 def test_summarize_empty_content(client):
@@ -178,7 +184,9 @@ def test_stream_summarize_debug_mode(client, sample_phrases):
     """Test streaming summarization with debug mode enabled."""
     final_summary = None
 
-    for response in client.stream_summarize(phrases=sample_phrases, max_tokens=4000, debug=True):
+    for response in client.stream_summarize(
+        phrases=sample_phrases, max_tokens=4000, debug=True
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -203,8 +211,6 @@ def test_stream_summarize_levels_and_subsummaries(client, sample_content):
     assert final_summary.levels_used >= 1
     assert isinstance(final_summary.subsummary_count, int)
     assert final_summary.subsummary_count >= 0
-
-
 
 
 def test_stream_summarize_with_content(client, sample_content):
@@ -279,8 +285,6 @@ def test_stream_summarize_progress_tracking(client, sample_content):
         assert len(message) > 0
 
 
-
-
 def test_stream_summarize_long_content(client):
     """Test streaming summarization with longer JSONL content."""
     long_content = """{"text": "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them.", "start_char": 0, "end_char": 400}
@@ -289,7 +293,9 @@ def test_stream_summarize_long_content(client):
 {"text": "Computer vision is an interdisciplinary scientific field that deals with how computers can gain high-level understanding from digital images or videos. From the perspective of engineering, it seeks to understand and automate tasks that the human visual system can do. Computer vision tasks include methods for acquiring, processing, analyzing and understanding digital images, and extraction of high-dimensional data from the real world in order to produce numerical or symbolic information.", "start_char": 1151, "end_char": 1650}"""
 
     final_summary = None
-    for response in client.stream_summarize(content=long_content, max_tokens=8000, debug=True):
+    for response in client.stream_summarize(
+        content=long_content, max_tokens=8000, debug=True
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -304,76 +310,3 @@ def test_stream_summarize_from_url_skip(client):
     """Test streaming summarization from URL (skipped - requires test URL)."""
     # Skip this test for now - requires a publicly accessible content URL
     pytest.skip("Requires a publicly accessible content URL for testing")
-
-
-@pytest.mark.liveonly
-def test_stream_summarize_live_api_comprehensive(client, sample_content, sample_phrases):
-    """Comprehensive test of streaming summarization against live API."""
-    # Test 1: Basic streaming summarization with content
-    final_summary1 = None
-    for response in client.stream_summarize(
-        content=sample_content,
-        max_tokens=5000,
-        debug=False
-    ):
-        if isinstance(response, SummaryResponse):
-            final_summary1 = response
-            break
-    assert final_summary1 is not None
-    assert isinstance(final_summary1, SummaryResponse)
-    assert len(final_summary1.summary) > 0
-
-    # Test 2: Streaming summarization with phrases
-    final_summary2 = None
-    for response in client.stream_summarize(
-        phrases=sample_phrases,
-        max_tokens=3000,
-        debug=True
-    ):
-        if isinstance(response, SummaryResponse):
-            final_summary2 = response
-            break
-    assert final_summary2 is not None
-    assert isinstance(final_summary2, SummaryResponse)
-    assert len(final_summary2.summary) > 0
-
-    # Test 3: Progress tracking
-    final_summary3 = None
-    progress_count = 0
-    for response in client.stream_summarize(
-        content=sample_content[:500],  # Limit for test speed
-        max_tokens=2000
-    ):
-        if isinstance(response, SummarizeProgressUpdate):
-            progress_count += 1
-        elif isinstance(response, SummaryResponse):
-            final_summary3 = response
-            break  # Exit early for test speed
-
-    assert final_summary3 is not None
-    assert len(final_summary3.summary) > 0
-
-    # Test 4: Different max_tokens values
-    final_summary4 = None
-    for response in client.stream_summarize(
-        content=sample_content,
-        max_tokens=1000
-    ):
-        if isinstance(response, SummaryResponse):
-            final_summary4 = response
-            break
-    assert final_summary4 is not None
-    assert isinstance(final_summary4, SummaryResponse)
-
-    # Test 5: Debug mode
-    final_summary5 = None
-    for response in client.stream_summarize(
-        phrases=sample_phrases[:3],  # Limit for test speed
-        max_tokens=2000,
-        debug=True
-    ):
-        if isinstance(response, SummaryResponse):
-            final_summary5 = response
-            break
-    assert final_summary5 is not None
-    assert isinstance(final_summary5, SummaryResponse)
