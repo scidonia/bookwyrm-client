@@ -453,6 +453,29 @@ class AsyncBookWyrmClient:
             
             asyncio.run(process_multiple_texts())
             ```
+
+            Process text from URL:
+
+            ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import TextResult, TextSpanResult
+
+            async def process_from_url():
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
+                    phrases = []
+                    async for response in client.process_text(
+                        text_url="https://www.gutenberg.org/files/11/11-0.txt",
+                        chunk_size=2000,
+                        text_only=True
+                    ):
+                        if isinstance(response, (TextResult, TextSpanResult)):
+                            phrases.append(response)
+                    
+                    print(f"Processed {len(phrases)} phrases from URL")
+
+            asyncio.run(process_from_url())
+            ```
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
