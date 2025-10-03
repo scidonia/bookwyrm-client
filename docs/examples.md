@@ -41,17 +41,20 @@ for response in client.process_text(request):
 # - end_char: int (ending character position)
 ```
 
-### Create Text Chunks
+### Create Phrasal Text Chunks
 
 ```python
 from typing import List
 
-long_text: str = "Your long text content here..."
+# Example text with multiple sentences
+text: str = """Natural language processing enables computers to understand human language. 
+Machine learning algorithms power these systems. Deep learning has revolutionized the field. 
+Modern NLP applications include chatbots, translation, and sentiment analysis."""
 
-# Create chunks of specific size
+# Create phrasal chunks of specific size - each chunk contains multiple phrases
 request: ProcessTextRequest = ProcessTextRequest(
-    text=long_text,
-    chunk_size=1000,  # ~1000 characters per chunk
+    text=text,
+    chunk_size=100,  # ~100 characters per chunk (smaller for demo)
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
@@ -60,11 +63,17 @@ for response in client.process_text(request):
     if isinstance(response, TextSpanResult):
         chunks.append(response)
 
-print(f"Created {len(chunks)} chunks")
+print(f"Created {len(chunks)} phrasal chunks")
 
-# chunks is now List[TextSpanResult] where each chunk has:
+# Example output for the above text:
+# Chunk 1: "Natural language processing enables computers to understand human language. Machine learning"
+# Chunk 2: "algorithms power these systems. Deep learning has revolutionized the field. Modern NLP"  
+# Chunk 3: "applications include chatbots, translation, and sentiment analysis."
+
+# Each chunk is composed of complete phrases/sentences up to the size limit
+# chunks is now List[TextSpanResult] where each phrasal chunk has:
 # - type: Literal["phrase"]
-# - text: str (the chunk content)
+# - text: str (the chunk content containing multiple phrases)
 # - start_char: int (starting character position)
 # - end_char: int (ending character position)
 ```
