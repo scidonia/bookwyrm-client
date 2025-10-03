@@ -395,7 +395,7 @@ class BookWyrmClient:
                         print(f"Position: {response.start_char}-{response.end_char}")
             ```
 
-            Create fixed-size chunks:
+            Create bounded phrasal chunks:
 
             ```python
             from bookwyrm import BookWyrmClient
@@ -405,7 +405,7 @@ class BookWyrmClient:
             chunks = []
             for response in client.process_text(
                 text=long_text,
-                chunk_size=1000,  # ~1000 characters per chunk
+                chunk_size=1000,  # chunks composed of phrases, not exceeding ~1000 characters
                 offsets=True  # boolean flag for WITH_OFFSETS
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):
