@@ -7,10 +7,10 @@
 | Task | Method | Input | Output | Use Case |
 |------|--------|-------|--------|----------|
 | Text → Chunks | `stream_process_text()` | Raw text/URL | `TextSpanResult[]` | Document preprocessing |
-| Question → Citations | `get_citations()` | Chunks + question | `Citation[]` | RAG, Q&A systems |
+| Question → Citations | `stream_citations()` | Chunks + question | `Citation[]` | RAG, Q&A systems |
 | PDF → Structure | `extract_pdf()` | PDF bytes/URL | `PDFPage[]` | Document parsing |
 | File → Type | `classify()` | File bytes | `FileClassification` | Content routing |
-| Content → Summary | `summarize()` | Text/phrases | Summary text | Document analysis |
+| Content → Summary | `stream_summarize()` | Text/phrases | Summary text | Document analysis |
 
 ## Complete Type Definitions
 
@@ -50,12 +50,15 @@ async def rag_pipeline(document_text: str, user_question: str) -> List[Citation]
                 ))
     
     # Step 2: Find relevant citations
+    citations = []
     async with AsyncBookWyrmClient(api_key="your-key") as client:
-        response = await client.get_citations(
+        async for stream_response in client.stream_citations(
             chunks=chunks,
             question=user_question
-        )
-        return response.citations
+        ):
+            if hasattr(stream_response, 'citation'):
+                citations.append(stream_response.citation)
+        return citations
 ```
 
 ### Function Calling for AI Agents
@@ -64,9 +67,12 @@ async def rag_pipeline(document_text: str, user_question: str) -> List[Citation]
 async def find_citations_tool(question: str, document_chunks: List[dict]) -> List[dict]:
     """Tool function for AI agents to find citations in documents."""
     chunks = [TextSpan(**chunk) for chunk in document_chunks]
+    citations = []
     async with AsyncBookWyrmClient() as client:
-        response = await client.get_citations(chunks=chunks, question=question)
-        return [citation.model_dump() for citation in response.citations]
+        async for stream_response in client.stream_citations(chunks=chunks, question=question):
+            if hasattr(stream_response, 'citation'):
+                citations.append(stream_response.citation)
+        return [citation.model_dump() for citation in citations]
 
 async def process_document_tool(text: str, chunk_size: int = 1000) -> List[dict]:
     """Tool function to process documents into chunks."""
@@ -111,9 +117,12 @@ async def robust_citation_search(chunks: List[TextSpan], question: str, max_retr
     """Citation search with proper error handling and retries."""
     for attempt in range(max_retries):
         try:
+            citations = []
             async with AsyncBookWyrmClient() as client:
-                response = await client.get_citations(chunks=chunks, question=question)
-                return response.citations
+                async for stream_response in client.stream_citations(chunks=chunks, question=question):
+                    if hasattr(stream_response, 'citation'):
+                        citations.append(stream_response.citation)
+                return citations
         
         except BookWyrmAPIError as e:
             if e.status_code == 429:  # Rate limit
@@ -139,12 +148,14 @@ async def robust_citation_search(chunks: List[TextSpan], question: str, max_retr
 
 ## Minimal Working Examples
 
-### Citation Finding (3 lines)
+### Citation Finding (4 lines)
 
 ```python
+citations = []
 async with AsyncBookWyrmClient(api_key="key") as client:
-    response = await client.get_citations(chunks=text_chunks, question="What is X?")
-    best_citation = max(response.citations, key=lambda c: c.quality)
+    async for r in client.stream_citations(chunks=text_chunks, question="What is X?"):
+        if hasattr(r, 'citation'): citations.append(r.citation)
+best_citation = max(citations, key=lambda c: c.quality) if citations else None
 ```
 
 ### Document Processing (4 lines)
@@ -172,8 +183,12 @@ async with AsyncBookWyrmClient() as client:
 async def batch_process_citations(chunk_groups: List[List[TextSpan]], questions: List[str]):
     """Process multiple citation requests concurrently."""
     async def single_request(chunks, question):
+        citations = []
         async with AsyncBookWyrmClient() as client:
-            return await client.get_citations(chunks=chunks, question=question)
+            async for stream_response in client.stream_citations(chunks=chunks, question=question):
+                if hasattr(stream_response, 'citation'):
+                    citations.append(stream_response.citation)
+            return citations
     
     tasks = [single_request(chunks, q) for chunks, q in zip(chunk_groups, questions)]
     return await asyncio.gather(*tasks, return_exceptions=True)
@@ -272,12 +287,17 @@ inherited_members: true
 options:
 show_root_heading: true
 
-
 ::: bookwyrm.BookWyrmClient.stream_process_text
 options:
 show_root_heading: true
 
+::: bookwyrm.BookWyrmClient.stream_citations
+options:
+show_root_heading: true
 
+::: bookwyrm.BookWyrmClient.stream_summarize
+options:
+show_root_heading: true
 
 ## Asynchronous Client Methods
 
@@ -285,8 +305,15 @@ show_root_heading: true
 options:
 show_root_heading: true
 
-
 ::: bookwyrm.AsyncBookWyrmClient.stream_process_text
+options:
+show_root_heading: true
+
+::: bookwyrm.AsyncBookWyrmClient.stream_citations
+options:
+show_root_heading: true
+
+::: bookwyrm.AsyncBookWyrmClient.stream_summarize
 options:
 show_root_heading: true
 
