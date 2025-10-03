@@ -541,11 +541,10 @@ class AsyncBookWyrmClient:
         for large datasets or when you want to show progress to users.
 
         Args:
-            request: Citation request containing chunks/URL and question to answer (legacy)
-            chunks: List of text chunks to search (alternative to request)
-            jsonl_content: Raw JSONL content as string (alternative to request)
-            jsonl_url: URL to fetch JSONL content from (alternative to request)
-            question: The question to find citations for (required if not using request)
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
             start: Starting chunk index (0-based)
             limit: Maximum number of chunks to process
             max_tokens_per_chunk: Maximum tokens per chunk
@@ -670,10 +669,9 @@ class AsyncBookWyrmClient:
         (base64-encoded) and remote URLs, with optional page range selection.
 
         Args:
-            request: PDF extraction request with URL/content, optional page range, and filename (legacy)
-            pdf_url: URL to PDF file (alternative to request)
-            pdf_content: Base64 encoded PDF content (alternative to request)
-            pdf_bytes: Raw PDF bytes (alternative to request, will be encoded to base64)
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes (will be encoded to base64)
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
@@ -802,10 +800,9 @@ class AsyncBookWyrmClient:
         where you want to show progress or process pages as they become available.
 
         Args:
-            request: PDF extraction request with URL/content, optional page range, and filename (legacy)
-            pdf_url: URL to PDF file (alternative to request)
-            pdf_content: Base64 encoded PDF content (alternative to request)
-            pdf_bytes: Raw PDF bytes (alternative to request, will be encoded to base64)
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes (will be encoded to base64)
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
@@ -1002,10 +999,9 @@ class AsyncBookWyrmClient:
         large documents through hierarchical chunking and summarization.
 
         Args:
-            request: Summarization request with content, options, and optional structured output settings (legacy)
-            content: Text content to summarize (alternative to request)
-            url: URL to fetch content from (alternative to request)
-            phrases: List of text phrases to summarize (alternative to request)
+            content: Text content to summarize
+            url: URL to fetch content from
+            phrases: List of text phrases to summarize
             max_tokens: Maximum tokens for chunking (default: 10000)
             debug: Include intermediate summaries in response
 
@@ -1111,10 +1107,9 @@ class AsyncBookWyrmClient:
         long-running summarization tasks where you want to show progress to users.
 
         Args:
-            request: Summarization request with content, options, and optional structured output settings (legacy)
-            content: Text content to summarize (alternative to request)
-            url: URL to fetch content from (alternative to request)
-            phrases: List of text phrases to summarize (alternative to request)
+            content: Text content to summarize
+            url: URL to fetch content from
+            phrases: List of text phrases to summarize
             max_tokens: Maximum tokens for chunking (default: 10000)
             debug: Include intermediate summaries in response
 
