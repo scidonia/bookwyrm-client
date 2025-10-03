@@ -340,7 +340,7 @@ class BookWyrmClient:
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    def process_text(
+    def stream_process_text(
         self,
         *,
         text: Optional[str] = None,
@@ -353,7 +353,7 @@ class BookWyrmClient:
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
     ) -> Iterator[StreamingPhrasalResponse]:
-        """Process text using phrasal analysis with streaming results.
+        """Stream text processing using phrasal analysis with real-time results.
 
         This method breaks down text into meaningful phrases or chunks using NLP,
         supporting both direct text input and URLs. It can create fixed-size chunks
@@ -384,7 +384,7 @@ class BookWyrmClient:
 
             client = BookWyrmClient(api_key="your-api-key")
             phrases = []
-            for response in client.process_text(
+            for response in client.stream_process_text(
                 text=text,
                 offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
             ):
@@ -403,7 +403,7 @@ class BookWyrmClient:
 
             client = BookWyrmClient(api_key="your-api-key")
             chunks = []
-            for response in client.process_text(
+            for response in client.stream_process_text(
                 text=long_text,
                 chunk_size=1000,  # chunks composed of phrases, not exceeding ~1000 characters
                 offsets=True  # boolean flag for WITH_OFFSETS
@@ -422,7 +422,7 @@ class BookWyrmClient:
 
             client = BookWyrmClient(api_key="your-api-key")
             phrases = []
-            for response in client.process_text(
+            for response in client.stream_process_text(
                 text_url="https://www.gutenberg.org/files/11/11-0.txt",
                 chunk_size=2000,
                 text_only=True

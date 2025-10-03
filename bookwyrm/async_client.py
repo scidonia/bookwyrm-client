@@ -367,7 +367,7 @@ class AsyncBookWyrmClient:
         except httpx.RequestError as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
-    async def process_text(
+    async def stream_process_text(
         self,
         *,
         text: Optional[str] = None,
@@ -378,7 +378,7 @@ class AsyncBookWyrmClient:
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
     ) -> AsyncIterator[StreamingPhrasalResponse]:
-        """Process text using phrasal analysis with async streaming results.
+        """Stream text processing using phrasal analysis with async real-time results.
         
         This async method breaks down text into meaningful phrases or chunks using NLP,
         supporting both direct text input and URLs. It can create fixed-size chunks
@@ -410,7 +410,7 @@ class AsyncBookWyrmClient:
                 text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence."
                 phrases = []
                 async with AsyncBookWyrmClient(api_key="your-api-key") as client:
-                    async for response in client.process_text(
+                    async for response in client.stream_process_text(
                         text=text,
                         offsets=True  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
                     ):
@@ -435,7 +435,7 @@ class AsyncBookWyrmClient:
                 async def process_single(text, name):
                     phrases = []
                     async with AsyncBookWyrmClient(api_key="your-api-key") as client:
-                        async for response in client.process_text(
+                        async for response in client.stream_process_text(
                             text=text,
                             chunk_size=500
                         ):
@@ -464,7 +464,7 @@ class AsyncBookWyrmClient:
             async def process_from_url():
                 async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     phrases = []
-                    async for response in client.process_text(
+                    async for response in client.stream_process_text(
                         text_url="https://www.gutenberg.org/files/11/11-0.txt",
                         chunk_size=2000,
                         text_only=True
