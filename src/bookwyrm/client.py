@@ -208,6 +208,20 @@ class BookWyrmClient:
         """
         if not question or not question.strip():
             raise ValueError("question cannot be empty")
+        
+        # Handle empty chunks list - return empty response immediately
+        if chunks is not None and len(chunks) == 0:
+            from .models import UsageInfo
+            return CitationResponse(
+                citations=[],
+                total_citations=0,
+                usage=UsageInfo(
+                    tokens_processed=0,
+                    chunks_processed=0,
+                    estimated_cost=None,
+                    remaining_credits=0.0
+                )
+            )
             
         request = CitationRequest(
             chunks=chunks,
