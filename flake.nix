@@ -79,6 +79,9 @@
             python = pkgs.python311;
             workspaceRoot = ./.;
             extraPackages = with pkgs; [
+              python311
+              python312
+              python313
             ];
             editableFilterSet = [
               ./LICENSE

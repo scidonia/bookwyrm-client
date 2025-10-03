@@ -384,26 +384,32 @@ This project supports both uv and pip for development:
 ```bash
 # With uv
 uv sync
-uv run pytest
+uv run pytest integration/
 uv run bookwyrm --help
 
 # With pip
-pip install -r requirements-dev.txt
-pytest
+pip install -r requirements-integration.txt
+pytest integration/
 bookwyrm --help
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# Run all integration tests
+pytest integration/
 
-# Run with coverage
-pytest --cov=bookwyrm
+# Run specific test suites
+pytest integration/ -k test_cli
+pytest integration/ -k test_library
 
-# Run async tests specifically
-pytest -k "async"
+# Run specific features
+pytest integration/ -m cite
+pytest integration/ -m summarize
+
+# Run with tox (recommended)
+tox -e dev-local
+tox -e dev-local-cli-cite
 ```
 
 ## API Reference

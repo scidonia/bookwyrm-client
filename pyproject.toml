@@ -73,4 +73,6 @@ dev = [
   "mkdocs-click>=0.8.0",
   "mkdocs-typer>=0.0.3",
   "mkdocstrings-python>=1.18.2",
+  "tox>=4.30.2",
+  "tox-uv>=1.28.0",
 ]
