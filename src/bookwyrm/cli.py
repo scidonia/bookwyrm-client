@@ -354,12 +354,6 @@ def cite(
     max_tokens: Annotated[
         int, typer.Option(help="Maximum tokens per chunk (default: 1000)")
     ] = 1000,
-    stream: Annotated[
-        bool,
-        typer.Option(
-            "--stream/--no-stream", help="Use streaming API (default: --stream)"
-        ),
-    ] = True,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -460,98 +454,73 @@ def cite(
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        if stream:
-            console.print(f"[blue]Streaming citations for: {question}[/blue]")
-            if url:
-                console.print(f"[dim]Source: {url}[/dim]")
-            if output:
-                console.print(
-                    f"[dim]Streaming citations to {output} (JSONL format)[/dim]"
-                )
+        console.print(f"[blue]Streaming citations for: {question}[/blue]")
+        if url:
+            console.print(f"[dim]Source: {url}[/dim]")
+        if output:
+            console.print(
+                f"[dim]Streaming citations to {output} (JSONL format)[/dim]"
+            )
 
-            citations = []
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                console=console,
-            ) as progress:
+        citations = []
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
 
-                # For URL sources, we don't know the total chunks initially
-                total_chunks = len(chunks) if not url else None
-                task = progress.add_task("Processing chunks...", total=total_chunks)
+            # For URL sources, we don't know the total chunks initially
+            total_chunks = len(chunks) if not url else None
+            task = progress.add_task("Processing chunks...", total=total_chunks)
 
-                for response in client.stream_citations(**request.model_dump(exclude_none=True)):
-                    if isinstance(response, CitationProgressUpdate):
-                        # For URL sources, set total when we first get it
-                        if url and progress.tasks[task].total is None:
-                            progress.update(task, total=response.total_chunks)
-                        progress.update(
-                            task,
-                            completed=response.chunks_processed,
-                            description=response.message,
+            for response in client.stream_citations(**request.model_dump(exclude_none=True)):
+                if isinstance(response, CitationProgressUpdate):
+                    # For URL sources, set total when we first get it
+                    if url and progress.tasks[task].total is None:
+                        progress.update(task, total=response.total_chunks)
+                    progress.update(
+                        task,
+                        completed=response.chunks_processed,
+                        description=response.message,
+                    )
+                elif isinstance(response, CitationStreamResponse):
+                    citations.append(response.citation)
+                    if state.verbose:
+                        display_verbose_citation(response.citation)
+                    else:
+                        console.print(
+                            f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
                         )
-                    elif isinstance(response, CitationStreamResponse):
-                        citations.append(response.citation)
-                        if state.verbose:
-                            display_verbose_citation(response.citation)
-                        else:
-                            console.print(
-                                f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
-                            )
-                        # Immediately append to output file if specified
-                        if output:
-                            append_citation_to_jsonl(response.citation, output)
-                    elif isinstance(response, BW_CitationSummaryResponse):
-                        progress.update(
-                            task,
-                            completed=response.chunks_processed,
-                            description="Complete!",
+                    # Immediately append to output file if specified
+                    if output:
+                        append_citation_to_jsonl(response.citation, output)
+                elif isinstance(response, BW_CitationSummaryResponse):
+                    progress.update(
+                        task,
+                        completed=response.chunks_processed,
+                        description="Complete!",
+                    )
+                    console.print(
+                        f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
+                    )
+                    if response.usage:
+                        cost_str = (
+                            f"${response.usage.estimated_cost:.4f}"
+                            if response.usage.estimated_cost is not None
+                            else "N/A"
                         )
                         console.print(
-                            f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
+                            f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                         )
-                        if response.usage:
-                            cost_str = (
-                                f"${response.usage.estimated_cost:.4f}"
-                                if response.usage.estimated_cost is not None
-                                else "N/A"
-                            )
-                            console.print(
-                                f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
-                            )
-                    elif isinstance(response, CitationErrorResponse):
-                        console.print(f"[red]Error: {response.error}[/red]")
+                elif isinstance(response, CitationErrorResponse):
+                    console.print(f"[red]Error: {response.error}[/red]")
 
-            display_citations_table(citations)
+        display_citations_table(citations)
 
-            if output:
-                console.print(f"[green]Citations streamed to {output}[/green]")
-
-        else:
-            console.print(f"[blue]Getting citations for: {question}[/blue]")
-            if url:
-                console.print(f"[dim]Source: {url}[/dim]")
-
-            with console.status("[bold green]Processing..."):
-                response = client.get_citations(**request.model_dump(exclude_none=True))
-
-            console.print(f"[green]Found {response.total_citations} citations[/green]")
-            if response.usage:
-                cost_str = (
-                    f"${response.usage.estimated_cost:.4f}"
-                    if response.usage.estimated_cost is not None
-                    else "N/A"
-                )
-                console.print(
-                    f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
-                )
-
-            display_citations_table(response.citations)
-
-            if output:
-                save_citations_to_json(response.citations, output)
+        if output:
+            console.print(f"[green]Citations streamed to {output}[/green]")
 
     except BookWyrmAPIError as e:
         error_console.print(f"[red]API Error: {e}[/red]")
@@ -581,12 +550,6 @@ def summarize(
     include_debug: Annotated[
         bool, typer.Option("--include-debug", help="Include intermediate summaries")
     ] = False,
-    stream: Annotated[
-        bool,
-        typer.Option(
-            "--stream/--no-stream", help="Use streaming API (default: --stream)"
-        ),
-    ] = True,
     # Structured output options (commented out)
     # model_class_file: Annotated[
     #     Optional[Path],
@@ -802,224 +765,147 @@ def summarize(
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        if stream:
-            console.print("[blue]Starting summarization...[/blue]")
+        console.print("[blue]Starting summarization...[/blue]")
 
-            final_result = None
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                console=console,
-            ) as progress:
+        final_result = None
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
 
-                level_tasks = {}  # Track tasks for each level
+            level_tasks = {}  # Track tasks for each level
 
-                for response in client.stream_summarize(**request.model_dump(exclude_none=True)):
-                    if isinstance(response, SummarizeProgressUpdate):
-                        # Create or update task for this level
-                        task_id = f"level_{response.current_level}"
+            for response in client.stream_summarize(**request.model_dump(exclude_none=True)):
+                if isinstance(response, SummarizeProgressUpdate):
+                    # Create or update task for this level
+                    task_id = f"level_{response.current_level}"
 
-                        if task_id not in level_tasks:
-                            # Create new task for this level
-                            level_tasks[task_id] = progress.add_task(
-                                f"Level {response.current_level}/{response.total_levels}",
-                                total=response.total_chunks,
-                            )
-
-                        # Update the task
-                        progress.update(
-                            level_tasks[task_id],
-                            completed=response.chunks_processed,
-                            description=f"Level {response.current_level}/{response.total_levels}: {response.message}",
+                    if task_id not in level_tasks:
+                        # Create new task for this level
+                        level_tasks[task_id] = progress.add_task(
+                            f"Level {response.current_level}/{response.total_levels}",
+                            total=response.total_chunks,
                         )
 
-                    elif isinstance(response, RateLimitMessage):
+                    # Update the task
+                    progress.update(
+                        level_tasks[task_id],
+                        completed=response.chunks_processed,
+                        description=f"Level {response.current_level}/{response.total_levels}: {response.message}",
+                    )
+
+                elif isinstance(response, RateLimitMessage):
+                    console.print(
+                        f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]",
+                        end="\r",
+                    )
+
+                elif isinstance(response, StructuralErrorMessage):
+                    if response.error_type == "fallback":
+                        console.print(f"[orange1]⚠ {response.message}[/orange1]")
+                    else:
                         console.print(
-                            f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]",
+                            f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]",
                             end="\r",
                         )
 
-                    elif isinstance(response, StructuralErrorMessage):
-                        if response.error_type == "fallback":
-                            console.print(f"[orange1]⚠ {response.message}[/orange1]")
-                        else:
-                            console.print(
-                                f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]",
-                                end="\r",
-                            )
+                elif isinstance(response, SummaryResponse):
+                    final_result = response
 
-                    elif isinstance(response, SummaryResponse):
-                        final_result = response
+                    # Complete all remaining tasks
+                    for task_id in level_tasks.values():
+                        # Get the task from the progress object
+                        for task in progress.tasks:
+                            if task.id == task_id:
+                                progress.update(task_id, completed=task.total)
+                                break
 
-                        # Complete all remaining tasks
-                        for task_id in level_tasks.values():
-                            # Get the task from the progress object
-                            for task in progress.tasks:
-                                if task.id == task_id:
-                                    progress.update(task_id, completed=task.total)
-                                    break
+                    console.print("[green]✓ Summarization complete![/green]")
 
-                        console.print("[green]✓ Summarization complete![/green]")
+                elif isinstance(response, SummarizeErrorResponse):
+                    console.print(f"[red]Error: {response.error}[/red]")
+                    sys.exit(1)
 
-                    elif isinstance(response, SummarizeErrorResponse):
-                        console.print(f"[red]Error: {response.error}[/red]")
-                        sys.exit(1)
+        if final_result is None:
+            console.print("[red]No summary received from server[/red]")
+            sys.exit(1)
 
-            if final_result is None:
-                console.print("[red]No summary received from server[/red]")
-                sys.exit(1)
+        # Display results
+        if state.verbose or include_debug:
+            console.print(
+                f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
+            )
+            console.print(
+                f"[dim]Subsummaries created: {final_result.subsummary_count}[/dim]"
+            )
+            console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
 
-            # Display results
-            if state.verbose or include_debug:
+        # Show intermediate summaries if debug mode
+        if include_debug and final_result.intermediate_summaries:
+            console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
+            for level, summaries in enumerate(
+                final_result.intermediate_summaries, 1
+            ):
                 console.print(
-                    f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
+                    f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
                 )
-                console.print(
-                    f"[dim]Subsummaries created: {final_result.subsummary_count}[/dim]"
+                for i, summary in enumerate(summaries, 1):
+                    console.print(f"[dim]{i}.[/dim] {summary}")
+
+        console.print("\n[bold]Final Summary:[/bold]")
+
+        # Structured output display (commented out)
+        # If we used a structured model, try to parse and display the JSON nicely
+        # if model_name and model_schema_json:
+        #     try:
+        #         structured_data = json.loads(final_result.summary)
+        #         console.print("[dim]Structured output:[/dim]")
+        #         for key, value in structured_data.items():
+        #             if value is not None:
+        #                 console.print(f"[cyan]{key}:[/cyan] {value}")
+        #     except json.JSONDecodeError:
+        #         # Fallback to raw text if JSON parsing fails
+        #         console.print(final_result.summary)
+        # else:
+        console.print(final_result.summary)
+
+        # Save to output file if specified
+        if output:
+            try:
+                # Structured output parsing (commented out)
+                # If we used a structured model, parse the JSON summary for better storage
+                summary_data = final_result.summary
+                # if model_name and model_schema_json:
+                #     try:
+                #         summary_data = json.loads(final_result.summary)
+                #     except json.JSONDecodeError:
+                #         # Keep as string if parsing fails
+                #         pass
+
+                output_data = {
+                    "summary": summary_data,
+                    "subsummary_count": final_result.subsummary_count,
+                    "levels_used": final_result.levels_used,
+                    "total_tokens": final_result.total_tokens,
+                    "source_file": str(jsonl_file),
+                    "max_tokens": max_tokens,
+                    # "model_used": model_name if model_name else None,
+                    "intermediate_summaries": (
+                        final_result.intermediate_summaries
+                        if include_debug
+                        else None
+                    ),
+                }
+
+                output.write_text(
+                    json.dumps(output_data, indent=2), encoding="utf-8"
                 )
-                console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
-
-            # Show intermediate summaries if debug mode
-            if include_debug and final_result.intermediate_summaries:
-                console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
-                for level, summaries in enumerate(
-                    final_result.intermediate_summaries, 1
-                ):
-                    console.print(
-                        f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
-                    )
-                    for i, summary in enumerate(summaries, 1):
-                        console.print(f"[dim]{i}.[/dim] {summary}")
-
-            console.print("\n[bold]Final Summary:[/bold]")
-
-            # Structured output display (commented out)
-            # If we used a structured model, try to parse and display the JSON nicely
-            # if model_name and model_schema_json:
-            #     try:
-            #         structured_data = json.loads(final_result.summary)
-            #         console.print("[dim]Structured output:[/dim]")
-            #         for key, value in structured_data.items():
-            #             if value is not None:
-            #                 console.print(f"[cyan]{key}:[/cyan] {value}")
-            #     except json.JSONDecodeError:
-            #         # Fallback to raw text if JSON parsing fails
-            #         console.print(final_result.summary)
-            # else:
-            console.print(final_result.summary)
-
-            # Save to output file if specified
-            if output:
-                try:
-                    # Structured output parsing (commented out)
-                    # If we used a structured model, parse the JSON summary for better storage
-                    summary_data = final_result.summary
-                    # if model_name and model_schema_json:
-                    #     try:
-                    #         summary_data = json.loads(final_result.summary)
-                    #     except json.JSONDecodeError:
-                    #         # Keep as string if parsing fails
-                    #         pass
-
-                    output_data = {
-                        "summary": summary_data,
-                        "subsummary_count": final_result.subsummary_count,
-                        "levels_used": final_result.levels_used,
-                        "total_tokens": final_result.total_tokens,
-                        "source_file": str(jsonl_file),
-                        "max_tokens": max_tokens,
-                        # "model_used": model_name if model_name else None,
-                        "intermediate_summaries": (
-                            final_result.intermediate_summaries
-                            if include_debug
-                            else None
-                        ),
-                    }
-
-                    output.write_text(
-                        json.dumps(output_data, indent=2), encoding="utf-8"
-                    )
-                    console.print(f"\n[green]Summary saved to: {output}[/green]")
-                except Exception as e:
-                    console.print(f"[red]Error saving to {output}: {e}[/red]")
-
-        else:
-            console.print("[blue]Starting summarization...[/blue]")
-
-            with console.status("[bold green]Processing..."):
-                response = client.summarize(**request.model_dump(exclude_none=True))
-
-            console.print("[green]✓ Summarization complete![/green]")
-
-            if state.verbose or include_debug:
-                console.print(
-                    f"[dim]Total tokens processed: {response.total_tokens}[/dim]"
-                )
-                console.print(
-                    f"[dim]Subsummaries created: {response.subsummary_count}[/dim]"
-                )
-                console.print(f"[dim]Levels used: {response.levels_used}[/dim]")
-
-            # Show intermediate summaries if debug mode
-            if include_debug and response.intermediate_summaries:
-                console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
-                for level, summaries in enumerate(response.intermediate_summaries, 1):
-                    console.print(
-                        f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
-                    )
-                    for i, summary in enumerate(summaries, 1):
-                        console.print(f"[dim]{i}.[/dim] {summary}")
-
-            console.print("\n[bold]Final Summary:[/bold]")
-
-            # If we used a structured model, try to parse and display the JSON nicely
-            if model_name and model_schema_json:
-                try:
-                    structured_data = json.loads(response.summary)
-                    console.print("[dim]Structured output:[/dim]")
-                    for key, value in structured_data.items():
-                        if value is not None:
-                            console.print(f"[cyan]{key}:[/cyan] {value}")
-                except json.JSONDecodeError:
-                    # Fallback to raw text if JSON parsing fails
-                    console.print(response.summary)
-            else:
-                console.print(response.summary)
-
-            # Save to output file if specified
-            if output:
-                try:
-                    # Structured output parsing (commented out)
-                    # If we used a structured model, parse the JSON summary for better storage
-                    summary_data = response.summary
-                    # if model_name and model_schema_json:
-                    #     try:
-                    #         summary_data = json.loads(response.summary)
-                    #     except json.JSONDecodeError:
-                    #         # Keep as string if parsing fails
-                    #         pass
-
-                    output_data = {
-                        "summary": summary_data,
-                        "subsummary_count": response.subsummary_count,
-                        "levels_used": response.levels_used,
-                        "total_tokens": response.total_tokens,
-                        "source_file": str(jsonl_file),
-                        "max_tokens": max_tokens,
-                        # "model_used": model_name if model_name else None,
-                        "intermediate_summaries": (
-                            response.intermediate_summaries if include_debug else None
-                        ),
-                    }
-
-                    output.write_text(
-                        json.dumps(output_data, indent=2), encoding="utf-8"
-                    )
-                    console.print(f"\n[green]Summary saved to: {output}[/green]")
-                except Exception as e:
-                    console.print(f"[red]Error saving to {output}: {e}[/red]")
+                console.print(f"\n[green]Summary saved to: {output}[/green]")
+            except Exception as e:
+                console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")
@@ -1598,13 +1484,6 @@ def extract_pdf(
         Optional[int],
         typer.Option(help="Number of pages to process from start_page"),
     ] = None,
-    stream: Annotated[
-        bool,
-        typer.Option(
-            "--stream/--no-stream",
-            help="Use streaming API with progress (default: --stream)",
-        ),
-    ] = True,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1724,289 +1603,170 @@ def extract_pdf(
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        if stream:
-            console.print("[blue]Starting PDF extraction with streaming...[/blue]")
-            if start_page or num_pages:
-                page_info = f" (pages {start_page or 1}"
-                if num_pages:
-                    page_info += f"-{(start_page or 1) + num_pages - 1}"
-                page_info += ")"
-                console.print(f"[dim]Processing{page_info}[/dim]")
+        console.print("[blue]Starting PDF extraction with streaming...[/blue]")
+        if start_page or num_pages:
+            page_info = f" (pages {start_page or 1}"
+            if num_pages:
+                page_info += f"-{(start_page or 1) + num_pages - 1}"
+            page_info += ")"
+            console.print(f"[dim]Processing{page_info}[/dim]")
 
-            pages = []
-            total_elements = 0
+        pages = []
+        total_elements = 0
 
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                console=console,
-            ) as progress:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
 
-                task = progress.add_task(
-                    "Processing PDF...", total=100
-                )  # Start with 100 as placeholder
+            task = progress.add_task(
+                "Processing PDF...", total=100
+            )  # Start with 100 as placeholder
 
-                for response in client.stream_extract_pdf(**request.model_dump(exclude_none=True)):
-                    if isinstance(response, PDFStreamMetadata):
-                        # Set up progress bar with known total
-                        progress.update(
-                            task,
-                            total=response.total_pages,
-                            completed=0,
-                            description=f"Processing {response.total_pages} pages (doc pages {response.start_page}-{response.start_page + response.total_pages - 1})",
-                        )
-                        if state.verbose:
-                            console.print(
-                                f"[dim]Document has {response.total_pages_in_document} total pages, "
-                                f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
-                            )
-                    elif isinstance(response, PDFStreamPageResponse):
-                        pages.append(response.page_data)
-                        total_elements += len(response.page_data.text_blocks)
-
-                        progress.update(
-                            task,
-                            completed=response.current_page,
-                            description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
-                        )
-
-                        if state.verbose:
-                            console.print(
-                                f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
-                            )
-                    elif isinstance(response, PDFStreamPageError):
-                        progress.update(
-                            task,
-                            completed=response.current_page,
-                            description=f"Error on page {response.document_page}",
-                        )
+            for response in client.stream_extract_pdf(**request.model_dump(exclude_none=True)):
+                if isinstance(response, PDFStreamMetadata):
+                    # Set up progress bar with known total
+                    progress.update(
+                        task,
+                        total=response.total_pages,
+                        completed=0,
+                        description=f"Processing {response.total_pages} pages (doc pages {response.start_page}-{response.start_page + response.total_pages - 1})",
+                    )
+                    if state.verbose:
                         console.print(
-                            f"[red]Error on page {response.document_page}: {response.error}[/red]"
+                            f"[dim]Document has {response.total_pages_in_document} total pages, "
+                            f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
                         )
-                    elif isinstance(response, PDFStreamComplete):
-                        progress.update(
-                            task,
-                            completed=response.current_page,
-                            description="Complete!",
+                elif isinstance(response, PDFStreamPageResponse):
+                    pages.append(response.page_data)
+                    total_elements += len(response.page_data.text_blocks)
+
+                    progress.update(
+                        task,
+                        completed=response.current_page,
+                        description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
+                    )
+
+                    if state.verbose:
+                        console.print(
+                            f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
                         )
-                        console.print("[green]✓ PDF extraction complete![/green]")
-                    elif isinstance(response, PDFStreamError):
-                        console.print(f"[red]Extraction error: {response.error}[/red]")
-                        raise typer.Exit(1)
+                elif isinstance(response, PDFStreamPageError):
+                    progress.update(
+                        task,
+                        completed=response.current_page,
+                        description=f"Error on page {response.document_page}",
+                    )
+                    console.print(
+                        f"[red]Error on page {response.document_page}: {response.error}[/red]"
+                    )
+                elif isinstance(response, PDFStreamComplete):
+                    progress.update(
+                        task,
+                        completed=response.current_page,
+                        description="Complete!",
+                    )
+                    console.print("[green]✓ PDF extraction complete![/green]")
+                elif isinstance(response, PDFStreamError):
+                    console.print(f"[red]Extraction error: {response.error}[/red]")
+                    raise typer.Exit(1)
 
-            # Display summary
-            console.print(f"[green]Extracted {len(pages)} pages[/green]")
-            console.print(f"[green]Found {total_elements} text elements[/green]")
+        # Display summary
+        console.print(f"[green]Extracted {len(pages)} pages[/green]")
+        console.print(f"[green]Found {total_elements} text elements[/green]")
 
-            # Display detailed results if verbose
-            if state.verbose and pages:
-                table = Table(title="Extracted Text Elements")
-                table.add_column("Page", justify="right", style="cyan", no_wrap=True)
-                table.add_column("Position", justify="center", style="magenta")
-                table.add_column("Confidence", justify="center", style="yellow")
-                table.add_column("Text", style="green")
+        # Display detailed results if verbose
+        if state.verbose and pages:
+            table = Table(title="Extracted Text Elements")
+            table.add_column("Page", justify="right", style="cyan", no_wrap=True)
+            table.add_column("Position", justify="center", style="magenta")
+            table.add_column("Confidence", justify="center", style="yellow")
+            table.add_column("Text", style="green")
 
-                # Show first 20 elements across all pages
-                element_count = 0
-                for page in pages:
-                    for element in page.text_blocks:
-                        if element_count >= 20:
-                            break
-
-                        position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
-                        confidence = f"{element.confidence:.2f}"
-                        text_preview = (
-                            element.text[:60] + "..."
-                            if len(element.text) > 60
-                            else element.text
-                        )
-
-                        table.add_row(
-                            str(page.page_number), position, confidence, text_preview
-                        )
-                        element_count += 1
-
+            # Show first 20 elements across all pages
+            element_count = 0
+            for page in pages:
+                for element in page.text_blocks:
                     if element_count >= 20:
                         break
 
-                if total_elements > 20:
-                    table.add_row("...", "...", "...", "...")
+                    position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
+                    confidence = f"{element.confidence:.2f}"
+                    text_preview = (
+                        element.text[:60] + "..."
+                        if len(element.text) > 60
+                        else element.text
+                    )
 
-                console.print(table)
+                    table.add_row(
+                        str(page.page_number), position, confidence, text_preview
+                    )
+                    element_count += 1
 
-            # Save to output file (specified or default)
-            if output or pages:  # Save if output specified OR if we have pages to save
-                if not output:
-                    # Generate default filename
-                    if actual_file:
-                        base_name = actual_file.stem
-                    elif url:
-                        from urllib.parse import urlparse
+                if element_count >= 20:
+                    break
 
-                        parsed = urlparse(url)
-                        base_name = (
-                            parsed.path.split("/")[-1].replace(".pdf", "")
-                            if parsed.path
-                            else "pdf_extract"
-                        )
-                        if not base_name or base_name == "":
-                            base_name = "pdf_extract"
-                    else:
+            if total_elements > 20:
+                table.add_row("...", "...", "...", "...")
+
+            console.print(table)
+
+        # Save to output file (specified or default)
+        if output or pages:  # Save if output specified OR if we have pages to save
+            if not output:
+                # Generate default filename
+                if actual_file:
+                    base_name = actual_file.stem
+                elif url:
+                    from urllib.parse import urlparse
+
+                    parsed = urlparse(url)
+                    base_name = (
+                        parsed.path.split("/")[-1].replace(".pdf", "")
+                        if parsed.path
+                        else "pdf_extract"
+                    )
+                    if not base_name or base_name == "":
                         base_name = "pdf_extract"
+                else:
+                    base_name = "pdf_extract"
 
-                    # Add page range to filename if specified
-                    if start_page or num_pages:
-                        page_suffix = f"_pages_{start_page or 1}"
-                        if num_pages:
-                            page_suffix += f"-{(start_page or 1) + num_pages - 1}"
-                        base_name += page_suffix
+                # Add page range to filename if specified
+                if start_page or num_pages:
+                    page_suffix = f"_pages_{start_page or 1}"
+                    if num_pages:
+                        page_suffix += f"-{(start_page or 1) + num_pages - 1}"
+                    base_name += page_suffix
 
-                    output = Path(f"{base_name}_extracted.json")
-                    console.print(
-                        f"[dim]No output file specified, saving to: {output}[/dim]"
-                    )
-
-                try:
-                    output_data = {
-                        "pages": [page.model_dump() for page in pages],
-                        "total_pages": len(pages),
-                        "extraction_method": "paddleocr",
-                        "source": {
-                            "file": str(actual_file) if actual_file else None,
-                            "url": url,
-                            "start_page": start_page,
-                            "num_pages": num_pages,
-                        },
-                    }
-
-                    output.write_text(
-                        json.dumps(output_data, indent=2), encoding="utf-8"
-                    )
-                    console.print(
-                        f"\n[green]Extraction results saved to: {output}[/green]"
-                    )
-                except Exception as e:
-                    console.print(f"[red]Error saving to {output}: {e}[/red]")
-
-        else:
-            console.print("[blue]Starting PDF extraction...[/blue]")
-            if start_page or num_pages:
-                page_info = f" (pages {start_page or 1}"
-                if num_pages:
-                    page_info += f"-{(start_page or 1) + num_pages - 1}"
-                page_info += ")"
-                console.print(f"[dim]Processing{page_info}[/dim]")
-
-            with console.status("[bold green]Processing PDF..."):
-                response = client.extract_pdf(**request.model_dump(exclude_none=True))
-
-            console.print("[green]✓ PDF extraction complete![/green]")
-
-            # Display summary
-            console.print(f"[green]Extracted {response.total_pages} pages[/green]")
-
-            total_elements = sum(len(page.text_blocks) for page in response.pages)
-            console.print(f"[green]Found {total_elements} text elements[/green]")
-
-            if response.processing_time:
+                output = Path(f"{base_name}_extracted.json")
                 console.print(
-                    f"[dim]Processing time: {response.processing_time:.2f}s[/dim]"
+                    f"[dim]No output file specified, saving to: {output}[/dim]"
                 )
 
-            # Display detailed results if verbose
-            if state.verbose and response.pages:
-                table = Table(title="Extracted Text Elements")
-                table.add_column("Page", justify="right", style="cyan", no_wrap=True)
-                table.add_column("Position", justify="center", style="magenta")
-                table.add_column("Confidence", justify="center", style="yellow")
-                table.add_column("Text", style="green")
+            try:
+                output_data = {
+                    "pages": [page.model_dump() for page in pages],
+                    "total_pages": len(pages),
+                    "extraction_method": "paddleocr",
+                    "source": {
+                        "file": str(actual_file) if actual_file else None,
+                        "url": url,
+                        "start_page": start_page,
+                        "num_pages": num_pages,
+                    },
+                }
 
-                # Show first 20 elements across all pages
-                element_count = 0
-                for page in response.pages:
-                    for element in page.text_blocks:
-                        if element_count >= 20:
-                            break
-
-                        position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
-                        confidence = f"{element.confidence:.2f}"
-                        text_preview = (
-                            element.text[:60] + "..."
-                            if len(element.text) > 60
-                            else element.text
-                        )
-
-                        table.add_row(
-                            str(page.page_number), position, confidence, text_preview
-                        )
-                        element_count += 1
-
-                    if element_count >= 20:
-                        break
-
-                if total_elements > 20:
-                    table.add_row("...", "...", "...", "...")
-
-                console.print(table)
-
-            # Save to output file (specified or default)
-            if (
-                output or response.pages
-            ):  # Save if output specified OR if we have pages to save
-                if not output:
-                    # Generate default filename
-                    if actual_file:
-                        base_name = actual_file.stem
-                    elif url:
-                        from urllib.parse import urlparse
-
-                        parsed = urlparse(url)
-                        base_name = (
-                            parsed.path.split("/")[-1].replace(".pdf", "")
-                            if parsed.path
-                            else "pdf_extract"
-                        )
-                        if not base_name or base_name == "":
-                            base_name = "pdf_extract"
-                    else:
-                        base_name = "pdf_extract"
-
-                    # Add page range to filename if specified
-                    if start_page or num_pages:
-                        page_suffix = f"_pages_{start_page or 1}"
-                        if num_pages:
-                            page_suffix += f"-{(start_page or 1) + num_pages - 1}"
-                        base_name += page_suffix
-
-                    output = Path(f"{base_name}_extracted.json")
-                    console.print(
-                        f"[dim]No output file specified, saving to: {output}[/dim]"
-                    )
-
-                try:
-                    output_data = {
-                        "pages": [page.model_dump() for page in response.pages],
-                        "total_pages": response.total_pages,
-                        "extraction_method": response.extraction_method,
-                        "processing_time": response.processing_time,
-                        "source": {
-                            "file": str(actual_file) if actual_file else None,
-                            "url": url,
-                            "start_page": start_page,
-                            "num_pages": num_pages,
-                        },
-                    }
-
-                    output.write_text(
-                        json.dumps(output_data, indent=2), encoding="utf-8"
-                    )
-                    console.print(
-                        f"\n[green]Extraction results saved to: {output}[/green]"
-                    )
-                except Exception as e:
-                    console.print(f"[red]Error saving to {output}: {e}[/red]")
+                output.write_text(
+                    json.dumps(output_data, indent=2), encoding="utf-8"
+                )
+                console.print(
+                    f"\n[green]Extraction results saved to: {output}[/green]"
+                )
+            except Exception as e:
+                console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         console.print(f"[red]API Error: {e}[/red]")

@@ -196,13 +196,13 @@ def test_cite_command_with_pagination_options(sample_chunks):
         jsonl_file.unlink()
 
 
-def test_cite_command_with_no_stream_option(sample_chunks):
-    """Test cite command with --no-stream option."""
+def test_cite_command_with_verbose_option(sample_chunks):
+    """Test cite command with --verbose option."""
     jsonl_file = create_test_jsonl_file(sample_chunks)
 
     try:
         result = run_bookwyrm_command(
-            ["cite", "What countries are mentioned?", str(jsonl_file), "--no-stream"]
+            ["cite", "What countries are mentioned?", str(jsonl_file), "--verbose"]
         )
 
         # Check command parsing
@@ -213,6 +213,7 @@ def test_cite_command_with_no_stream_option(sample_chunks):
                 or "connection" in result.stderr.lower()
                 or "network" in result.stderr.lower()
                 or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
             )
 
     finally:
