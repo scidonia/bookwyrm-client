@@ -443,17 +443,18 @@ class BookWyrmClient:
                         data: Dict[str, Any] = json.loads(line)
                         response_type: Optional[str] = data.get("type")
 
-                        if response_type == "progress":
-                            yield PhraseProgressUpdate.model_validate(data)
-                        elif response_type == "phrase":
-                            # Determine if this is a TextResult or TextSpanResult based on presence of position data
-                            if data.get("start_char") is not None and data.get("end_char") is not None:
-                                yield TextSpanResult.model_validate(data)
-                            else:
-                                yield TextResult.model_validate(data)
-                        else:
-                            # Unknown response type, skip
-                            continue
+                        match response_type:
+                            case "progress":
+                                yield PhraseProgressUpdate.model_validate(data)
+                            case "phrase":
+                                # Determine if this is a TextResult or TextSpanResult based on presence of position data
+                                if data.get("start_char") is not None and data.get("end_char") is not None:
+                                    yield TextSpanResult.model_validate(data)
+                                else:
+                                    yield TextResult.model_validate(data)
+                            case _:
+                                # Unknown response type, skip
+                                continue
                     except json.JSONDecodeError:
                         # Skip malformed JSON lines
                         continue
@@ -542,17 +543,18 @@ class BookWyrmClient:
                         data: Dict[str, Any] = json.loads(line)
                         response_type: Optional[str] = data.get("type")
 
-                        if response_type == "progress":
-                            yield CitationProgressUpdate.model_validate(data)
-                        elif response_type == "citation":
-                            yield CitationStreamResponse.model_validate(data)
-                        elif response_type == "summary":
-                            yield CitationSummaryResponse.model_validate(data)
-                        elif response_type == "error":
-                            yield CitationErrorResponse.model_validate(data)
-                        else:
-                            # Unknown response type, skip
-                            continue
+                        match response_type:
+                            case "progress":
+                                yield CitationProgressUpdate.model_validate(data)
+                            case "citation":
+                                yield CitationStreamResponse.model_validate(data)
+                            case "summary":
+                                yield CitationSummaryResponse.model_validate(data)
+                            case "error":
+                                yield CitationErrorResponse.model_validate(data)
+                            case _:
+                                # Unknown response type, skip
+                                continue
                     except json.JSONDecodeError:
                         # Skip malformed JSON lines
                         continue
@@ -845,22 +847,23 @@ class BookWyrmClient:
                         data: Dict[str, Any] = json.loads(line)
                         response_type: Optional[str] = data.get("type")
 
-                        if response_type == "metadata":
-                            yield PDFStreamMetadata.model_validate(data)
-                        elif response_type == "page":
-                            yield PDFStreamPageResponse.model_validate(data)
-                        elif response_type == "page_error":
-                            yield PDFStreamPageError.model_validate(data)
-                        elif response_type == "complete":
-                            yield PDFStreamComplete.model_validate(data)
-                        elif response_type == "error":
-                            yield PDFStreamError.model_validate(data)
-                        elif response_type == "keepalive":
-                            # Ignore keepalive messages
-                            continue
-                        else:
-                            # Unknown response type, skip
-                            continue
+                        match response_type:
+                            case "metadata":
+                                yield PDFStreamMetadata.model_validate(data)
+                            case "page":
+                                yield PDFStreamPageResponse.model_validate(data)
+                            case "page_error":
+                                yield PDFStreamPageError.model_validate(data)
+                            case "complete":
+                                yield PDFStreamComplete.model_validate(data)
+                            case "error":
+                                yield PDFStreamError.model_validate(data)
+                            case "keepalive":
+                                # Ignore keepalive messages
+                                continue
+                            case _:
+                                # Unknown response type, skip
+                                continue
                     except json.JSONDecodeError:
                         # Skip malformed JSON lines
                         continue
@@ -1067,19 +1070,20 @@ class BookWyrmClient:
                         )  # Remove "data: " prefix
                         response_type: Optional[str] = data.get("type")
 
-                        if response_type == "progress":
-                            yield SummarizeProgressUpdate.model_validate(data)
-                        elif response_type == "summary":
-                            yield SummaryResponse.model_validate(data)
-                        elif response_type == "error":
-                            yield SummarizeErrorResponse.model_validate(data)
-                        elif response_type == "rate_limit":
-                            yield RateLimitMessage.model_validate(data)
-                        elif response_type == "structural_error":
-                            yield StructuralErrorMessage.model_validate(data)
-                        else:
-                            # Unknown response type, skip
-                            continue
+                        match response_type:
+                            case "progress":
+                                yield SummarizeProgressUpdate.model_validate(data)
+                            case "summary":
+                                yield SummaryResponse.model_validate(data)
+                            case "error":
+                                yield SummarizeErrorResponse.model_validate(data)
+                            case "rate_limit":
+                                yield RateLimitMessage.model_validate(data)
+                            case "structural_error":
+                                yield StructuralErrorMessage.model_validate(data)
+                            case _:
+                                # Unknown response type, skip
+                                continue
                     except json.JSONDecodeError:
                         # Skip malformed JSON lines
                         continue
