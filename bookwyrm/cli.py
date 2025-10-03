@@ -916,7 +916,7 @@ def summarize(
 
             console.print("[green]✓ Summarization complete![/green]")
 
-            if state.verbose or debug:
+            if state.verbose or include_debug:
                 console.print(
                     f"[dim]Total tokens processed: {response.total_tokens}[/dim]"
                 )
