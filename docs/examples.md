@@ -54,7 +54,7 @@ Modern NLP applications include chatbots, translation, and sentiment analysis.""
 # Create phrasal chunks of specific size - each chunk contains multiple phrases
 request: ProcessTextRequest = ProcessTextRequest(
     text=text,
-    chunk_size=100,  # ~100 characters per chunk (smaller for demo)
+    chunk_size=125,  # ~125 characters per chunk (smaller for demo)
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
@@ -66,10 +66,8 @@ for response in client.process_text(request):
 print(f"Created {len(chunks)} phrasal chunks")
 
 # Example output for the above text:
-# Chunk 1: "Natural language processing enables computers to understand human language."
-# Chunk 2: "Machine learning algorithms power these systems."  
-# Chunk 3: "Deep learning has revolutionized the field."
-# Chunk 4: "Modern NLP applications include chatbots, translation, and sentiment analysis."
+# Chunk 1: "Natural language processing enables computers to understand human language. Machine learning algorithms power these systems."
+# Chunk 2: "Deep learning has revolutionized the field. Modern NLP applications include chatbots, translation, and sentiment analysis."
 
 # Each chunk is composed of complete phrases/sentences up to the size limit
 # chunks is now List[TextSpanResult] where each phrasal chunk has:
