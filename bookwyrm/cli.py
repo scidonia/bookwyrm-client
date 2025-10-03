@@ -1038,10 +1038,10 @@ def phrasal(
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
 ):
-    """Process text using phrasal analysis to extract phrases or chunks.
+    """Stream text processing using phrasal analysis to extract phrases or chunks.
     
-    This command breaks down text into meaningful phrases or chunks using NLP.
-    It supports processing from direct text input, files, or URLs.
+    This command breaks down text into meaningful phrases or chunks using NLP with
+    real-time streaming results. It supports processing from direct text input, files, or URLs.
     
     ## Response Formats
     
@@ -1158,7 +1158,7 @@ def phrasal(
             task = progress.add_task("Processing text...", total=None)
 
             # Use function-based interface with boolean flags
-            for response in client.process_text(
+            for response in client.stream_process_text(
                 text=text,
                 text_url=url,
                 chunk_size=chunk_size,
