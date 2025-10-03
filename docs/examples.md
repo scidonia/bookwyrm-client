@@ -9,7 +9,7 @@ This page contains practical examples of using the BookWyrm client library.
 ```python
 from typing import List, Union
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import ProcessTextRequest, ResponseFormat, TextResult, TextSpanResult, PhraseProgressUpdate
+from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult, PhraseProgressUpdate
 
 # Create client
 client: BookWyrmClient = BookWyrmClient()
@@ -19,14 +19,13 @@ Natural language processing (NLP) is a subfield of linguistics, computer science
 and artificial intelligence concerned with the interactions between computers and human language.
 """
 
-request: ProcessTextRequest = ProcessTextRequest(
+# Using function arguments (recommended)
+phrases: List[TextSpanResult] = []
+for response in client.process_text(
     text=text,
     response_format=ResponseFormat.WITH_OFFSETS,
     spacy_model="en_core_web_sm"
-)
-
-phrases: List[TextSpanResult] = []
-for response in client.process_text(request):
+):
     if isinstance(response, TextSpanResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
@@ -41,6 +40,22 @@ for response in client.process_text(request):
 # - end_char: int (ending character position)
 ```
 
+#### Legacy Request Object Approach
+
+```python
+from bookwyrm.models import ProcessTextRequest
+
+# Legacy approach (still supported)
+request: ProcessTextRequest = ProcessTextRequest(
+    text=text,
+    response_format=ResponseFormat.WITH_OFFSETS,
+    spacy_model="en_core_web_sm"
+)
+
+for response in client.process_text(request):
+    # Process responses...
+```
+
 ### Create Phrasal Text Chunks
 
 ```python
@@ -52,14 +67,12 @@ Machine learning algorithms power these systems. Deep learning has revolutionize
 Modern NLP applications include chatbots, translation, and sentiment analysis."""
 
 # Create phrasal chunks bounded by size - fit as many complete phrases as possible
-request: ProcessTextRequest = ProcessTextRequest(
+chunks: List[TextSpanResult] = []
+for response in client.process_text(
     text=text,
     chunk_size=125,  # Bounded by 125 characters per chunk (smaller for demo)
     response_format=ResponseFormat.WITH_OFFSETS
-)
-
-chunks: List[TextSpanResult] = []
-for response in client.process_text(request):
+):
     if isinstance(response, TextSpanResult):
         chunks.append(response)
 
@@ -82,16 +95,14 @@ print(f"Created {len(chunks)} phrasal chunks")
 ```python
 from typing import TextIO
 
-request: ProcessTextRequest = ProcessTextRequest(
-    text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
-    chunk_size=2000,
-    response_format=ResponseFormat.WITH_OFFSETS
-)
-
 # Save to JSONL file
 with open("alice_phrases.jsonl", "w") as f:
     f: TextIO
-    for response in client.process_text(request):
+    for response in client.process_text(
+        text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+        chunk_size=2000,
+        response_format=ResponseFormat.WITH_OFFSETS
+    ):
         if isinstance(response, TextSpanResult):
             f.write(response.model_dump_json() + "\n")
 ```
@@ -102,7 +113,7 @@ with open("alice_phrases.jsonl", "w") as f:
 
 ```python
 from typing import List
-from bookwyrm.models import CitationRequest, TextSpan, CitationResponse, Citation
+from bookwyrm.models import TextSpan, CitationResponse, Citation
 
 # Prepare text chunks (you can get these from phrasal analysis above)
 chunks: List[TextSpan] = [
@@ -123,13 +134,11 @@ chunks: List[TextSpan] = [
     )
 ]
 
-# Find citations
-request: CitationRequest = CitationRequest(
+# Find citations using function arguments (recommended)
+response: CitationResponse = client.get_citations(
     chunks=chunks,
     question="What causes climate change?"
 )
-
-response: CitationResponse = client.get_citations(request)
 
 print(f"Found {response.total_citations} citations:")
 citation: Citation
@@ -149,6 +158,20 @@ for citation in response.citations:
 # - quality: int (0-4 scale, 4=best)
 ```
 
+#### Legacy Request Object Approach
+
+```python
+from bookwyrm.models import CitationRequest
+
+# Legacy approach (still supported)
+request: CitationRequest = CitationRequest(
+    chunks=chunks,
+    question="What causes climate change?"
+)
+
+response: CitationResponse = client.get_citations(request)
+```
+
 ### Streaming Citations with Progress
 
 ```python
@@ -166,7 +189,10 @@ with Progress(SpinnerColumn(), TextColumn("{task.description}")) as progress:
     task: TaskID = progress.add_task("Finding citations...", total=None)
     
     citations: List[Citation] = []
-    for update in client.stream_citations(request):
+    for update in client.stream_citations(
+        chunks=chunks,
+        question="What causes climate change?"
+    ):
         if isinstance(update, CitationProgressUpdate):
             progress.update(task, description=update.message)
         elif isinstance(update, CitationStreamResponse):
@@ -192,14 +218,12 @@ print(f"Total citations found: {len(citations)}")
 
 ```python
 # Load from JSONL file
-request: CitationRequest = CitationRequest(
+response: CitationResponse = client.get_citations(
     jsonl_url="https://example.com/chunks.jsonl",
     question="What is machine learning?",
     start=0,
     limit=100
 )
-
-response: CitationResponse = client.get_citations(request)
 ```
 
 ## PDF Extraction
@@ -208,21 +232,17 @@ response: CitationResponse = client.get_citations(request)
 
 ```python
 from typing import BinaryIO
-import base64
-from bookwyrm.models import PDFExtractRequest, PDFExtractResponse, PDFPage, PDFTextElement
+from bookwyrm.models import PDFExtractResponse, PDFPage, PDFTextElement
 
-# Load PDF file
+# Load PDF file using raw bytes (recommended)
 with open("document.pdf", "rb") as f:
     f: BinaryIO
     pdf_bytes: bytes = f.read()
-    pdf_content: str = base64.b64encode(pdf_bytes).decode('ascii')
 
-request: PDFExtractRequest = PDFExtractRequest(
-    pdf_content=pdf_content,
+response: PDFExtractResponse = client.extract_pdf(
+    pdf_bytes=pdf_bytes,
     filename="document.pdf"
 )
-
-response: PDFExtractResponse = client.extract_pdf(request)
 
 print(f"Extracted {response.total_pages} pages")
 page: PDFPage
@@ -251,13 +271,26 @@ for page in response.pages:
 # - coordinates: PDFBoundingBox (x1, y1, x2, y2 rectangle)
 ```
 
+#### Legacy Request Object Approach
+
+```python
+from bookwyrm.models import PDFExtractRequest
+
+# Legacy approach (still supported)
+request: PDFExtractRequest = PDFExtractRequest(
+    pdf_bytes=pdf_bytes,
+    filename="document.pdf"
+)
+
+response: PDFExtractResponse = client.extract_pdf(request)
+```
+
 ### Stream PDF Extraction with Progress
 
 ```python
 from typing import List
 from rich.progress import Progress, BarColumn, TaskProgressColumn, TaskID
 from bookwyrm.models import (
-    PDFExtractRequest, 
     PDFStreamMetadata, 
     PDFStreamPageResponse, 
     PDFStreamPageError,
@@ -266,17 +299,15 @@ from bookwyrm.models import (
     PDFPage
 )
 
-request: PDFExtractRequest = PDFExtractRequest(
-    pdf_url="https://example.com/document.pdf",
-    start_page=1,
-    num_pages=10
-)
-
 pages: List[PDFPage] = []
 with Progress(BarColumn(), TaskProgressColumn()) as progress:
     task: TaskID = progress.add_task("Extracting PDF...", total=100)
     
-    for response in client.stream_extract_pdf(request):
+    for response in client.stream_extract_pdf(
+        pdf_url="https://example.com/document.pdf",
+        start_page=1,
+        num_pages=10
+    ):
         if isinstance(response, PDFStreamMetadata):
             progress.update(task, total=response.total_pages)
         elif isinstance(response, PDFStreamPageResponse):
@@ -307,19 +338,18 @@ print(f"Extracted {len(pages)} pages")
 
 ```python
 from typing import BinaryIO, Any
-from bookwyrm.models import ClassifyRequest, ClassifyResponse
+from bookwyrm.models import ClassifyResponse
 
 # Read file as binary
 with open("unknown_file.dat", "rb") as f:
     f: BinaryIO
     file_bytes: bytes = f.read()
 
-request: ClassifyRequest = ClassifyRequest(
+# Classify using raw bytes (recommended)
+response: ClassifyResponse = client.classify(
     content_bytes=file_bytes,
     filename="unknown_file.dat"
 )
-
-response: ClassifyResponse = client.classify(request)
 
 print(f"Format: {response.classification.format_type}")
 print(f"Content Type: {response.classification.content_type}")
@@ -347,13 +377,27 @@ if response.classification.details:
 # - classification_methods: Optional[List[str]]
 ```
 
+#### Legacy Request Object Approach
+
+```python
+from bookwyrm.models import ClassifyRequest
+
+# Legacy approach (still supported)
+request: ClassifyRequest = ClassifyRequest(
+    content_bytes=file_bytes,
+    filename="unknown_file.dat"
+)
+
+response: ClassifyResponse = client.classify(request)
+```
+
 ## Text Summarization
 
 ### Basic Text Summarization
 
 ```python
 from typing import List
-from bookwyrm.models import SummarizeRequest, SummaryResponse, TextSpan
+from bookwyrm.models import SummaryResponse, TextSpan
 
 # Summarize from plain text
 text: str = """
@@ -366,12 +410,11 @@ extract information and insights contained in the documents as well as categoriz
 organize the documents themselves.
 """
 
-request: SummarizeRequest = SummarizeRequest(
+# Summarize using function arguments (recommended)
+response: SummaryResponse = client.summarize(
     content=text,
     max_tokens=5000
 )
-
-response: SummaryResponse = client.summarize(request)
 
 print("Summary:")
 print(response.summary)
@@ -386,16 +429,28 @@ print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used}
 # - intermediate_summaries: Optional[List[List[str]]] (debug info if requested)
 ```
 
+#### Legacy Request Object Approach
+
+```python
+from bookwyrm.models import SummarizeRequest
+
+# Legacy approach (still supported)
+request: SummarizeRequest = SummarizeRequest(
+    content=text,
+    max_tokens=5000
+)
+
+response: SummaryResponse = client.summarize(request)
+```
+
 ### Summarize from URL
 
 ```python
-request: SummarizeRequest = SummarizeRequest(
+response: SummaryResponse = client.summarize(
     url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
     max_tokens=10000,
     debug=True  # Include intermediate summaries
 )
-
-response: SummaryResponse = client.summarize(request)
 
 print("Final Summary:")
 print(response.summary)
@@ -417,12 +472,10 @@ phrases: List[TextSpan] = [
     # ... more phrases
 ]
 
-request: SummarizeRequest = SummarizeRequest(
+response: SummaryResponse = client.summarize(
     phrases=phrases,
     max_tokens=2000
 )
-
-response: SummaryResponse = client.summarize(request)
 print(response.summary)
 ```
 
@@ -438,12 +491,18 @@ from bookwyrm.models import CitationResponse, CitationStreamResponse
 async def main() -> None:
     client: AsyncBookWyrmClient
     async with AsyncBookWyrmClient() as client:
-        # Async citation finding
-        response: CitationResponse = await client.get_citations(request)
+        # Async citation finding using function arguments
+        response: CitationResponse = await client.get_citations(
+            chunks=chunks,
+            question="What causes climate change?"
+        )
         print(f"Found {response.total_citations} citations")
         
         # Async streaming
-        async for update in client.stream_citations(request):
+        async for update in client.stream_citations(
+            chunks=chunks,
+            question="What causes climate change?"
+        ):
             if isinstance(update, CitationStreamResponse):
                 print(f"Citation: {update.citation.text}")
 
@@ -469,7 +528,10 @@ from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError
 from bookwyrm.models import CitationResponse
 
 try:
-    response: CitationResponse = client.get_citations(request)
+    response: CitationResponse = client.get_citations(
+        chunks=chunks,
+        question="What causes climate change?"
+    )
 except BookWyrmAPIError as e:
     status_code: Optional[int] = e.status_code
     if status_code == 401:
