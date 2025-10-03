@@ -143,7 +143,7 @@ class BookWyrmClient:
         content: Optional[str] = None,
         content_bytes: Optional[bytes] = None,
         filename: Optional[str] = None,
-        content_encoding: str = "base64",
+        content_encoding: str = "utf-8",
     ) -> ClassifyResponse:
         """Classify file content to determine file type and format.
 
@@ -195,11 +195,25 @@ class BookWyrmClient:
         if content is None and content_bytes is None:
             raise ValueError("Either content or content_bytes is required")
 
+        # Auto-detect content encoding if content is provided
+        if content is not None and content_encoding == "utf-8":
+            # Check if content looks like base64
+            try:
+                import base64
+                base64.b64decode(content, validate=True)
+                # If successful, it might be base64, but let's be conservative
+                # and only treat as base64 if explicitly specified
+                detected_encoding = "utf-8"
+            except Exception:
+                detected_encoding = "utf-8"
+        else:
+            detected_encoding = content_encoding
+
         request = ClassifyRequest(
             content=content,
             content_bytes=content_bytes,
             filename=filename,
-            content_encoding=content_encoding,
+            content_encoding=detected_encoding,
         )
         headers: Dict[str, str] = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -217,7 +231,7 @@ class BookWyrmClient:
                     file_bytes = base64.b64decode(request.content)
                 else:
                     # Treat as raw text content and encode to bytes
-                    file_bytes = request.content.encode('utf-8')
+                    file_bytes = request.content.encode(request.content_encoding if request.content_encoding != "utf-8" else 'utf-8')
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
