@@ -1,6 +1,6 @@
 # AI Integration Guide
 
-This page provides the essential models and function signatures needed for AI agents and automated systems to integrate with BookWyrm.
+**Point your AI here** - This page provides the essential models and function signatures needed for AI agents and automated systems to integrate with BookWyrm.
 
 ## Core Models
 
