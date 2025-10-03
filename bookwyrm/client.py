@@ -429,7 +429,7 @@ class BookWyrmClient:
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):
                     phrases.append(response)
-            
+
             print(f"Processed {len(phrases)} phrases from URL")
             ```
         """
