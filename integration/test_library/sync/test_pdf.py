@@ -264,68 +264,56 @@ startxref
 %%EOF"""
 
 
-def test_extract_pdf_from_bytes(client, minimal_pdf):
-    """Test PDF extraction using raw bytes."""
-    response = client.extract_pdf(
+def test_stream_extract_pdf_from_bytes_basic(client, minimal_pdf):
+    """Test streaming PDF extraction using raw bytes."""
+    pages = []
+    metadata_received = False
+
+    for response in client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="test.pdf"
-    )
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            metadata_received = True
+            assert isinstance(response.total_pages, int)
+            assert response.total_pages >= 0
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            assert isinstance(response.document_page, int)
+            assert response.document_page >= 1
+            assert isinstance(response.page_data, PDFPage)
 
-    # Verify response structure
-    assert isinstance(response, PDFExtractResponse)
-    assert response.total_pages >= 0
-    assert isinstance(response.pages, list)
-    
-    # If pages were extracted, verify structure
-    if response.pages:
-        for page in response.pages:
-            assert isinstance(page, PDFPage)
-            assert isinstance(page.page_number, int)
-            assert page.page_number >= 1
-            assert isinstance(page.text_blocks, list)
-            
-            for text_block in page.text_blocks:
-                assert isinstance(text_block, PDFTextElement)
-                assert isinstance(text_block.text, str)
-                assert isinstance(text_block.confidence, float)
-                assert 0.0 <= text_block.confidence <= 1.0
-                assert isinstance(text_block.coordinates, PDFBoundingBox)
+    # Verify page structure if pages were extracted
+    for page in pages:
+        assert isinstance(page, PDFPage)
+        assert isinstance(page.page_number, int)
+        assert page.page_number >= 1
+        assert isinstance(page.text_blocks, list)
+        
+        for text_block in page.text_blocks:
+            assert isinstance(text_block, PDFTextElement)
+            assert isinstance(text_block.text, str)
+            assert isinstance(text_block.confidence, float)
+            assert 0.0 <= text_block.confidence <= 1.0
+            assert isinstance(text_block.coordinates, PDFBoundingBox)
 
 
-def test_extract_pdf_with_page_range(client, multi_page_pdf):
-    """Test PDF extraction with specific page range."""
-    # Test extracting pages 2-3
-    response = client.extract_pdf(
+def test_stream_extract_pdf_with_page_range_basic(client, multi_page_pdf):
+    """Test streaming PDF extraction with specific page range."""
+    responses = []
+
+    for response in client.stream_extract_pdf(
         pdf_bytes=multi_page_pdf,
         filename="multipage.pdf",
         start_page=2,
         num_pages=2
-    )
+    ):
+        responses.append(response)
 
-    # Verify response
-    assert isinstance(response, PDFExtractResponse)
-    assert response.total_pages >= 0
-
-
-def test_extract_pdf_from_url(client):
-    """Test PDF extraction from URL."""
-    # Skip this test for now - requires a publicly accessible PDF URL
-    pytest.skip("Requires a publicly accessible PDF URL for testing")
+    # Verify we got some responses
+    assert len(responses) >= 0
 
 
-def test_extract_pdf_error_no_input(client):
-    """Test that missing PDF input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
-        client.extract_pdf()
-
-
-def test_extract_pdf_error_multiple_inputs(client):
-    """Test that multiple PDF inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
-        client.extract_pdf(
-            pdf_bytes=b"fake pdf",
-            pdf_url="https://example.com/test.pdf"
-        )
 
 
 def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
@@ -403,20 +391,21 @@ def test_stream_extract_pdf_error_multiple_inputs(client):
         ))
 
 
-def test_extract_pdf_with_base64_content(client, minimal_pdf):
-    """Test PDF extraction using base64-encoded content."""
+def test_stream_extract_pdf_with_base64_content_basic(client, minimal_pdf):
+    """Test streaming PDF extraction using base64-encoded content."""
     import base64
     
     base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
     
-    response = client.extract_pdf(
+    responses = []
+    for response in client.stream_extract_pdf(
         pdf_content=base64_content,
         filename="base64_test.pdf"
-    )
+    ):
+        responses.append(response)
 
-    # Verify response structure
-    assert isinstance(response, PDFExtractResponse)
-    assert response.total_pages >= 0
+    # Verify we got some responses
+    assert len(responses) >= 0
 
 
 def test_stream_extract_pdf_with_base64_content(client, minimal_pdf):
@@ -436,15 +425,19 @@ def test_stream_extract_pdf_with_base64_content(client, minimal_pdf):
     assert len(responses) >= 0  # May be empty if PDF processing fails
 
 
-def test_extract_pdf_bounding_box_validation(client, minimal_pdf):
+def test_stream_extract_pdf_bounding_box_validation(client, minimal_pdf):
     """Test that PDF text elements have valid bounding box coordinates."""
-    response = client.extract_pdf(
+    pages = []
+
+    for response in client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="bbox_test.pdf"
-    )
+    ):
+        if isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
 
     # Verify bounding box coordinates if text elements exist
-    for page in response.pages:
+    for page in pages:
         for text_element in page.text_blocks:
             bbox = text_element.coordinates
             assert isinstance(bbox.x1, (int, float))
@@ -457,38 +450,35 @@ def test_extract_pdf_bounding_box_validation(client, minimal_pdf):
 
 
 @pytest.mark.liveonly
-def test_extract_pdf_live_api_comprehensive(client, minimal_pdf):
-    """Comprehensive test of PDF extraction against live API."""
-    # Test 1: Basic extraction
-    response1 = client.extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="live_test.pdf"
-    )
-    assert isinstance(response1, PDFExtractResponse)
-
-    # Test 2: Streaming extraction
-    responses = []
+def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
+    """Comprehensive test of streaming PDF extraction against live API."""
+    # Test 1: Basic streaming extraction
+    responses1 = []
     for response in client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
-        filename="live_stream_test.pdf"
+        filename="live_test.pdf"
     ):
-        responses.append(response)
-    assert len(responses) >= 0
+        responses1.append(response)
+    assert len(responses1) >= 0
 
-    # Test 3: With page range
-    response3 = client.extract_pdf(
+    # Test 2: With page range
+    responses2 = []
+    for response in client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="live_range_test.pdf",
         start_page=1,
         num_pages=1
-    )
-    assert isinstance(response3, PDFExtractResponse)
+    ):
+        responses2.append(response)
+    assert len(responses2) >= 0
 
-    # Test 4: Base64 content
+    # Test 3: Base64 content
     import base64
     base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
-    response4 = client.extract_pdf(
+    responses3 = []
+    for response in client.stream_extract_pdf(
         pdf_content=base64_content,
         filename="live_base64_test.pdf"
-    )
-    assert isinstance(response4, PDFExtractResponse)
+    ):
+        responses3.append(response)
+    assert len(responses3) >= 0

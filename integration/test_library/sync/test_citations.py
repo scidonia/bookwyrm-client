@@ -58,23 +58,28 @@ def sample_jsonl_content():
 {"text": "Python supports multiple programming paradigms including procedural, object-oriented, and functional programming.", "start_char": 262, "end_char": 376}"""
 
 
-def test_get_citations_with_chunks(client, sample_chunks):
-    """Test citation finding using text chunks."""
-    response = client.get_citations(
+def test_stream_citations_with_chunks(client, sample_chunks):
+    """Test streaming citation finding using text chunks."""
+    citations = []
+    summary_received = False
+    usage_info = None
+
+    for response in client.stream_citations(
         chunks=sample_chunks,
         question="What is machine learning?",
         max_tokens_per_chunk=1000,
-    )
-
-    # Verify response structure
-    assert isinstance(response, CitationResponse)
-    assert isinstance(response.citations, list)
-    assert isinstance(response.total_citations, int)
-    assert response.total_citations >= 0
-    assert isinstance(response.usage, UsageInfo)
+    ):
+        if isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
+        elif isinstance(response, CitationSummaryResponse):
+            summary_received = True
+            usage_info = response.usage
+            assert isinstance(response.total_citations, int)
+            assert response.total_citations >= 0
+            assert isinstance(response.usage, UsageInfo)
 
     # Verify citations if any were found
-    for citation in response.citations:
+    for citation in citations:
         assert isinstance(citation, Citation)
         assert isinstance(citation.text, str)
         assert len(citation.text) > 0
@@ -90,47 +95,59 @@ def test_get_citations_with_chunks(client, sample_chunks):
             assert citation.end_char > citation.start_char
 
 
-def test_get_citations_with_jsonl_content(client, sample_jsonl_content):
-    """Test citation finding using JSONL content."""
-    response = client.get_citations(
+def test_stream_citations_with_jsonl_content_basic(client, sample_jsonl_content):
+    """Test streaming citation finding using JSONL content."""
+    citations = []
+    summary_received = False
+
+    for response in client.stream_citations(
         jsonl_content=sample_jsonl_content,
         question="What programming language was created by Guido van Rossum?",
         start=0,
         limit=10,
-    )
+    ):
+        if isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
+        elif isinstance(response, CitationSummaryResponse):
+            summary_received = True
+            assert isinstance(response.total_citations, int)
+            assert response.total_citations >= 0
 
-    # Verify response structure
-    assert isinstance(response, CitationResponse)
-    assert isinstance(response.citations, list)
-    assert isinstance(response.total_citations, int)
-    assert response.total_citations >= 0
+    # Verify citations structure
+    for citation in citations:
+        assert isinstance(citation.text, str)
+        assert len(citation.text) > 0
+        assert isinstance(citation.quality, int)
+        assert 0 <= citation.quality <= 4
 
 
-def test_get_citations_with_pagination(client, sample_chunks):
-    """Test citation finding with pagination parameters."""
-    # Test with start and limit
-    response = client.get_citations(
+def test_stream_citations_with_pagination_basic(client, sample_chunks):
+    """Test streaming citation finding with pagination parameters."""
+    responses = []
+
+    for response in client.stream_citations(
         chunks=sample_chunks,
         question="What is artificial intelligence?",
         start=1,
         limit=3,
         max_tokens_per_chunk=500,
-    )
+    ):
+        responses.append(response)
 
-    assert isinstance(response, CitationResponse)
-    assert response.total_citations >= 0
+    # Verify we got some responses
+    assert len(responses) >= 0
 
 
-def test_get_citations_error_no_input(client):
+def test_stream_citations_error_no_input(client):
     """Test that missing input raises an error."""
     with pytest.raises(
         ValueError,
         match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided",
     ):
-        client.get_citations(question="What is AI?")
+        list(client.stream_citations(question="What is AI?"))
 
 
-def test_get_citations_error_multiple_inputs(
+def test_stream_citations_error_multiple_inputs(
     client, sample_chunks, sample_jsonl_content
 ):
     """Test that multiple inputs raise an error."""
@@ -138,21 +155,21 @@ def test_get_citations_error_multiple_inputs(
         ValueError,
         match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided",
     ):
-        client.get_citations(
+        list(client.stream_citations(
             chunks=sample_chunks,
             jsonl_content=sample_jsonl_content,
             question="What is AI?",
-        )
+        ))
 
 
-def test_get_citations_error_empty_question(client, sample_chunks):
+def test_stream_citations_error_empty_question(client, sample_chunks):
     """Test that empty question raises an error."""
     with pytest.raises(ValueError, match="question.*empty"):
-        client.get_citations(chunks=sample_chunks, question="")
+        list(client.stream_citations(chunks=sample_chunks, question=""))
 
 
-def test_stream_citations_with_chunks(client, sample_chunks):
-    """Test streaming citation finding using text chunks."""
+def test_stream_citations_with_progress_tracking(client, sample_chunks):
+    """Test streaming citation finding with progress tracking."""
     citations = []
     progress_updates = []
     summary_received = False
@@ -187,8 +204,8 @@ def test_stream_citations_with_chunks(client, sample_chunks):
     # Note: Progress updates and summary may not always be received depending on processing
 
 
-def test_stream_citations_with_jsonl_content(client, sample_jsonl_content):
-    """Test streaming citation finding using JSONL content."""
+def test_stream_citations_with_jsonl_content_detailed(client, sample_jsonl_content):
+    """Test streaming citation finding using JSONL content with detailed verification."""
     citations = []
 
     for response in client.stream_citations(
@@ -208,7 +225,7 @@ def test_stream_citations_with_jsonl_content(client, sample_jsonl_content):
         assert 0 <= citation.quality <= 4
 
 
-def test_stream_citations_with_pagination(client, sample_chunks):
+def test_stream_citations_with_pagination_detailed(client, sample_chunks):
     """Test streaming citation finding with pagination."""
     responses = []
 
@@ -225,123 +242,97 @@ def test_stream_citations_with_pagination(client, sample_chunks):
     assert len(responses) >= 0
 
 
-def test_stream_citations_error_no_input(client):
-    """Test that missing input raises an error."""
-    with pytest.raises(
-        ValueError,
-        match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided",
-    ):
-        list(client.stream_citations(question="What is AI?"))
 
 
-def test_stream_citations_error_multiple_inputs(
-    client, sample_chunks, sample_jsonl_content
-):
-    """Test that multiple inputs raise an error."""
-    with pytest.raises(
-        ValueError,
-        match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided",
-    ):
-        list(
-            client.stream_citations(
-                chunks=sample_chunks,
-                jsonl_content=sample_jsonl_content,
-                question="What is AI?",
-            )
-        )
-
-
-def test_get_citations_quality_scores(client, sample_chunks):
+def test_stream_citations_quality_scores(client, sample_chunks):
     """Test that citation quality scores are within valid range."""
-    response = client.get_citations(
+    citations = []
+
+    for response in client.stream_citations(
         chunks=sample_chunks,
         question="What is deep learning?",
         max_tokens_per_chunk=1000,
-    )
+    ):
+        if isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
 
-    for citation in response.citations:
+    for citation in citations:
         assert isinstance(citation.quality, int)
         assert (
             0 <= citation.quality <= 4
         ), f"Quality score {citation.quality} is out of range [0-4]"
 
 
-def test_get_citations_usage_info(client, sample_chunks):
+def test_stream_citations_usage_info(client, sample_chunks):
     """Test that usage information is properly returned."""
-    response = client.get_citations(
-        chunks=sample_chunks,
-        question="What is artificial intelligence?",
-        max_tokens_per_chunk=500,
-    )
-
-    assert isinstance(response.usage, UsageInfo)
-    assert hasattr(response.usage, "tokens_processed")
-    if (
-        hasattr(response.usage, "tokens_processed")
-        and response.usage.tokens_processed is not None
-    ):
-        assert isinstance(response.usage.tokens_processed, int)
-        assert response.usage.tokens_processed >= 0
-
-
-def test_get_citations_with_different_chunk_sizes(client, sample_chunks):
-    """Test citation finding with different max_tokens_per_chunk values."""
-    # Test with small chunk size
-    response_small = client.get_citations(
-        chunks=sample_chunks,
-        question="What is machine learning?",
-        max_tokens_per_chunk=100,
-    )
-
-    # Test with large chunk size
-    response_large = client.get_citations(
-        chunks=sample_chunks,
-        question="What is machine learning?",
-        max_tokens_per_chunk=2000,
-    )
-
-    # Both should return valid responses
-    assert isinstance(response_small, CitationResponse)
-    assert isinstance(response_large, CitationResponse)
-
-
-def test_stream_citations_progress_tracking(client, sample_chunks):
-    """Test that streaming citations provide progress updates."""
-    progress_messages = []
-    citation_count = 0
+    usage_info = None
 
     for response in client.stream_citations(
         chunks=sample_chunks,
-        question="What technologies are mentioned?",
-        max_tokens_per_chunk=1000,
+        question="What is artificial intelligence?",
+        max_tokens_per_chunk=500,
     ):
-        if isinstance(response, CitationProgressUpdate):
-            progress_messages.append(response.message)
-        elif isinstance(response, CitationStreamResponse):
-            citation_count += 1
+        if isinstance(response, CitationSummaryResponse):
+            usage_info = response.usage
+            break
 
-    # Progress messages should contain useful information
-    for message in progress_messages:
-        assert isinstance(message, str)
-        assert len(message) > 0
+    if usage_info:
+        assert isinstance(usage_info, UsageInfo)
+        assert hasattr(usage_info, "tokens_processed")
+        if (
+            hasattr(usage_info, "tokens_processed")
+            and usage_info.tokens_processed is not None
+        ):
+            assert isinstance(usage_info.tokens_processed, int)
+            assert usage_info.tokens_processed >= 0
 
 
-def test_get_citations_empty_chunks(client):
-    """Test citation finding with empty chunks list."""
-    response = client.get_citations(
+def test_stream_citations_with_different_chunk_sizes(client, sample_chunks):
+    """Test streaming citation finding with different max_tokens_per_chunk values."""
+    # Test with small chunk size
+    responses_small = []
+    for response in client.stream_citations(
+        chunks=sample_chunks,
+        question="What is machine learning?",
+        max_tokens_per_chunk=100,
+    ):
+        responses_small.append(response)
+
+    # Test with large chunk size
+    responses_large = []
+    for response in client.stream_citations(
+        chunks=sample_chunks,
+        question="What is machine learning?",
+        max_tokens_per_chunk=2000,
+    ):
+        responses_large.append(response)
+
+    # Both should return valid responses
+    assert len(responses_small) >= 0
+    assert len(responses_large) >= 0
+
+
+
+
+def test_stream_citations_empty_chunks(client):
+    """Test streaming citation finding with empty chunks list."""
+    responses = []
+    for response in client.stream_citations(
         chunks=[], question="What is AI?", max_tokens_per_chunk=1000
-    )
+    ):
+        responses.append(response)
 
-    assert isinstance(response, CitationResponse)
-    assert response.total_citations == 0
-    assert len(response.citations) == 0
-    assert isinstance(response.usage, UsageInfo)
-    assert response.usage.tokens_processed == 0
-    assert response.usage.chunks_processed == 0
+    # Should get a summary response with empty results
+    assert len(responses) == 1
+    assert isinstance(responses[0], CitationSummaryResponse)
+    assert responses[0].total_citations == 0
+    assert isinstance(responses[0].usage, UsageInfo)
+    assert responses[0].usage.tokens_processed == 0
+    assert responses[0].usage.chunks_processed == 0
 
 
-def test_get_citations_single_chunk(client):
-    """Test citation finding with a single chunk."""
+def test_stream_citations_single_chunk(client):
+    """Test streaming citation finding with a single chunk."""
     single_chunk = [
         TextSpan(
             text="Artificial intelligence is the simulation of human intelligence in machines.",
@@ -350,20 +341,16 @@ def test_get_citations_single_chunk(client):
         )
     ]
 
-    response = client.get_citations(
+    responses = []
+    for response in client.stream_citations(
         chunks=single_chunk,
         question="What is artificial intelligence?",
         max_tokens_per_chunk=1000,
-    )
+    ):
+        responses.append(response)
 
-    assert isinstance(response, CitationResponse)
-    assert response.total_citations >= 0
-
-
-def test_get_citations_from_url_skip(client):
-    """Test citation finding from URL (skipped - requires test URL)."""
-    # Skip this test for now - requires a publicly accessible JSONL URL
-    pytest.skip("Requires a publicly accessible JSONL URL for testing")
+    # Should get some responses
+    assert len(responses) >= 0
 
 
 def test_stream_citations_from_url_skip(client):

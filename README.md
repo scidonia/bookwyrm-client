@@ -76,27 +76,25 @@ chunks = [
     TextSpan(text="This is the second chunk.", start_char=26, end_char=52),
 ]
 
-# Get citations (non-streaming) - function interface
-response = client.get_citations(
-    chunks=chunks,
-    question="What are the chunks about?",
-    max_tokens_per_chunk=1000
-)
-print(f"Found {response.total_citations} citations")
-for citation in response.citations:
-    print(f"Quality: {citation.quality}/4")
-    print(f"Text: {citation.text}")
-    print(f"Reasoning: {citation.reasoning}")
-
 # Stream citations (real-time results) - function interface
+citations = []
+citations = []
 for stream_response in client.stream_citations(
     chunks=chunks,
     question="What are the chunks about?"
 ):
     if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
         print(f"New citation: {stream_response.citation.text}")
     elif hasattr(stream_response, 'message'):
         print(f"Progress: {stream_response.message}")
+    elif hasattr(stream_response, 'total_citations'):
+        print(f"Found {stream_response.total_citations} citations total")
+
+for citation in citations:
+    print(f"Quality: {citation.quality}/4")
+    print(f"Text: {citation.text}")
+    print(f"Reasoning: {citation.reasoning}")
 
 # Phrasal text processing with boolean flags
 for response in client.stream_process_text(
@@ -140,46 +138,55 @@ binary_response = client.classify(
 )
 print(f"Binary file classified as: {binary_response.classification.content_type}")
 
-# PDF structure extraction using function interface
-pdf_response = client.extract_pdf(
-    pdf_url="https://example.com/document.pdf",
-    start_page=1,
-    num_pages=5
-)
-print(f"Extracted {pdf_response.total_pages} pages")
-print(f"Found {sum(len(page.text_blocks) for page in pdf_response.pages)} text elements")
-
-# Streaming extraction with progress
+# Streaming PDF extraction with progress
+pages = []
+pages = []
 for stream_response in client.stream_extract_pdf(
     pdf_url="https://example.com/document.pdf",
     start_page=1,
     num_pages=5
 ):
     if hasattr(stream_response, 'page_data'):
+        pages.append(stream_response.page_data)
         print(f"Processed page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
     elif hasattr(stream_response, 'total_pages'):
         print(f"Starting extraction of {stream_response.total_pages} pages")
+
+print(f"Extracted {len(pages)} pages")
+print(f"Found {sum(len(page.text_blocks) for page in pages)} text elements")
 
 # Extract from local PDF file using raw bytes
 with open("document.pdf", "rb") as f:
     pdf_bytes = f.read()
 
-local_pdf_response = client.extract_pdf(
+local_pages = []
+for stream_response in client.stream_extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="document.pdf",
     start_page=10,
     num_pages=5
-)
-print(f"Extracted pages 10-14: {local_pdf_response.total_pages} pages processed")
+):
+    if hasattr(stream_response, 'page_data'):
+        local_pages.append(stream_response.page_data)
 
-# Summarization using function interface
-response = client.summarize(
+print(f"Extracted pages 10-14: {len(local_pages)} pages processed")
+
+# Streaming summarization
+final_summary = None
+for response in client.stream_summarize(
     content="Long text content to summarize...",
     max_tokens=5000,
     debug=True
-)
-print(f"Summary: {response.summary}")
-print(f"Used {response.levels_used} levels")
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
+if final_summary:
+    print(f"Summary: {final_summary.summary}")
+    print(f"Used {final_summary.levels_used} levels")
 
 client.close()
 ```
@@ -194,20 +201,18 @@ async def main():
     # Initialize async client
     async with AsyncBookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key") as client:
         
-        # Citation finding using function interface
-        response = await client.get_citations(
-            jsonl_url="https://example.com/chunks.jsonl",
-            question="What is the main topic?"
-        )
-        print(f"Found {response.total_citations} citations")
-        
         # Stream citations
+        citations = []
+        citations = []
         async for stream_response in client.stream_citations(
             jsonl_url="https://example.com/chunks.jsonl",
             question="What is the main topic?"
         ):
             if hasattr(stream_response, 'citation'):
+                citations.append(stream_response.citation)
                 print(f"New citation: {stream_response.citation.text}")
+            elif hasattr(stream_response, 'total_citations'):
+                print(f"Found {stream_response.total_citations} citations")
 
         # Phrasal text processing with boolean flags
         async for response in client.stream_process_text(
@@ -227,14 +232,16 @@ async def main():
         print(f"Classified as: {classification.classification.content_type}")
         print(f"Confidence: {classification.classification.confidence:.2%}")
 
-        # PDF structure extraction using function interface
         # Streaming PDF extraction
+        pages = []
+        pages = []
         async for stream_response in client.stream_extract_pdf(
             pdf_url="https://example.com/document.pdf",
             start_page=1,
             num_pages=10
         ):
             if hasattr(stream_response, 'page_data'):
+                pages.append(stream_response.page_data)
                 print(f"Page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
             elif hasattr(stream_response, 'total_pages'):
                 print(f"Processing {stream_response.total_pages} pages...")
