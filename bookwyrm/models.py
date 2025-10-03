@@ -1,5 +1,6 @@
 """Pydantic models for the BookWyrm client."""
 
+import base64
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Union, Literal
 from enum import Enum
@@ -479,20 +480,26 @@ class PDFExtractRequest(BaseModel):
 
     pdf_url: Optional[str] = None
     pdf_content: Optional[str] = None  # Base64 encoded PDF content
+    pdf_bytes: Optional[bytes] = None  # Raw PDF bytes (will be encoded to base64)
     filename: Optional[str] = None  # Optional filename hint
     start_page: Optional[int] = None  # 1-based page number to start from
     num_pages: Optional[int] = None  # Number of pages to process from start_page
 
     @model_validator(mode="after")
     def validate_input_source(self):
-        """Validate that exactly one of pdf_url or pdf_content is provided."""
-        sources = [self.pdf_url, self.pdf_content]
+        """Validate that exactly one of pdf_url, pdf_content, or pdf_bytes is provided."""
+        sources = [self.pdf_url, self.pdf_content, self.pdf_bytes]
         provided_sources = [s for s in sources if s is not None]
 
         if len(provided_sources) != 1:
             raise ValueError(
-                "Exactly one of 'pdf_url' or 'pdf_content' must be provided"
+                "Exactly one of 'pdf_url', 'pdf_content', or 'pdf_bytes' must be provided"
             )
+
+        # If pdf_bytes is provided, encode it to base64 and set pdf_content
+        if self.pdf_bytes is not None:
+            self.pdf_content = base64.b64encode(self.pdf_bytes).decode('ascii')
+            self.pdf_bytes = None  # Clear the bytes field after encoding
 
         if self.start_page is not None and self.start_page < 1:
             raise ValueError("start_page must be >= 1")
