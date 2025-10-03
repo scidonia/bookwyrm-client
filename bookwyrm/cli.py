@@ -1180,12 +1180,12 @@ def phrasal(
                             f"[dim]Processed {response.phrases_processed} phrases, "
                             f"created {response.chunks_created} chunks[/dim]"
                         )
-                elif hasattr(response, 'type') and response.type in ['text', 'text_span']:
-                    # Handle both TextResult and TextSpanResult by checking the type field
+                elif isinstance(response, (TextResult, TextSpanResult)):
+                    # Handle both TextResult and TextSpanResult properly
                     phrases.append(response)
 
                     if state.verbose:
-                        if hasattr(response, 'start_char') and hasattr(response, 'end_char'):
+                        if isinstance(response, TextSpanResult):
                             console.print(
                                 f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
                             )
