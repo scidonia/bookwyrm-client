@@ -643,6 +643,23 @@ class AsyncBookWyrmClient:
                 # Process responses...
             ```
         """
+        # Handle empty chunks list - return empty response immediately
+        if chunks is not None and len(chunks) == 0:
+            from .models import UsageInfo
+            yield CitationSummaryResponse(
+                total_citations=0,
+                chunks_processed=0,
+                token_chunks_processed=0,
+                start_offset=0,
+                usage=UsageInfo(
+                    tokens_processed=0,
+                    chunks_processed=0,
+                    estimated_cost=None,
+                    remaining_credits=0.0,
+                ),
+            )
+            return
+
         request = CitationRequest(
             chunks=chunks,
             jsonl_content=jsonl_content,
