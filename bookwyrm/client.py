@@ -345,7 +345,7 @@ class BookWyrmClient:
         offsets: Optional[bool] = None,
         with_offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
-        text: Optional[bool] = None,
+        text_format: Optional[bool] = None,
     ) -> Iterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with streaming results.
 
@@ -362,7 +362,7 @@ class BookWyrmClient:
             offsets: Set to True for WITH_OFFSETS format (boolean flag)
             with_offsets: Set to True for WITH_OFFSETS format (boolean flag)
             text_only: Set to True for TEXT_ONLY format (boolean flag)
-            text: Set to True for TEXT_ONLY format (boolean flag)
+            text_format: Set to True for TEXT_ONLY format (boolean flag)
 
         Yields:
             StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
@@ -427,7 +427,7 @@ class BookWyrmClient:
             raise ValueError("Either text or text_url is required")
         
         # Handle boolean flags for response format
-        boolean_flags = [offsets, with_offsets, text_only, text]
+        boolean_flags = [offsets, with_offsets, text_only, text_format]
         true_flags = [flag for flag in boolean_flags if flag is True]
         
         if len(true_flags) > 1:
@@ -436,7 +436,7 @@ class BookWyrmClient:
         if len(true_flags) == 1:
             if offsets or with_offsets:
                 response_format = ResponseFormat.WITH_OFFSETS
-            elif text_only or text:
+            elif text_only or text_format:
                 response_format = ResponseFormat.TEXT_ONLY
         
         # Convert string to enum if needed
