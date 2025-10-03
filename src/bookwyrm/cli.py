@@ -480,7 +480,7 @@ def cite(
                 total_chunks = len(chunks) if not url else None
                 task = progress.add_task("Processing chunks...", total=total_chunks)
 
-                for response in client.stream_citations(request):
+                for response in client.stream_citations(**request.model_dump(exclude_none=True)):
                     if isinstance(response, CitationProgressUpdate):
                         # For URL sources, set total when we first get it
                         if url and progress.tasks[task].total is None:
@@ -533,7 +533,7 @@ def cite(
                 console.print(f"[dim]Source: {url}[/dim]")
 
             with console.status("[bold green]Processing..."):
-                response = client.get_citations(request)
+                response = client.get_citations(**request.model_dump(exclude_none=True))
 
             console.print(f"[green]Found {response.total_citations} citations[/green]")
             if response.usage:
@@ -814,7 +814,7 @@ def summarize(
 
                 level_tasks = {}  # Track tasks for each level
 
-                for response in client.stream_summarize(request):
+                for response in client.stream_summarize(**request.model_dump(exclude_none=True)):
                     if isinstance(response, SummarizeProgressUpdate):
                         # Create or update task for this level
                         task_id = f"level_{response.current_level}"
@@ -947,7 +947,7 @@ def summarize(
             console.print("[blue]Starting summarization...[/blue]")
 
             with console.status("[bold green]Processing..."):
-                response = client.summarize(request)
+                response = client.summarize(**request.model_dump(exclude_none=True))
 
             console.print("[green]✓ Summarization complete![/green]")
 
@@ -1488,7 +1488,7 @@ def classify(
         console.print("[blue]Starting classification...[/blue]")
 
         with console.status("[bold green]Analyzing..."):
-            response = client.classify(request)
+            response = client.classify(**request.model_dump(exclude_none=True))
 
         console.print("[green]✓ Classification complete![/green]")
 
@@ -1746,7 +1746,7 @@ def extract_pdf(
                     "Processing PDF...", total=100
                 )  # Start with 100 as placeholder
 
-                for response in client.stream_extract_pdf(request):
+                for response in client.stream_extract_pdf(**request.model_dump(exclude_none=True)):
                     if isinstance(response, PDFStreamMetadata):
                         # Set up progress bar with known total
                         progress.update(
@@ -1898,7 +1898,7 @@ def extract_pdf(
                 console.print(f"[dim]Processing{page_info}[/dim]")
 
             with console.status("[bold green]Processing PDF..."):
-                response = client.extract_pdf(request)
+                response = client.extract_pdf(**request.model_dump(exclude_none=True))
 
             console.print("[green]✓ PDF extraction complete![/green]")
 
