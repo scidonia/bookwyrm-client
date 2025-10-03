@@ -259,10 +259,10 @@ def test_get_citations_usage_info(client, sample_chunks):
     )
 
     assert isinstance(response.usage, UsageInfo)
-    assert hasattr(response.usage, 'total_tokens')
-    if hasattr(response.usage, 'total_tokens') and response.usage.total_tokens is not None:
-        assert isinstance(response.usage.total_tokens, int)
-        assert response.usage.total_tokens >= 0
+    assert hasattr(response.usage, 'tokens_processed')
+    if hasattr(response.usage, 'tokens_processed') and response.usage.tokens_processed is not None:
+        assert isinstance(response.usage.tokens_processed, int)
+        assert response.usage.tokens_processed >= 0
 
 
 def test_get_citations_with_different_chunk_sizes(client, sample_chunks):
