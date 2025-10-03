@@ -46,6 +46,7 @@ from .models import (
     PDFStreamComplete,
     PDFStreamError,
     TextSpan,
+    UsageInfo,
 )
 
 
@@ -541,7 +542,6 @@ class BookWyrmClient:
         
         # Handle empty chunks list - return empty response immediately
         if chunks is not None and len(chunks) == 0:
-            from .models import UsageInfo
             yield CitationSummaryResponse(
                 total_citations=0,
                 usage=UsageInfo(
