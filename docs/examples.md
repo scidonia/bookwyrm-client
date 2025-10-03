@@ -66,9 +66,10 @@ for response in client.process_text(request):
 print(f"Created {len(chunks)} phrasal chunks")
 
 # Example output for the above text:
-# Chunk 1: "Natural language processing enables computers to understand human language. Machine learning"
-# Chunk 2: "algorithms power these systems. Deep learning has revolutionized the field. Modern NLP"  
-# Chunk 3: "applications include chatbots, translation, and sentiment analysis."
+# Chunk 1: "Natural language processing enables computers to understand human language."
+# Chunk 2: "Machine learning algorithms power these systems."  
+# Chunk 3: "Deep learning has revolutionized the field."
+# Chunk 4: "Modern NLP applications include chatbots, translation, and sentiment analysis."
 
 # Each chunk is composed of complete phrases/sentences up to the size limit
 # chunks is now List[TextSpanResult] where each phrasal chunk has:
