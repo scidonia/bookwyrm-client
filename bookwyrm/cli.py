@@ -1019,6 +1019,9 @@ def phrasal(
         ),
     ] = None,
     format: Annotated[str, typer.Option(help='Response format: "text_only" or "with_offsets" (default: "with_offsets")')] = "with_offsets",
+    # Boolean flags for response format
+    offsets: Annotated[bool, typer.Option("--offsets", help="Include position offsets (shorthand for with_offsets)")] = False,
+    text_only: Annotated[bool, typer.Option("--text-only", help="Return text only without position data")] = False,
     spacy_model: Annotated[
         str, typer.Option(help="SpaCy model to use (default: \"en_core_web_sm\")")
     ] = "en_core_web_sm",
@@ -1048,6 +1051,11 @@ def phrasal(
     - **with_offsets**: Include character position information (start_char, end_char)
     - **text_only**: Return only the text content without position data
     
+    ## Boolean Flags (Alternative to --format)
+    
+    - **--offsets**: Shorthand for `--format with_offsets`
+    - **--text-only**: Shorthand for `--format text_only`
+    
     ## Chunking
     
     Use `--chunk-size` to create chunks of approximately the specified character count.
@@ -1059,16 +1067,19 @@ def phrasal(
     # Process text directly
     bookwyrm phrasal "Natural language processing is fascinating." -o phrases.jsonl
     
-    # Process file
-    bookwyrm phrasal -f document.txt --output phrases.jsonl
+    # Process file with position offsets (using boolean flag)
+    bookwyrm phrasal -f document.txt --offsets --output phrases.jsonl
     
     # Create chunks of specific size
-    bookwyrm phrasal -f large_text.txt --chunk-size 1000 --output chunks.jsonl
+    bookwyrm phrasal -f large_text.txt --chunk-size 1000 --offsets --output chunks.jsonl
     
     # Process from URL
     bookwyrm phrasal --url https://example.com/text.txt --output phrases.jsonl
     
-    # Text only format (no position offsets)
+    # Text only format using boolean flag
+    bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
+    
+    # Traditional format option still works
     bookwyrm phrasal -f text.txt --format text_only --output simple_phrases.jsonl
     
     # Different SpaCy model
@@ -1088,12 +1099,23 @@ def phrasal(
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
-    # Validate format choice
+    # Validate format choice and boolean flags
     if format not in ["text_only", "with_offsets"]:
         console.print(
             f"[red]Error: format must be 'text_only' or 'with_offsets', got '{format}'[/red]"
         )
         raise typer.Exit(1)
+    
+    # Check for conflicting boolean flags
+    if offsets and text_only:
+        console.print("[red]Error: Cannot specify both --offsets and --text-only[/red]")
+        raise typer.Exit(1)
+    
+    # Override format with boolean flags if specified
+    if offsets:
+        format = "with_offsets"
+    elif text_only:
+        format = "text_only"
 
     # Validate input sources
     input_sources = [input_text, url, file]
@@ -1122,15 +1144,6 @@ def phrasal(
         text = input_text
         console.print(f"[blue]Processing provided text ({len(text)} characters)[/blue]")
 
-    # Create request
-    request = ProcessTextRequest(
-        text=text,
-        text_url=url,
-        chunk_size=chunk_size,
-        response_format=ResponseFormat(format),
-        spacy_model=spacy_model,
-    )
-
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
@@ -1149,7 +1162,14 @@ def phrasal(
 
             task = progress.add_task("Processing text...", total=None)
 
-            for response in client.process_text(request):
+            # Use function-based interface with boolean flags
+            for response in client.process_text(
+                text=text,
+                text_url=url,
+                chunk_size=chunk_size,
+                response_format=format,
+                spacy_model=spacy_model
+            ):
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
                         task,
