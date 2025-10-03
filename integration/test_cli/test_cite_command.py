@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 
 import pytest
 
-pytestmark = pytest.mark.cite
+pytestmark = [pytest.mark.cite, pytest.mark.cli]
 
 
 def create_test_jsonl_file(chunks: List[Dict[str, Any]]) -> Path:
