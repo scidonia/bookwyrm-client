@@ -428,7 +428,8 @@ class BookWyrmClient:
                     text_only=True
                 ):
                     if isinstance(response, (TextResult, TextSpanResult)):
-                        f.write(response.model_dump_json() + "\n")
+
+
             ```
         """
         if text is None and text_url is None:
