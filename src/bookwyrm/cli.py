@@ -1047,7 +1047,7 @@ def phrasal(
                 f"[blue]Loaded text from {file} ({len(text)} characters)[/blue]"
             )
         except Exception as e:
-            console.print(f"[red]Error reading file {file}: {e}[/red]")
+            error_console.print(f"[red]Error reading file {file}: {e}[/red]")
             raise typer.Exit(1)
     elif url:
         text = None  # Will be handled by the API
@@ -1300,7 +1300,7 @@ def classify(
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) > 1:
-        console.print(
+        error_console.print(
             "[red]Error: Only one of --url or --file can be provided[/red]"
         )
         raise typer.Exit(1)
@@ -1352,7 +1352,7 @@ def classify(
                             f"[dim]Using filename hint from URL: {effective_filename}[/dim]"
                         )
         except Exception as e:
-            console.print(f"[red]Error fetching URL {url}: {e}[/red]")
+            error_console.print(f"[red]Error fetching URL {url}: {e}[/red]")
             raise typer.Exit(1)
     else:
         # Read from stdin
@@ -1362,7 +1362,7 @@ def classify(
             
             stdin_content = sys.stdin.read()
             if not stdin_content.strip():
-                console.print("[red]Error: No content provided via stdin[/red]")
+                error_console.print("[red]Error: No content provided via stdin[/red]")
                 raise typer.Exit(1)
                 
             # Encode stdin content as base64
@@ -1372,7 +1372,7 @@ def classify(
             # Use filename hint or default
             effective_filename = filename or "stdin_content"
         except Exception as e:
-            console.print(f"[red]Error reading from stdin: {e}[/red]")
+            error_console.print(f"[red]Error reading from stdin: {e}[/red]")
             raise typer.Exit(1)
 
     # Create request
