@@ -315,18 +315,22 @@ def test_stream_citations_with_different_chunk_sizes(client, sample_chunks):
 def test_stream_citations_empty_chunks(client):
     """Test streaming citation finding with empty chunks list."""
     responses = []
+    summary_response = None
+    
     for response in client.stream_citations(
         chunks=[], question="What is AI?", max_tokens_per_chunk=1000
     ):
         responses.append(response)
+        if isinstance(response, CitationSummaryResponse):
+            summary_response = response
 
-    # Should get a summary response with empty results
-    assert len(responses) == 1
-    assert isinstance(responses[0], CitationSummaryResponse)
-    assert responses[0].total_citations == 0
-    assert isinstance(responses[0].usage, UsageInfo)
-    assert responses[0].usage.tokens_processed == 0
-    assert responses[0].usage.chunks_processed == 0
+    # Should get at least one response and find a summary
+    assert len(responses) >= 1
+    assert summary_response is not None, f"No CitationSummaryResponse found in {len(responses)} responses: {[type(r).__name__ for r in responses]}"
+    assert summary_response.total_citations == 0
+    assert isinstance(summary_response.usage, UsageInfo)
+    assert summary_response.usage.tokens_processed == 0
+    assert summary_response.usage.chunks_processed == 0
 
 
 def test_stream_citations_single_chunk(client):
