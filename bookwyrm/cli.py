@@ -1202,10 +1202,11 @@ def phrasal(
 
             for i, phrase in enumerate(phrases[:10]):  # Show first 10
                 row = [str(i + 1)]
-                if format == "with_offsets" and phrase.start_char is not None:
-                    row.append(f"{phrase.start_char}-{phrase.end_char}")
-                elif format == "with_offsets":
-                    row.append("N/A")
+                if format == "with_offsets":
+                    if isinstance(phrase, TextChunkResult):
+                        row.append(f"{phrase.start_char}-{phrase.end_char}")
+                    else:
+                        row.append("N/A")
 
                 text_preview = (
                     phrase.text[:80] + "..." if len(phrase.text) > 80 else phrase.text
