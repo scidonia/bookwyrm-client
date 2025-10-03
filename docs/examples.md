@@ -7,9 +7,9 @@ This page contains practical examples of using the BookWyrm client library.
 ### Extract Phrases from Text
 
 ```python
-from typing import List
+from typing import List, Union
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import ProcessTextRequest, ResponseFormat, PhraseResult, PhraseProgressUpdate
+from bookwyrm.models import ProcessTextRequest, ResponseFormat, Phrase, TextChunkResult, PhraseProgressUpdate
 
 # Create client
 client: BookWyrmClient = BookWyrmClient()
@@ -25,21 +25,21 @@ request: ProcessTextRequest = ProcessTextRequest(
     spacy_model="en_core_web_sm"
 )
 
-phrases: List[PhraseResult] = []
+phrases: List[Union[Phrase, TextChunkResult]] = []
 for response in client.process_text(request):
-    if isinstance(response, PhraseResult):
+    if isinstance(response, TextChunkResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
-        if response.start_char is not None:
-            print(f"Position: {response.start_char}-{response.end_char}")
+        print(f"Position: {response.start_char}-{response.end_char}")
+    elif isinstance(response, Phrase):
+        phrases.append(response)
+        print(f"Phrase: {response.text}")
     elif isinstance(response, PhraseProgressUpdate):
         print(f"Progress: {response.message}")
 
-# phrases is now List[PhraseResult] where each PhraseResult has:
-# - type: Literal["phrase"] 
-# - text: str
-# - start_char: Optional[int]
-# - end_char: Optional[int]
+# phrases is now List[Union[Phrase, TextChunkResult]] where:
+# - TextChunkResult has: type, text, start_char, end_char (when WITH_OFFSETS)
+# - Phrase has: type, text (when TEXT_ONLY)
 ```
 
 ### Create Text Chunks
@@ -56,18 +56,16 @@ request: ProcessTextRequest = ProcessTextRequest(
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
-chunks: List[PhraseResult] = []
+chunks: List[Union[Phrase, TextChunkResult]] = []
 for response in client.process_text(request):
-    if isinstance(response, PhraseResult):
+    if isinstance(response, (Phrase, TextChunkResult)):
         chunks.append(response)
 
 print(f"Created {len(chunks)} chunks")
 
-# chunks is now List[PhraseResult] where each chunk has:
-# - type: Literal["phrase"]
-# - text: str (the chunk content)
-# - start_char: Optional[int] (position in original text)
-# - end_char: Optional[int] (position in original text)
+# chunks is now List[Union[Phrase, TextChunkResult]] where:
+# - TextChunkResult has: type, text, start_char, end_char (when WITH_OFFSETS)
+# - Phrase has: type, text (when TEXT_ONLY)
 ```
 
 ### Process Text from URL
@@ -85,7 +83,7 @@ request: ProcessTextRequest = ProcessTextRequest(
 with open("alice_phrases.jsonl", "w") as f:
     f: TextIO
     for response in client.process_text(request):
-        if isinstance(response, PhraseResult):
+        if isinstance(response, (Phrase, TextChunkResult)):
             f.write(response.model_dump_json() + "\n")
 ```
 

@@ -30,7 +30,8 @@ from .models import (
     ProcessTextRequest,
     StreamingPhrasalResponse,
     PhraseProgressUpdate,
-    PhraseResult,
+    Phrase,
+    TextChunkResult,
     ClassifyRequest,
     ClassifyResponse,
     PDFExtractRequest,
@@ -445,7 +446,11 @@ class BookWyrmClient:
                         if response_type == "progress":
                             yield PhraseProgressUpdate.model_validate(data)
                         elif response_type == "phrase":
-                            yield PhraseResult.model_validate(data)
+                            # Determine if this is a Phrase or TextChunkResult based on presence of position data
+                            if data.get("start_char") is not None and data.get("end_char") is not None:
+                                yield TextChunkResult.model_validate(data)
+                            else:
+                                yield Phrase.model_validate(data)
                         else:
                             # Unknown response type, skip
                             continue

@@ -103,7 +103,11 @@
     options:
       show_source: true
 
-::: bookwyrm.PhraseResult
+::: bookwyrm.Phrase
+    options:
+      show_source: true
+
+::: bookwyrm.TextChunkResult
     options:
       show_source: true
 

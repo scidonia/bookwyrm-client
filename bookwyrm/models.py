@@ -329,27 +329,30 @@ class PhraseProgressUpdate(BaseModel):
     message: str = Field(..., description="Human-readable progress message")
 
 
-class PhraseResult(TextChunk):
-    """Result containing a phrase or chunk.
+class Phrase(BaseModel):
+    """A simple phrase without position information.
     
-    Individual phrase or chunk found during phrasal processing.
-    Inherits from TextChunk so it can be used anywhere TextChunk is expected.
+    Used when ResponseFormat.TEXT_ONLY is specified in phrasal processing.
     """
 
     type: Literal["phrase"] = Field("phrase", description="Message type identifier")
-    start_char: Optional[int] = Field(None, description="Starting character position (if with_offsets format)")
-    end_char: Optional[int] = Field(None, description="Ending character position (if with_offsets format)")
+    text: str = Field(..., description="The phrase text content")
 
-    @model_validator(mode="after")
-    def validate_optional_positions(self):
-        """Allow optional position fields for PhraseResult."""
-        # Override parent validation to allow None values
-        return self
+
+class TextChunkResult(TextChunk):
+    """A text chunk with position information.
+    
+    Used when ResponseFormat.WITH_OFFSETS is specified in phrasal processing.
+    Inherits from TextChunk to include position data.
+    """
+
+    type: Literal["phrase"] = Field("phrase", description="Message type identifier")
 
 
 StreamingPhrasalResponse = Union[
     PhraseProgressUpdate,
-    PhraseResult,
+    Phrase,
+    TextChunkResult,
 ]
 
 
