@@ -56,7 +56,7 @@ chunks: List[TextSpanResult] = []
 for response in client.process_text(
     text=text,
     chunk_size=125,  # Bounded by 125 characters per chunk (smaller for demo)
-    with_offsets=True  # boolean flag for WITH_OFFSETS
+    offsets=True  # boolean flag for WITH_OFFSETS
 ):
     if isinstance(response, TextSpanResult):
         chunks.append(response)

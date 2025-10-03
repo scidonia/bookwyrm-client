@@ -343,9 +343,7 @@ class BookWyrmClient:
         spacy_model: str = "en_core_web_sm",
         # Boolean flags for response format
         offsets: Optional[bool] = None,
-        with_offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
-        text_format: Optional[bool] = None,
     ) -> Iterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with streaming results.
 
@@ -360,9 +358,7 @@ class BookWyrmClient:
             response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
             spacy_model: SpaCy model to use for processing
             offsets: Set to True for WITH_OFFSETS format (boolean flag)
-            with_offsets: Set to True for WITH_OFFSETS format (boolean flag)
             text_only: Set to True for TEXT_ONLY format (boolean flag)
-            text_format: Set to True for TEXT_ONLY format (boolean flag)
 
         Yields:
             StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
@@ -401,7 +397,7 @@ class BookWyrmClient:
             for response in client.process_text(
                 text=long_text,
                 chunk_size=1000,  # ~1000 characters per chunk
-                with_offsets=True  # boolean flag for WITH_OFFSETS
+                offsets=True  # boolean flag for WITH_OFFSETS
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):
                     chunks.append(response)
@@ -427,16 +423,16 @@ class BookWyrmClient:
             raise ValueError("Either text or text_url is required")
         
         # Handle boolean flags for response format
-        boolean_flags = [offsets, with_offsets, text_only, text_format]
+        boolean_flags = [offsets, text_only]
         true_flags = [flag for flag in boolean_flags if flag is True]
         
         if len(true_flags) > 1:
             raise ValueError("Only one response format flag can be True")
         
         if len(true_flags) == 1:
-            if offsets or with_offsets:
+            if offsets:
                 response_format = ResponseFormat.WITH_OFFSETS
-            elif text_only or text_format:
+            elif text_only:
                 response_format = ResponseFormat.TEXT_ONLY
         
         # Convert string to enum if needed
