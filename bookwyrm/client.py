@@ -172,13 +172,17 @@ class BookWyrmClient:
             Using text chunks directly:
 
             ```python
+            from bookwyrm import BookWyrmClient
             from bookwyrm.models import TextSpan
 
+            # Create some example chunks
             chunks = [
                 TextSpan(text="The sky is blue.", start_char=0, end_char=16),
-                TextSpan(text="Water is wet.", start_char=17, end_char=30)
+                TextSpan(text="Water is wet.", start_char=17, end_char=30),
+                TextSpan(text="Grass is green.", start_char=31, end_char=46)
             ]
 
+            client = BookWyrmClient(api_key="your-api-key")
             response = client.get_citations(
                 chunks=chunks,
                 question="Why is the sky blue?"
@@ -522,6 +526,17 @@ class BookWyrmClient:
             Basic streaming:
 
             ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextSpan, CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse
+
+            # Create some example chunks
+            chunks = [
+                TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
+                TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
+                TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
+            ]
+
+            client = BookWyrmClient(api_key="your-api-key")
             citations = []
             for response in client.stream_citations(
                 chunks=chunks,

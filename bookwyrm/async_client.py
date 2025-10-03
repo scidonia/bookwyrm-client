@@ -179,15 +179,19 @@ class AsyncBookWyrmClient:
             Basic async citation finding:
             
             ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
             from bookwyrm.models import TextSpan
             
             async def find_citations():
+                # Create some example chunks
                 chunks = [
-                    TextSpan(text="The sky is blue.", start_char=0, end_char=16),
-                    TextSpan(text="Water is wet.", start_char=17, end_char=30)
+                    TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
+                    TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
+                    TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
                 ]
                 
-                async with AsyncBookWyrmClient() as client:
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     response = await client.get_citations(
                         chunks=chunks,
                         question="Why is the sky blue?"
@@ -204,17 +208,28 @@ class AsyncBookWyrmClient:
             Concurrent citation requests:
             
             ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import TextSpan
+            
             async def concurrent_citations():
-                async with AsyncBookWyrmClient() as client:
+                # Create example chunks for different topics
+                chunks1 = [TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42)]
+                chunks2 = [TextSpan(text="Water boils at 100°C at sea level.", start_char=0, end_char=34)]
+                chunks3 = [TextSpan(text="Photosynthesis converts CO2 to oxygen.", start_char=0, end_char=38)]
+                
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     # Process all requests concurrently
                     responses = await asyncio.gather(
-                        client.get_citations(chunks=chunks1, question="Question 1"),
-                        client.get_citations(chunks=chunks2, question="Question 2"),
-                        client.get_citations(chunks=chunks3, question="Question 3")
+                        client.get_citations(chunks=chunks1, question="Why is the sky blue?"),
+                        client.get_citations(chunks=chunks2, question="At what temperature does water boil?"),
+                        client.get_citations(chunks=chunks3, question="What does photosynthesis produce?")
                     )
                     
                     for i, response in enumerate(responses):
                         print(f"Request {i+1}: {response.total_citations} citations")
+            
+            asyncio.run(concurrent_citations())
             ```
         """
         request = CitationRequest(
@@ -551,8 +566,19 @@ class AsyncBookWyrmClient:
             Basic async streaming with function arguments:
             
             ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import TextSpan, CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse
+            
             async def stream_citations_example():
-                async with AsyncBookWyrmClient() as client:
+                # Create some example chunks
+                chunks = [
+                    TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
+                    TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
+                    TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
+                ]
+                
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     citations = []
                     async for response in client.stream_citations(
                         chunks=chunks,
