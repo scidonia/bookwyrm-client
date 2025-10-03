@@ -22,18 +22,28 @@ from bookwyrm import BookWyrmClient, AsyncBookWyrmClient
 ### Basic usage
 
 ```python
+from bookwyrm import BookWyrmClient, AsyncBookWyrmClient
+from bookwyrm.models import TextSpan
+
+# Create some example chunks
+chunks = [
+    TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
+    TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
+    TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
+]
+
 # Synchronous
 client = BookWyrmClient(api_key="your-key")
 response = client.get_citations(
     chunks=chunks,
-    question="Your question here?"
+    question="Why is the sky blue?"
 )
 
 # Asynchronous
 async with AsyncBookWyrmClient(api_key="your-key") as client:
     response = await client.get_citations(
         chunks=chunks,
-        question="Your question here?"
+        question="Why is the sky blue?"
     )
 ```
 
