@@ -341,6 +341,14 @@ class ResponseFormat(str, Enum):
     WITH_OFFSETS = "with_offsets"
 
 
+class ContentEncoding(str, Enum):
+    """Content encoding format for file classification."""
+
+    RAW = "raw"
+    UTF8 = "utf-8"
+    BASE64 = "base64"
+
+
 class ProcessTextRequest(BaseModel):
     """Request model for phrasal text processing.
 
@@ -413,10 +421,10 @@ StreamingPhrasalResponse = Union[
 class ClassifyRequest(BaseModel):
     """Request model for file classification."""
 
-    content: Optional[str] = None  # Base64-encoded file content
+    content: Optional[str] = None  # Text or encoded file content
     content_bytes: Optional[bytes] = None  # Raw file bytes
     filename: Optional[str] = None  # Optional hint for classification
-    content_encoding: str = "base64"  # Always base64 for multipart uploads
+    content_encoding: ContentEncoding = ContentEncoding.RAW  # Default to raw bytes
 
     @model_validator(mode="after")
     def validate_input_source(self):
@@ -428,9 +436,6 @@ class ClassifyRequest(BaseModel):
             raise ValueError(
                 "Exactly one of 'content' or 'content_bytes' must be provided"
             )
-
-        if self.content_encoding != "base64":
-            raise ValueError("Content must be base64-encoded")
 
         return self
 
