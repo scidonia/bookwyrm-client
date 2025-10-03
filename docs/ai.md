@@ -277,9 +277,6 @@ show_root_heading: true
 options:
 show_root_heading: true
 
-::: bookwyrm.BookWyrmClient.get_citations
-options:
-show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.summarize
 options:
@@ -296,9 +293,6 @@ show_root_heading: true
 options:
 show_root_heading: true
 
-::: bookwyrm.AsyncBookWyrmClient.get_citations
-options:
-show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.summarize
 options:
