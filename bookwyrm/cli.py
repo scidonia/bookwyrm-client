@@ -249,7 +249,8 @@ bookwyrm classify document.pdf -o classification.json
 ```
 
 For detailed help on any command, use: `bookwyrm COMMAND --help`
-"""
+""",
+    rich_markup_mode="markdown"
 )
 
 def version_callback(value: bool):
