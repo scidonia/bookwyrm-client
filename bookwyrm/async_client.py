@@ -407,10 +407,11 @@ class AsyncBookWyrmClient:
             from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult, PhraseProgressUpdate
             
             async def process_text_example():
+                text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence."
                 phrases = []
                 async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     async for response in client.process_text(
-                        text="Your text here",
+                        text=text,
                         offsets=True  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
                     ):
                         if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result

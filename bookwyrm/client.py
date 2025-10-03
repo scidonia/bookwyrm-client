@@ -375,10 +375,7 @@ class BookWyrmClient:
             from bookwyrm import BookWyrmClient
             from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult
 
-            text = '''
-            Natural language processing (NLP) is a subfield of linguistics, computer science,
-            and artificial intelligence concerned with the interactions between computers and human language.
-            '''
+            text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language."
 
             client = BookWyrmClient(api_key="your-api-key")
             phrases = []
