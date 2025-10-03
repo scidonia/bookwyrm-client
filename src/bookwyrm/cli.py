@@ -81,7 +81,9 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     chunks.append(chunk)
                 except (json.JSONDecodeError, KeyError) as e:
-                    error_console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
+                    error_console.print(
+                        f"[red]Error parsing line {line_num}: {e}[/red]"
+                    )
                     sys.exit(1)
     except FileNotFoundError:
         error_console.print(f"[red]File not found: {file_path}[/red]")
@@ -110,7 +112,9 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     phrases.append(phrase)
                 except (json.JSONDecodeError, KeyError) as e:
-                    error_console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
+                    error_console.print(
+                        f"[red]Error parsing line {line_num}: {e}[/red]"
+                    )
                     sys.exit(1)
     except FileNotFoundError:
         error_console.print(f"[red]File not found: {file_path}[/red]")
@@ -458,9 +462,7 @@ def cite(
         if url:
             console.print(f"[dim]Source: {url}[/dim]")
         if output:
-            console.print(
-                f"[dim]Streaming citations to {output} (JSONL format)[/dim]"
-            )
+            console.print(f"[dim]Streaming citations to {output} (JSONL format)[/dim]")
 
         citations = []
         with Progress(
@@ -475,7 +477,9 @@ def cite(
             total_chunks = len(chunks) if not url else None
             task = progress.add_task("Processing chunks...", total=total_chunks)
 
-            for response in client.stream_citations(**request.model_dump(exclude_none=True)):
+            for response in client.stream_citations(
+                **request.model_dump(exclude_none=True)
+            ):
                 if isinstance(response, CitationProgressUpdate):
                     # For URL sources, set total when we first get it
                     if url and progress.tasks[task].total is None:
@@ -778,7 +782,9 @@ def summarize(
 
             level_tasks = {}  # Track tasks for each level
 
-            for response in client.stream_summarize(**request.model_dump(exclude_none=True)):
+            for response in client.stream_summarize(
+                **request.model_dump(exclude_none=True)
+            ):
                 if isinstance(response, SummarizeProgressUpdate):
                     # Create or update task for this level
                     task_id = f"level_{response.current_level}"
@@ -846,9 +852,7 @@ def summarize(
         # Show intermediate summaries if debug mode
         if include_debug and final_result.intermediate_summaries:
             console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
-            for level, summaries in enumerate(
-                final_result.intermediate_summaries, 1
-            ):
+            for level, summaries in enumerate(final_result.intermediate_summaries, 1):
                 console.print(
                     f"\n[blue]Level {level} ({len(summaries)} summaries):[/blue]"
                 )
@@ -894,15 +898,11 @@ def summarize(
                     "max_tokens": max_tokens,
                     # "model_used": model_name if model_name else None,
                     "intermediate_summaries": (
-                        final_result.intermediate_summaries
-                        if include_debug
-                        else None
+                        final_result.intermediate_summaries if include_debug else None
                     ),
                 }
 
-                output.write_text(
-                    json.dumps(output_data, indent=2), encoding="utf-8"
-                )
+                output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
                 console.print(f"\n[green]Summary saved to: {output}[/green]")
             except Exception as e:
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
@@ -1626,7 +1626,9 @@ def extract_pdf(
                 "Processing PDF...", total=100
             )  # Start with 100 as placeholder
 
-            for response in client.stream_extract_pdf(**request.model_dump(exclude_none=True)):
+            for response in client.stream_extract_pdf(
+                **request.model_dump(exclude_none=True)
+            ):
                 if isinstance(response, PDFStreamMetadata):
                     # Set up progress bar with known total
                     progress.update(
@@ -1759,12 +1761,8 @@ def extract_pdf(
                     },
                 }
 
-                output.write_text(
-                    json.dumps(output_data, indent=2), encoding="utf-8"
-                )
-                console.print(
-                    f"\n[green]Extraction results saved to: {output}[/green]"
-                )
+                output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+                console.print(f"\n[green]Extraction results saved to: {output}[/green]")
             except Exception as e:
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 
