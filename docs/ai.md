@@ -11,42 +11,48 @@ This page provides the essential models and function signatures needed for AI ag
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.Citation
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.CitationResponse
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.PDFExtractResponse
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.ClassifyResponse
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.SummaryResponse
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ### Streaming Response Models
 
@@ -55,14 +61,16 @@ This page provides the essential models and function signatures needed for AI ag
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ::: bookwyrm.models.TextSpanResult
     options:
       show_root_heading: true
       show_source: false
       members_order: source
-      show_bases: false
+      show_bases: true
+      inherited_members: true
 
 ## Synchronous Client Methods
 
