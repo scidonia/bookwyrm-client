@@ -306,16 +306,16 @@ def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
 def validate_api_key(api_key: Optional[str]) -> None:
     """Validate that an API key is provided and inform user if missing."""
     if not api_key:
-        console.print("[red]Error: No API key provided![/red]")
+        console.print("[red]Error: No API key provided![/red]", file=sys.stderr)
         console.print(
-            "[yellow]Please provide an API key using one of these methods:[/yellow]"
+            "[yellow]Please provide an API key using one of these methods:[/yellow]", file=sys.stderr
         )
         console.print(
-            "  1. Set environment variable: [cyan]export BOOKWYRM_API_KEY='your-api-key'[/cyan]"
+            "  1. Set environment variable: [cyan]export BOOKWYRM_API_KEY='your-api-key'[/cyan]", file=sys.stderr
         )
-        console.print("  2. Use CLI option: [cyan]--api-key your-api-key[/cyan]")
+        console.print("  2. Use CLI option: [cyan]--api-key your-api-key[/cyan]", file=sys.stderr)
         console.print(
-            "\n[dim]You can get an API key from https://api.bookwyrm.ai[/dim]"
+            "\n[dim]You can get an API key from https://api.bookwyrm.ai[/dim]", file=sys.stderr
         )
         raise typer.Exit(1)
 
