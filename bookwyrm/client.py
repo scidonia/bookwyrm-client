@@ -493,11 +493,19 @@ class BookWyrmClient:
                             case "text_span":
                                 yield TextSpanResult.model_validate(data)
                             case _:
-                                # Unknown response type, skip
-                                continue
-                    except json.JSONDecodeError:
-                        # Skip malformed JSON lines
-                        continue
+                                # Unknown response type - create a generic response object for debugging
+                                from types import SimpleNamespace
+                                unknown_response = SimpleNamespace(**data)
+                                unknown_response.type = response_type
+                                yield unknown_response
+                    except json.JSONDecodeError as e:
+                        # Create a debug object for malformed JSON
+                        from types import SimpleNamespace
+                        error_response = SimpleNamespace()
+                        error_response.type = "json_decode_error"
+                        error_response.raw_line = line
+                        error_response.error = str(e)
+                        yield error_response
 
         except requests.HTTPError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)

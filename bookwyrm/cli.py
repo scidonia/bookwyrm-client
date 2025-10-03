@@ -1224,9 +1224,12 @@ def phrasal(
                                 f"[red]Error writing to output file: {e}[/red]"
                             )
                 else:
-                    # Unknown response types
-                    if state.verbose:
+                    # Unknown response types - always show these in debug mode
+                    if state.debug or state.verbose:
                         console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
+                        # Also show the raw data for unknown types
+                        if hasattr(response, 'model_dump'):
+                            console.print(f"[yellow]Raw data: {response.model_dump()}[/yellow]")
 
             progress.update(task, description="Complete!")
 
