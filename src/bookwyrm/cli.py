@@ -376,6 +376,7 @@ def cite(
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
 ):
+    console.print(f"CitationSummaryResponse = {CitationSummaryResponse!r}")
     """Find citations for a question in text chunks.
 
     This command searches through text chunks to find relevant citations that answer
