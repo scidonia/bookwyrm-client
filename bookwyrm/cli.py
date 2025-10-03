@@ -1187,6 +1187,14 @@ def phrasal(
                     console.print(f"[dim]Attributes: {[attr for attr in dir(response) if not attr.startswith('_')]}[/dim]")
                     console.print("[dim]" + "="*50 + "[/dim]")
 
+                # Handle raw line debug responses
+                if hasattr(response, 'type') and response.type == "raw_line_debug":
+                    if state.debug:
+                        console.print(f"[cyan]RAW LINE DEBUG:[/cyan] length={response.line_length}")
+                        console.print(f"[cyan]Raw line:[/cyan] {repr(response.raw_line)}")
+                        console.print(f"[cyan]Stripped:[/cyan] {repr(response.line_stripped)}")
+                    continue  # Don't process raw debug lines further
+
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
                         task,

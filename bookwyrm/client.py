@@ -480,6 +480,15 @@ class BookWyrmClient:
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
+                # Always yield raw line info for debugging
+                from types import SimpleNamespace
+                raw_line_response = SimpleNamespace()
+                raw_line_response.type = "raw_line_debug"
+                raw_line_response.raw_line = line
+                raw_line_response.line_stripped = line.strip() if line else ""
+                raw_line_response.line_length = len(line) if line else 0
+                yield raw_line_response
+                
                 if line and line.strip():
                     try:
                         data: Dict[str, Any] = json.loads(line)
