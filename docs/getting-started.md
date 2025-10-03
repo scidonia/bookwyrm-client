@@ -30,9 +30,9 @@ client = BookWyrmClient(api_key="your-api-key")
 
 ## Basic Usage
 
-### Step 1: Extract Content from PDFs
+### Step 1: Classify PDF Files
 
-Start by extracting structured content from PDF documents:
+Start by classifying your PDF documents to understand their content type:
 
 ```python
 from bookwyrm import BookWyrmClient
@@ -40,10 +40,27 @@ from bookwyrm import BookWyrmClient
 # Initialize client
 client = BookWyrmClient(api_key="your-api-key")
 
-# Extract content from a PDF file
+# Classify a PDF file
 with open("research_paper.pdf", "rb") as f:
     pdf_bytes = f.read()
 
+response = client.classify(
+    content_bytes=pdf_bytes,
+    filename="research_paper.pdf"
+)
+
+print(f"File type: {response.classification.file_type}")
+print(f"Content type: {response.classification.content_type}")
+print(f"Confidence: {response.classification.confidence}")
+print(f"Description: {response.classification.description}")
+```
+
+### Step 2: Extract Content from PDFs
+
+Extract structured content from PDF documents:
+
+```python
+# Extract content from the same PDF file
 response = client.extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="research_paper.pdf"
@@ -59,7 +76,7 @@ for page in response.pages:
 print(f"Extracted {len(extracted_text)} characters from PDF")
 ```
 
-### Step 2: Process Text into Chunks
+### Step 3: Process Text into Chunks
 
 Process the extracted text (or any text) into meaningful chunks using `stream_process_text`:
 
@@ -91,7 +108,7 @@ for response in client.stream_process_text(
 print(f"Created {len(chunks)} chunks")
 ```
 
-### Step 3: Find Citations
+### Step 4: Find Citations
 
 Use the generated chunks to find citations that answer specific questions:
 
@@ -108,7 +125,7 @@ for citation in response.citations:
     print(f"Reasoning: {citation.reasoning}")
 ```
 
-### Step 4: Text Summarization
+### Step 5: Text Summarization
 
 Summarize your processed chunks or phrases:
 
@@ -131,7 +148,7 @@ print(response.summary)
 # )
 ```
 
-### Step 5: Streaming Operations
+### Step 6: Streaming Operations
 
 Use streaming for real-time progress updates on any operation:
 
@@ -178,7 +195,10 @@ bookwyrm cite "Why is the sky blue?" data/chunks.jsonl
 # Summarize text
 bookwyrm summarize data/phrases.jsonl --output summary.json
 
-# Extract PDF content first
+# Classify PDF files first
+bookwyrm classify document.pdf
+
+# Extract PDF content
 bookwyrm extract-pdf document.pdf --output extracted.json
 
 # Process text into phrases/chunks
