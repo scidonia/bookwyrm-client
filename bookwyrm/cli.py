@@ -1086,7 +1086,12 @@ def phrasal(
     
     JSONL file with one phrase/chunk per line:
     ```json
-    {"type": "phrase", "text": "phrase text", "start_char": 0, "end_char": 12}
+    {"type": "text_span", "text": "phrase text", "start_char": 0, "end_char": 12}
+    ```
+    
+    Or for text-only format:
+    ```json
+    {"type": "text", "text": "phrase text"}
     ```
     """
 
