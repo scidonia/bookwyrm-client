@@ -25,6 +25,9 @@ from bookwyrm.models import (
 )
 from typing import List, Optional, AsyncIterator, Union
 import asyncio
+
+# Note: AsyncBookWyrmClient only supports function-based interface
+# Legacy request models (CitationRequest, etc.) are not supported in async client
 ```
 
 ## Common AI Integration Patterns

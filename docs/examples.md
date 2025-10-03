@@ -474,6 +474,8 @@ asyncio.run(main())
 # - classify() -> ClassifyResponse
 # - extract_pdf() -> PDFExtractResponse
 # - stream_extract_pdf() -> AsyncIterator[StreamingPDFResponse]
+#
+# Note: Async client only supports function-based interface, not legacy request models
 ```
 
 ## Error Handling
