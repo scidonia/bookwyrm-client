@@ -30,7 +30,7 @@ except ImportError:
 from .client import BookWyrmClient, BookWyrmAPIError
 from .models import (
     CitationRequest,
-    TextChunk,
+    TextSpan,
     CitationProgressUpdate,
     CitationStreamResponse,
     CitationSummaryResponse,
@@ -61,7 +61,7 @@ from .models import (
 console = Console()
 
 
-def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
+def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load text chunks from a JSONL file."""
     chunks = []
     try:
@@ -71,7 +71,7 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
                     continue
                 try:
                     data = json.loads(line)
-                    chunk = TextChunk(
+                    chunk = TextSpan(
                         text=data["text"],
                         start_char=data.get("start_char", 0),
                         end_char=data.get("end_char", len(data["text"])),
@@ -90,7 +90,7 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
     return chunks
 
 
-def load_phrases_from_jsonl(file_path: Path) -> List[TextChunk]:
+def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load phrases from a JSONL file."""
     phrases = []
     try:
@@ -100,7 +100,7 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextChunk]:
                     continue
                 try:
                     data = json.loads(line)
-                    phrase = TextChunk(
+                    phrase = TextSpan(
                         text=data["text"],
                         start_char=data.get("start_char", 0),
                         end_char=data.get("end_char", len(data["text"])),
