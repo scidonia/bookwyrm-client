@@ -340,7 +340,6 @@ class BookWyrmClient:
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
         response_format: Union[ResponseFormat, Literal["with_offsets", "offsets", "text_only", "text"]] = ResponseFormat.WITH_OFFSETS,
-        spacy_model: str = "en_core_web_sm",
         # Boolean flags for response format
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
@@ -356,7 +355,6 @@ class BookWyrmClient:
             text_url: URL to fetch text from
             chunk_size: Optional chunk size for fixed-size chunking
             response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
-            spacy_model: SpaCy model to use for processing
             offsets: Set to True for WITH_OFFSETS format (boolean flag)
             text_only: Set to True for TEXT_ONLY format (boolean flag)
 
@@ -381,7 +379,6 @@ class BookWyrmClient:
             for response in client.process_text(
                 text=text,
                 offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
-                spacy_model="en_core_web_sm"
             ):
                 if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
                     phrases.append(response)
@@ -449,7 +446,6 @@ class BookWyrmClient:
             text_url=text_url,
             chunk_size=chunk_size,
             response_format=response_format,
-            spacy_model=spacy_model,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

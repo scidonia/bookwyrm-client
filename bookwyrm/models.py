@@ -359,7 +359,6 @@ class ProcessTextRequest(BaseModel):
     text_url: Optional[str] = None
     chunk_size: Optional[int] = None
     response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS
-    spacy_model: str = "en_core_web_sm"
 
     @model_validator(mode="after")
     def validate_input_source(self):

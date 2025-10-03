@@ -1022,9 +1022,6 @@ def phrasal(
     # Boolean flags for response format
     offsets: Annotated[bool, typer.Option("--offsets", help="Include position offsets (shorthand for with_offsets)")] = False,
     text_only: Annotated[bool, typer.Option("--text-only", help="Return text only without position data")] = False,
-    spacy_model: Annotated[
-        str, typer.Option(help="SpaCy model to use (default: \"en_core_web_sm\")")
-    ] = "en_core_web_sm",
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1082,8 +1079,6 @@ def phrasal(
     # Traditional format option still works
     bookwyrm phrasal -f text.txt --format text_only --output simple_phrases.jsonl
     
-    # Different SpaCy model
-    bookwyrm phrasal -f text.txt --spacy-model en_core_web_lg --output phrases.jsonl
     ```
     
     ## Output Format
@@ -1167,8 +1162,7 @@ def phrasal(
                 text=text,
                 text_url=url,
                 chunk_size=chunk_size,
-                response_format=format,
-                spacy_model=spacy_model
+                response_format=format
             ):
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
