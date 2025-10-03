@@ -28,8 +28,8 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from .client import BookWyrmClient, BookWyrmAPIError
-from .models import (
+from bookwyrm.client import BookWyrmClient, BookWyrmAPIError
+from bookwyrm.models import (
     CitationRequest,
     TextSpan,
     CitationProgressUpdate,
