@@ -202,43 +202,6 @@ request: CitationRequest = CitationRequest(
 response: CitationResponse = client.get_citations(request)
 ```
 
-## Text Summarization
-
-### Basic Summarization
-
-```python
-from typing import TextIO
-from bookwyrm.models import SummarizeRequest, SummaryResponse
-
-# Load JSONL content
-with open("book_phrases.jsonl", "r") as f:
-    f: TextIO
-    content: str = f.read()
-
-request: SummarizeRequest = SummarizeRequest(
-    content=content,
-    max_tokens=5000,
-    debug=True  # Include intermediate summaries
-)
-
-response: SummaryResponse = client.summarize(request)
-
-print("Summary:")
-print(response.summary)
-print(f"\nUsed {response.levels_used} levels")
-print(f"Created {response.subsummary_count} subsummaries")
-
-# response is SummaryResponse with:
-# - type: Literal["summary"]
-# - summary: str (the final summary text)
-# - subsummary_count: int
-# - levels_used: int (hierarchical levels)
-# - total_tokens: int
-# - intermediate_summaries: Optional[List[List[str]]] (if debug=True)
-```
-
-
-
 ## PDF Extraction
 
 ### Extract Text from PDF
