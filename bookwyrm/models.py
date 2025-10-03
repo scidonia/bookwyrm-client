@@ -145,15 +145,6 @@ StreamingCitationResponse = Union[
 ]
 
 
-class Phrase(BaseModel):
-    """A phrase extracted from text with optional position information.
-    
-    Used in summarization and phrasal processing operations.
-    """
-
-    text: str = Field(..., description="The phrase text content")
-    start_char: Optional[int] = Field(None, description="Starting character position (optional)")
-    end_char: Optional[int] = Field(None, description="Ending character position (optional)")
 
 
 class SummarizeRequest(BaseModel):
@@ -161,7 +152,7 @@ class SummarizeRequest(BaseModel):
 
     content: Optional[str] = None
     url: Optional[str] = None
-    phrases: Optional[List[Phrase]] = None
+    phrases: Optional[List[TextChunk]] = None
     max_tokens: int = 10000  # Default max tokens for chunking
     debug: bool = False  # Include intermediate summaries in response
     # Pydantic model option for structured output (commented out)

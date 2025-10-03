@@ -36,7 +36,6 @@ from .models import (
     CitationSummaryResponse,
     CitationErrorResponse,
     SummarizeRequest,
-    Phrase,
     SummarizeProgressUpdate,
     SummaryResponse,
     SummarizeErrorResponse,
@@ -90,7 +89,7 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
     return chunks
 
 
-def load_phrases_from_jsonl(file_path: Path) -> List[Phrase]:
+def load_phrases_from_jsonl(file_path: Path) -> List[TextChunk]:
     """Load phrases from a JSONL file."""
     phrases = []
     try:
@@ -100,10 +99,10 @@ def load_phrases_from_jsonl(file_path: Path) -> List[Phrase]:
                     continue
                 try:
                     data = json.loads(line)
-                    phrase = Phrase(
+                    phrase = TextChunk(
                         text=data["text"],
-                        start_char=data.get("start_char"),
-                        end_char=data.get("end_char"),
+                        start_char=data.get("start_char", 0),
+                        end_char=data.get("end_char", len(data["text"])),
                     )
                     phrases.append(phrase)
                 except (json.JSONDecodeError, KeyError) as e:

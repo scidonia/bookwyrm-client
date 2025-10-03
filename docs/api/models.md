@@ -6,9 +6,6 @@
     options:
       show_source: true
 
-::: bookwyrm.Phrase
-    options:
-      show_source: true
 
 ::: bookwyrm.Citation
     options:

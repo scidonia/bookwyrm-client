@@ -164,69 +164,6 @@ print(f"\nUsed {response.levels_used} levels")
 print(f"Created {response.subsummary_count} subsummaries")
 ```
 
-### Structured Summarization with Pydantic Models
-
-```python
-from pydantic import BaseModel, Field
-from typing import Optional, List
-import json
-
-# Define your summary structure
-class BookSummary(BaseModel):
-    title: Optional[str] = Field(None, description="The book's title")
-    author: Optional[str] = Field(None, description="The book's author")
-    main_themes: Optional[List[str]] = Field(None, description="Key themes in the book")
-    plot_summary: Optional[str] = Field(None, description="Brief plot summary")
-    characters: Optional[List[str]] = Field(None, description="Main characters")
-
-# Create request with model schema
-request = SummarizeRequest(
-    content=content,
-    model_name="BookSummary",
-    model_schema_json=json.dumps(BookSummary.model_json_schema()),
-    max_tokens=8000
-)
-
-response = client.summarize(request)
-
-# Parse structured response
-structured_summary = json.loads(response.summary)
-book_summary = BookSummary.model_validate(structured_summary)
-
-print(f"Title: {book_summary.title}")
-print(f"Author: {book_summary.author}")
-print(f"Themes: {', '.join(book_summary.main_themes or [])}")
-```
-
-### Custom Prompts
-
-```python
-chunk_prompt = """
-Analyze this text and extract:
-- Key scientific concepts
-- Important discoveries mentioned
-- Notable researchers or scientists
-- Methodologies described
-"""
-
-summary_prompt = """
-Create a comprehensive scientific summary that includes:
-- Overview of main scientific concepts
-- Timeline of discoveries
-- Key researchers and their contributions
-- Methodological approaches
-- Significance and impact
-"""
-
-request = SummarizeRequest(
-    content=content,
-    chunk_prompt=chunk_prompt,
-    summary_of_summaries_prompt=summary_prompt,
-    max_tokens=10000
-)
-
-response = client.summarize(request)
-```
 
 
 ## PDF Extraction
