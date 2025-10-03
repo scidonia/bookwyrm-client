@@ -24,11 +24,17 @@ from bookwyrm import BookWyrmClient, AsyncBookWyrmClient
 ```python
 # Synchronous
 client = BookWyrmClient(api_key="your-key")
-response = client.get_citations(request)
+response = client.get_citations(
+    chunks=chunks,
+    question="Your question here?"
+)
 
 # Asynchronous
 async with AsyncBookWyrmClient(api_key="your-key") as client:
-    response = await client.get_citations(request)
+    response = await client.get_citations(
+        chunks=chunks,
+        question="Your question here?"
+    )
 ```
 
 ### Available methods
