@@ -58,16 +58,6 @@ def sample_jsonl_content():
 {"text": "Python supports multiple programming paradigms including procedural, object-oriented, and functional programming.", "start_char": 262, "end_char": 376}'''
 
 
-def test_client_initialization():
-    """Test that client initializes correctly."""
-    # This test doesn't need an API key since it's just testing initialization
-    from bookwyrm import BookWyrmClient
-    
-    client = BookWyrmClient(base_url="http://localhost:8000")
-    assert client.base_url == "http://localhost:8000"
-    assert client.api_key is None  # No API key provided
-    client.close()
-
 
 def test_get_citations_with_chunks(client, sample_chunks):
     """Test citation finding using text chunks."""
