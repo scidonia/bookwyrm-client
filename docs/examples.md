@@ -9,7 +9,7 @@ This page contains practical examples of using the BookWyrm client library.
 ```python
 from typing import List, Union
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import ProcessTextRequest, ResponseFormat, Phrase, TextChunkResult, PhraseProgressUpdate
+from bookwyrm.models import ProcessTextRequest, ResponseFormat, TextResult, TextSpanResult, PhraseProgressUpdate
 
 # Create client
 client: BookWyrmClient = BookWyrmClient()
@@ -25,21 +25,21 @@ request: ProcessTextRequest = ProcessTextRequest(
     spacy_model="en_core_web_sm"
 )
 
-phrases: List[Union[Phrase, TextChunkResult]] = []
+phrases: List[Union[TextResult, TextSpanResult]] = []
 for response in client.process_text(request):
-    if isinstance(response, TextChunkResult):
+    if isinstance(response, TextSpanResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
         print(f"Position: {response.start_char}-{response.end_char}")
-    elif isinstance(response, Phrase):
+    elif isinstance(response, TextResult):
         phrases.append(response)
         print(f"Phrase: {response.text}")
     elif isinstance(response, PhraseProgressUpdate):
         print(f"Progress: {response.message}")
 
-# phrases is now List[Union[Phrase, TextChunkResult]] where:
-# - TextChunkResult has: type, text, start_char, end_char (when WITH_OFFSETS)
-# - Phrase has: type, text (when TEXT_ONLY)
+# phrases is now List[Union[TextResult, TextSpanResult]] where:
+# - TextSpanResult has: type, text, start_char, end_char (when WITH_OFFSETS)
+# - TextResult has: type, text (when TEXT_ONLY)
 ```
 
 ### Create Text Chunks
@@ -56,16 +56,16 @@ request: ProcessTextRequest = ProcessTextRequest(
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
-chunks: List[Union[Phrase, TextChunkResult]] = []
+chunks: List[Union[TextResult, TextSpanResult]] = []
 for response in client.process_text(request):
-    if isinstance(response, (Phrase, TextChunkResult)):
+    if isinstance(response, (TextResult, TextSpanResult)):
         chunks.append(response)
 
 print(f"Created {len(chunks)} chunks")
 
-# chunks is now List[Union[Phrase, TextChunkResult]] where:
-# - TextChunkResult has: type, text, start_char, end_char (when WITH_OFFSETS)
-# - Phrase has: type, text (when TEXT_ONLY)
+# chunks is now List[Union[TextResult, TextSpanResult]] where:
+# - TextSpanResult has: type, text, start_char, end_char (when WITH_OFFSETS)
+# - TextResult has: type, text (when TEXT_ONLY)
 ```
 
 ### Process Text from URL
@@ -83,7 +83,7 @@ request: ProcessTextRequest = ProcessTextRequest(
 with open("alice_phrases.jsonl", "w") as f:
     f: TextIO
     for response in client.process_text(request):
-        if isinstance(response, (Phrase, TextChunkResult)):
+        if isinstance(response, (TextResult, TextSpanResult)):
             f.write(response.model_dump_json() + "\n")
 ```
 

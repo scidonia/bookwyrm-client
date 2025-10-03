@@ -2,10 +2,21 @@
 
 ## Core Models
 
-::: bookwyrm.TextChunk
+::: bookwyrm.Text
     options:
       show_source: true
 
+::: bookwyrm.Span
+    options:
+      show_source: true
+
+::: bookwyrm.TextSpan
+    options:
+      show_source: true
+
+::: bookwyrm.TextChunk
+    options:
+      show_source: true
 
 ::: bookwyrm.Citation
     options:
@@ -103,11 +114,11 @@
     options:
       show_source: true
 
-::: bookwyrm.Phrase
+::: bookwyrm.TextResult
     options:
       show_source: true
 
-::: bookwyrm.TextChunkResult
+::: bookwyrm.TextSpanResult
     options:
       show_source: true
 

@@ -5,16 +5,34 @@ from typing import List, Optional, Union, Literal
 from enum import Enum
 
 
-class TextChunk(BaseModel):
+class Text(BaseModel):
+    """Base text model containing just text content."""
+    
+    text: str = Field(..., description="The text content")
+
+
+class Span(BaseModel):
+    """Base span model with position information."""
+    
+    start_char: int = Field(..., description="Starting character position")
+    end_char: int = Field(..., description="Ending character position")
+
+
+class TextSpan(Text, Span):
+    """Text with position information.
+    
+    Combines text content with character position spans.
+    """
+    pass
+
+
+class TextChunk(TextSpan):
     """A chunk of text with position information.
     
     This model represents a segment of text along with its character
     position within the original document.
     """
-
-    text: str = Field(..., description="The text content of the chunk")
-    start_char: int = Field(..., description="Starting character position in the original text")
-    end_char: int = Field(..., description="Ending character position in the original text")
+    pass
 
 
 class CitationRequest(BaseModel):
@@ -329,21 +347,20 @@ class PhraseProgressUpdate(BaseModel):
     message: str = Field(..., description="Human-readable progress message")
 
 
-class Phrase(BaseModel):
-    """A simple phrase without position information.
+class TextResult(Text):
+    """A simple text result without position information.
     
     Used when ResponseFormat.TEXT_ONLY is specified in phrasal processing.
     """
 
     type: Literal["phrase"] = Field("phrase", description="Message type identifier")
-    text: str = Field(..., description="The phrase text content")
 
 
-class TextChunkResult(TextChunk):
-    """A text chunk with position information.
+class TextSpanResult(TextSpan):
+    """A text span result with position information.
     
     Used when ResponseFormat.WITH_OFFSETS is specified in phrasal processing.
-    Inherits from TextChunk to include position data.
+    Inherits from TextSpan to include position data.
     """
 
     type: Literal["phrase"] = Field("phrase", description="Message type identifier")
@@ -351,8 +368,8 @@ class TextChunkResult(TextChunk):
 
 StreamingPhrasalResponse = Union[
     PhraseProgressUpdate,
-    Phrase,
-    TextChunkResult,
+    TextResult,
+    TextSpanResult,
 ]
 
 

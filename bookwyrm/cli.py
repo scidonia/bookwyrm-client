@@ -44,8 +44,8 @@ from .models import (
     ProcessTextRequest,
     ResponseFormat,
     PhraseProgressUpdate,
-    Phrase,
-    TextChunkResult,
+    TextResult,
+    TextSpanResult,
     ClassifyRequest,
     ClassifyResponse,
     PDFExtractRequest,
@@ -1160,11 +1160,11 @@ def phrasal(
                             f"[dim]Processed {response.phrases_processed} phrases, "
                             f"created {response.chunks_created} chunks[/dim]"
                         )
-                elif isinstance(response, (Phrase, TextChunkResult)):
+                elif isinstance(response, (TextResult, TextSpanResult)):
                     phrases.append(response)
 
                     if state.verbose:
-                        if isinstance(response, TextChunkResult):
+                        if isinstance(response, TextSpanResult):
                             console.print(
                                 f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
                             )
@@ -1203,7 +1203,7 @@ def phrasal(
             for i, phrase in enumerate(phrases[:10]):  # Show first 10
                 row = [str(i + 1)]
                 if format == "with_offsets":
-                    if isinstance(phrase, TextChunkResult):
+                    if isinstance(phrase, TextSpanResult):
                         row.append(f"{phrase.start_char}-{phrase.end_char}")
                     else:
                         row.append("N/A")
