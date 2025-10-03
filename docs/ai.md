@@ -278,9 +278,6 @@ options:
 show_root_heading: true
 
 
-::: bookwyrm.BookWyrmClient.summarize
-options:
-show_root_heading: true
 
 ## Asynchronous Client Methods
 
@@ -294,6 +291,3 @@ options:
 show_root_heading: true
 
 
-::: bookwyrm.AsyncBookWyrmClient.summarize
-options:
-show_root_heading: true
