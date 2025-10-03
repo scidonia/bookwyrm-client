@@ -353,7 +353,12 @@ class BookWyrmClient:
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
     ) -> Iterator[StreamingPhrasalResponse]:
-        # """Process text using phrasal analysis with streaming results.
+        """Process text using phrasal analysis with streaming results.
+
+        This method breaks down text into meaningful phrases or chunks using NLP,
+        supporting both direct text input and URLs. It can create fixed-size chunks
+        or extract individual phrases with optional position information.
+        """
 
         # This method breaks down text into meaningful phrases or chunks using NLP,
         # supporting both direct text input and URLs. It can create fixed-size chunks
