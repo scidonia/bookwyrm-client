@@ -358,19 +358,19 @@ class BookWyrmClient:
         This method breaks down text into meaningful phrases or chunks using NLP,
         supporting both direct text input and URLs. It can create fixed-size chunks
         or extract individual phrases with optional position information.
+
+        Args:
+            text: Text content to process
+            text_url: URL to fetch text from
+            chunk_size: Optional chunk size for fixed-size chunking
+            response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
+            offsets: Set to True for WITH_OFFSETS format (boolean flag)
+            text_only: Set to True for TEXT_ONLY format (boolean flag)
         """
 
         # This method breaks down text into meaningful phrases or chunks using NLP,
         # supporting both direct text input and URLs. It can create fixed-size chunks
         # or extract individual phrases with optional position information.
-
-        # Args:
-        #     text: Text content to process
-        #     text_url: URL to fetch text from
-        #     chunk_size: Optional chunk size for fixed-size chunking
-        #     response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
-        #     offsets: Set to True for WITH_OFFSETS format (boolean flag)
-        #     text_only: Set to True for TEXT_ONLY format (boolean flag)
 
         # Yields:
         #     StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
