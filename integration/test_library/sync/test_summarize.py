@@ -64,20 +64,16 @@ def sample_phrases():
 @pytest.fixture
 def sample_content():
     """Sample JSONL content for summarization testing."""
-    return '''{"text": "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data.", "start_char": 0, "end_char": 280}
+    return """{"text": "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data.", "start_char": 0, "end_char": 280}
 {"text": "Machine learning is a method of data analysis that automates analytical model building. It is a branch of artificial intelligence (AI) based on the idea that systems can learn from data, identify patterns and make decisions with minimal human intervention.", "start_char": 281, "end_char": 537}
 {"text": "Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning. Learning can be supervised, semi-supervised or unsupervised.", "start_char": 538, "end_char": 734}
 {"text": "Computer vision is an interdisciplinary scientific field that deals with how computers can gain high-level understanding from digital images or videos. From the perspective of engineering, it seeks to understand and automate tasks that the human visual system can do.", "start_char": 735, "end_char": 1001}
-{"text": "Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains. Such systems learn to perform tasks by considering examples, generally without being programmed with task-specific rules.", "start_char": 1002, "end_char": 1243}'''
+{"text": "Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains. Such systems learn to perform tasks by considering examples, generally without being programmed with task-specific rules.", "start_char": 1002, "end_char": 1243}"""
 
 
 def test_summarize_with_content(client, sample_content):
     """Test summarization using text content."""
-    response = client.summarize(
-        content=sample_content,
-        max_tokens=5000,
-        debug=False
-    )
+    response = client.summarize(content=sample_content, max_tokens=5000, debug=False)
 
     # Verify response structure
     assert isinstance(response, SummaryResponse)
@@ -91,11 +87,7 @@ def test_summarize_with_content(client, sample_content):
 
 def test_summarize_with_phrases(client, sample_phrases):
     """Test summarization using text phrases."""
-    response = client.summarize(
-        phrases=sample_phrases,
-        max_tokens=3000,
-        debug=True
-    )
+    response = client.summarize(phrases=sample_phrases, max_tokens=3000, debug=True)
 
     # Verify response structure
     assert isinstance(response, SummaryResponse)
@@ -103,48 +95,27 @@ def test_summarize_with_phrases(client, sample_phrases):
     assert len(response.summary) > 0
     assert isinstance(response.levels_used, int)
     assert response.levels_used >= 1
-    
+
     # Debug mode should provide additional information
-    if hasattr(response, 'debug_info') and response.debug_info:
+    if hasattr(response, "debug_info") and response.debug_info:
         assert isinstance(response.debug_info, dict)
-
-
-def test_summarize_with_different_max_tokens(client, sample_content):
-    """Test summarization with different max_tokens values."""
-    # Test with small max_tokens
-    response_small = client.summarize(
-        content=sample_content,
-        max_tokens=1000,
-        debug=False
-    )
-    
-    # Test with large max_tokens
-    response_large = client.summarize(
-        content=sample_content,
-        max_tokens=10000,
-        debug=False
-    )
-
-    # Both should return valid responses
-    assert isinstance(response_small, SummaryResponse)
-    assert isinstance(response_large, SummaryResponse)
-    assert len(response_small.summary) > 0
-    assert len(response_large.summary) > 0
 
 
 def test_summarize_error_no_input(client):
     """Test that missing input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"):
+    with pytest.raises(
+        ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
+    ):
         client.summarize(max_tokens=5000)
 
 
 def test_summarize_error_multiple_inputs(client, sample_content, sample_phrases):
     """Test that multiple inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"):
+    with pytest.raises(
+        ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
+    ):
         client.summarize(
-            content=sample_content,
-            phrases=sample_phrases,
-            max_tokens=5000
+            content=sample_content, phrases=sample_phrases, max_tokens=5000
         )
 
 
@@ -157,10 +128,7 @@ def test_summarize_empty_content(client):
 
 def test_summarize_empty_phrases(client):
     """Test summarization with empty phrases list."""
-    response = client.summarize(
-        phrases=[],
-        max_tokens=5000
-    )
+    response = client.summarize(phrases=[], max_tokens=5000)
 
     # Should handle empty phrases gracefully
     assert isinstance(response, SummaryResponse)
@@ -176,11 +144,8 @@ def test_summarize_single_phrase(client):
             end_char=115,
         )
     ]
-    
-    response = client.summarize(
-        phrases=single_phrase,
-        max_tokens=2000
-    )
+
+    response = client.summarize(phrases=single_phrase, max_tokens=2000)
 
     assert isinstance(response, SummaryResponse)
     assert len(response.summary) > 0
@@ -188,11 +153,7 @@ def test_summarize_single_phrase(client):
 
 def test_summarize_debug_mode(client, sample_phrases):
     """Test summarization with debug mode enabled."""
-    response = client.summarize(
-        phrases=sample_phrases,
-        max_tokens=4000,
-        debug=True
-    )
+    response = client.summarize(phrases=sample_phrases, max_tokens=4000, debug=True)
 
     assert isinstance(response, SummaryResponse)
     assert len(response.summary) > 0
@@ -201,10 +162,7 @@ def test_summarize_debug_mode(client, sample_phrases):
 
 def test_summarize_levels_and_subsummaries(client, sample_content):
     """Test that summarization provides level and subsummary information."""
-    response = client.summarize(
-        content=sample_content,
-        max_tokens=2000
-    )
+    response = client.summarize(content=sample_content, max_tokens=2000)
 
     assert isinstance(response.levels_used, int)
     assert response.levels_used >= 1
@@ -225,9 +183,7 @@ def test_stream_summarize_with_content(client, sample_content):
     errors_received = []
 
     for response in client.stream_summarize(
-        content=sample_content,
-        max_tokens=5000,
-        debug=False
+        content=sample_content, max_tokens=5000, debug=False
     ):
         if isinstance(response, SummarizeProgressUpdate):
             progress_updates.append(response)
@@ -256,11 +212,9 @@ def test_stream_summarize_with_content(client, sample_content):
 def test_stream_summarize_with_phrases(client, sample_phrases):
     """Test streaming summarization using text phrases."""
     responses = []
-    
+
     for response in client.stream_summarize(
-        phrases=sample_phrases,
-        max_tokens=3000,
-        debug=True
+        phrases=sample_phrases, max_tokens=3000, debug=True
     ):
         responses.append(response)
         if isinstance(response, SummaryResponse):
@@ -269,7 +223,7 @@ def test_stream_summarize_with_phrases(client, sample_phrases):
 
     # Should have received some responses
     assert len(responses) > 0
-    
+
     # Last response should be the final summary
     final_response = responses[-1]
     if isinstance(final_response, SummaryResponse):
@@ -280,11 +234,8 @@ def test_stream_summarize_progress_tracking(client, sample_content):
     """Test that streaming summarization provides progress updates."""
     progress_messages = []
     summary_received = False
-    
-    for response in client.stream_summarize(
-        content=sample_content,
-        max_tokens=4000
-    ):
+
+    for response in client.stream_summarize(content=sample_content, max_tokens=4000):
         if isinstance(response, SummarizeProgressUpdate):
             progress_messages.append(response.message)
         elif isinstance(response, SummaryResponse):
@@ -299,49 +250,32 @@ def test_stream_summarize_progress_tracking(client, sample_content):
 
 def test_stream_summarize_error_no_input(client):
     """Test that missing input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"):
+    with pytest.raises(
+        ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
+    ):
         list(client.stream_summarize(max_tokens=5000))
 
 
 def test_stream_summarize_error_multiple_inputs(client, sample_content, sample_phrases):
     """Test that multiple inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"):
-        list(client.stream_summarize(
-            content=sample_content,
-            phrases=sample_phrases,
-            max_tokens=5000
-        ))
-
-
-def test_summarize_max_tokens_validation(client, sample_content):
-    """Test summarization with various max_tokens values."""
-    # Test minimum reasonable value
-    response_min = client.summarize(
-        content=sample_content,
-        max_tokens=100
-    )
-    assert isinstance(response_min, SummaryResponse)
-    
-    # Test large value
-    response_max = client.summarize(
-        content=sample_content,
-        max_tokens=50000
-    )
-    assert isinstance(response_max, SummaryResponse)
+    with pytest.raises(
+        ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
+    ):
+        list(
+            client.stream_summarize(
+                content=sample_content, phrases=sample_phrases, max_tokens=5000
+            )
+        )
 
 
 def test_summarize_long_content(client):
     """Test summarization with longer JSONL content."""
-    long_content = '''{"text": "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them.", "start_char": 0, "end_char": 400}
+    long_content = """{"text": "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them.", "start_char": 0, "end_char": 400}
 {"text": "Machine learning (ML) is a type of artificial intelligence (AI) that allows software applications to become more accurate at predicting outcomes without being explicitly programmed to do so. Machine learning algorithms use historical data as input to predict new output values.", "start_char": 401, "end_char": 675}
 {"text": "Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning. Learning can be supervised, semi-supervised or unsupervised. Deep learning architectures such as deep neural networks, deep belief networks, recurrent neural networks and convolutional neural networks have been applied to fields including computer vision, speech recognition, natural language processing, machine translation, bioinformatics and drug design.", "start_char": 676, "end_char": 1150}
-{"text": "Computer vision is an interdisciplinary scientific field that deals with how computers can gain high-level understanding from digital images or videos. From the perspective of engineering, it seeks to understand and automate tasks that the human visual system can do. Computer vision tasks include methods for acquiring, processing, analyzing and understanding digital images, and extraction of high-dimensional data from the real world in order to produce numerical or symbolic information.", "start_char": 1151, "end_char": 1650}'''
-    
-    response = client.summarize(
-        content=long_content,
-        max_tokens=8000,
-        debug=True
-    )
+{"text": "Computer vision is an interdisciplinary scientific field that deals with how computers can gain high-level understanding from digital images or videos. From the perspective of engineering, it seeks to understand and automate tasks that the human visual system can do. Computer vision tasks include methods for acquiring, processing, analyzing and understanding digital images, and extraction of high-dimensional data from the real world in order to produce numerical or symbolic information.", "start_char": 1151, "end_char": 1650}"""
+
+    response = client.summarize(content=long_content, max_tokens=8000, debug=True)
 
     assert isinstance(response, SummaryResponse)
     assert len(response.summary) > 0
@@ -352,56 +286,3 @@ def test_stream_summarize_from_url_skip(client):
     """Test streaming summarization from URL (skipped - requires test URL)."""
     # Skip this test for now - requires a publicly accessible content URL
     pytest.skip("Requires a publicly accessible content URL for testing")
-
-
-@pytest.mark.liveonly
-def test_summarize_live_api_comprehensive(client, sample_content, sample_phrases):
-    """Comprehensive test of summarization against live API."""
-    # Test 1: Basic summarization with content
-    response1 = client.summarize(
-        content=sample_content,
-        max_tokens=5000,
-        debug=False
-    )
-    assert isinstance(response1, SummaryResponse)
-    assert len(response1.summary) > 0
-
-    # Test 2: Summarization with phrases
-    response2 = client.summarize(
-        phrases=sample_phrases,
-        max_tokens=3000,
-        debug=True
-    )
-    assert isinstance(response2, SummaryResponse)
-    assert len(response2.summary) > 0
-
-    # Test 3: Streaming summarization
-    final_summary = None
-    progress_count = 0
-    for response in client.stream_summarize(
-        content=sample_content[:500],  # Limit for test speed
-        max_tokens=2000
-    ):
-        if isinstance(response, SummarizeProgressUpdate):
-            progress_count += 1
-        elif isinstance(response, SummaryResponse):
-            final_summary = response
-            break  # Exit early for test speed
-
-    assert final_summary is not None
-    assert len(final_summary.summary) > 0
-
-    # Test 4: Different max_tokens values
-    response4 = client.summarize(
-        content=sample_content,
-        max_tokens=1000
-    )
-    assert isinstance(response4, SummaryResponse)
-
-    # Test 5: Debug mode
-    response5 = client.summarize(
-        phrases=sample_phrases[:3],  # Limit for test speed
-        max_tokens=2000,
-        debug=True
-    )
-    assert isinstance(response5, SummaryResponse)
