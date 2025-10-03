@@ -117,23 +117,23 @@ chunks: List[TextSpan] = [
     )
 ]
 
-# Find citations using function arguments (recommended)
-response: CitationResponse = client.get_citations(
+# Find citations using streaming (the only available method)
+citations: List[Citation] = []
+for stream_response in client.stream_citations(
     chunks=chunks,
     question="What causes climate change?"
-)
+):
+    if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
+    elif hasattr(stream_response, 'total_citations'):
+        print(f"Found {stream_response.total_citations} citations total")
 
-print(f"Found {response.total_citations} citations:")
+print(f"Found {len(citations)} citations:")
 citation: Citation
-for citation in response.citations:
+for citation in citations:
     print(f"- Quality {citation.quality}/4: {citation.text}")
 
-# response is CitationResponse with:
-# - citations: List[Citation] 
-# - total_citations: int
-# - usage: Optional[UsageInfo]
-#
-# Each Citation has:
+# citations is List[Citation] where each Citation has:
 # - start_chunk: int (inclusive)
 # - end_chunk: int (inclusive) 
 # - text: str (the citation content)
@@ -187,12 +187,15 @@ print(f"Total citations found: {len(citations)}")
 
 ```python
 # Load from JSONL file
-response: CitationResponse = client.get_citations(
+citations: List[Citation] = []
+for stream_response in client.stream_citations(
     jsonl_url="https://example.com/chunks.jsonl",
     question="What is machine learning?",
     start=0,
     limit=100
-)
+):
+    if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
 ```
 
 ## PDF Extraction
@@ -351,17 +354,24 @@ extract information and insights contained in the documents as well as categoriz
 organize the documents themselves.
 """
 
-# Summarize using function arguments (recommended)
-response: SummaryResponse = client.summarize(
+# Summarize using streaming (the only available method)
+final_summary: SummaryResponse = None
+for response in client.stream_summarize(
     content=text,
     max_tokens=5000
-)
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
 
-print("Summary:")
-print(response.summary)
-print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used} levels")
+if final_summary:
+    print("Summary:")
+    print(final_summary.summary)
+    print(f"\nProcessed {final_summary.total_tokens} tokens across {final_summary.levels_used} levels")
 
-# response is SummaryResponse with:
+# final_summary is SummaryResponse with:
 # - type: Literal["summary"]
 # - summary: str (the final summary text)
 # - subsummary_count: int (number of intermediate summaries)
@@ -373,19 +383,26 @@ print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used}
 ### Summarize from URL
 
 ```python
-response: SummaryResponse = client.summarize(
+final_summary: SummaryResponse = None
+for response in client.stream_summarize(
     url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
     max_tokens=10000,
     debug=True  # Include intermediate summaries
-)
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
 
-print("Final Summary:")
-print(response.summary)
-
-if response.intermediate_summaries:
-    print(f"\nDebug: {len(response.intermediate_summaries)} levels of summaries")
-    for level, summaries in enumerate(response.intermediate_summaries):
-        print(f"Level {level + 1}: {len(summaries)} summaries")
+if final_summary:
+    print("Final Summary:")
+    print(final_summary.summary)
+    
+    if final_summary.intermediate_summaries:
+        print(f"\nDebug: {len(final_summary.intermediate_summaries)} levels of summaries")
+        for level, summaries in enumerate(final_summary.intermediate_summaries):
+            print(f"Level {level + 1}: {len(summaries)} summaries")
 ```
 
 ### Summarize from Phrases
@@ -399,11 +416,19 @@ phrases: List[TextSpan] = [
     # ... more phrases
 ]
 
-response: SummaryResponse = client.summarize(
+final_summary: SummaryResponse = None
+for response in client.stream_summarize(
     phrases=phrases,
     max_tokens=2000
-)
-print(response.summary)
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
+if final_summary:
+    print(final_summary.summary)
 ```
 
 ## Async Usage
@@ -418,12 +443,18 @@ from bookwyrm.models import CitationResponse, CitationStreamResponse
 async def main() -> None:
     client: AsyncBookWyrmClient
     async with AsyncBookWyrmClient() as client:
-        # Async citation finding
-        response: CitationResponse = await client.get_citations(
+        # Async citation finding (streaming only)
+        citations: List[Citation] = []
+        async for stream_response in client.stream_citations(
             chunks=chunks,
             question="What causes climate change?"
-        )
-        print(f"Found {response.total_citations} citations")
+        ):
+            if hasattr(stream_response, 'citation'):
+                citations.append(stream_response.citation)
+            elif hasattr(stream_response, 'total_citations'):
+                print(f"Found {stream_response.total_citations} citations")
+        
+        print(f"Found {len(citations)} citations")
         
         # Async streaming
         async for update in client.stream_citations(
@@ -437,12 +468,12 @@ async def main() -> None:
 asyncio.run(main())
 
 # All async methods return the same types as their sync counterparts:
-# - get_citations() -> CitationResponse
 # - stream_citations() -> AsyncIterator[StreamingCitationResponse]
+# - stream_summarize() -> AsyncIterator[StreamingSummarizeResponse]
+# - stream_process_text() -> AsyncIterator[StreamingPhrasalResponse]
 # - classify() -> ClassifyResponse
 # - extract_pdf() -> PDFExtractResponse
 # - stream_extract_pdf() -> AsyncIterator[StreamingPDFResponse]
-# - etc.
 ```
 
 ## Error Handling
@@ -455,10 +486,13 @@ from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError
 from bookwyrm.models import CitationResponse
 
 try:
-    response: CitationResponse = client.get_citations(
+    citations: List[Citation] = []
+    for stream_response in client.stream_citations(
         chunks=chunks,
         question="What causes climate change?"
-    )
+    ):
+        if hasattr(stream_response, 'citation'):
+            citations.append(stream_response.citation)
 except BookWyrmAPIError as e:
     status_code: Optional[int] = e.status_code
     if status_code == 401:
