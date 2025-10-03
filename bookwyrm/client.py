@@ -394,6 +394,25 @@ class BookWyrmClient:
                     if isinstance(response, TextSpanResult):
                         print(f"Position: {response.start_char}-{response.end_char}")
             ```
+
+            Create fixed-size chunks:
+
+            ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextResult, TextSpanResult
+
+            client = BookWyrmClient(api_key="your-api-key")
+            chunks = []
+            for response in client.process_text(
+                text=long_text,
+                chunk_size=1000,  # ~1000 characters per chunk
+                offsets=True  # boolean flag for WITH_OFFSETS
+            ):
+                if isinstance(response, (TextResult, TextSpanResult)):
+                    chunks.append(response)
+
+            print(f"Created {len(chunks)} chunks")
+            ```
         """
 
         # This method breaks down text into meaningful phrases or chunks using NLP,
