@@ -407,6 +407,7 @@ def cite(
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
     state.debug = debug
+    state.debug = debug
 
     # Validate API key before proceeding
     validate_api_key(state.api_key)
@@ -1042,6 +1043,9 @@ def phrasal(
     ] = None,
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
+    debug: Annotated[
+        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
     ] = False,
 ):
     """Stream text processing using phrasal analysis to extract phrases or chunks.
