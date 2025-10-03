@@ -413,24 +413,6 @@ class BookWyrmClient:
 
             print(f"Created {len(chunks)} chunks")
             ```
-
-            Process text from URL:
-
-            ```python
-            from bookwyrm import BookWyrmClient
-            from bookwyrm.models import TextResult, TextSpanResult
-
-            client = BookWyrmClient(api_key="your-api-key")
-            # Save to JSONL file
-            with open("alice_phrases.jsonl", "w") as f:
-                for response in client.process_text(
-                    text_url="https://www.gutenberg.org/files/11/11-0.txt",
-                    chunk_size=2000,
-                    text_only=True  # boolean flag for TEXT_ONLY
-                ):
-                    if isinstance(response, (TextResult, TextSpanResult)):
-                        f.write(response.model_dump_json() + "\n")
-            ```
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
