@@ -372,6 +372,28 @@ class BookWyrmClient:
 
         Raises:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+
+        Examples:
+            Extract phrases from text with position offsets:
+
+            ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult
+
+            text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language."
+
+            client = BookWyrmClient(api_key="your-api-key")
+            phrases = []
+            for response in client.process_text(
+                text=text,
+                offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
+            ):
+                if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
+                    phrases.append(response)
+                    print(f"Phrase: {response.text}")
+                    if isinstance(response, TextSpanResult):
+                        print(f"Position: {response.start_char}-{response.end_char}")
+            ```
         """
 
         # This method breaks down text into meaningful phrases or chunks using NLP,
