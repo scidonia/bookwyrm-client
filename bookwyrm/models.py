@@ -13,8 +13,8 @@ class TextChunk(BaseModel):
     """
 
     text: str = Field(..., description="The text content of the chunk")
-    start_char: Optional[int] = Field(None, description="Starting character position in the original text")
-    end_char: Optional[int] = Field(None, description="Ending character position in the original text")
+    start_char: int = Field(..., description="Starting character position in the original text")
+    end_char: int = Field(..., description="Ending character position in the original text")
 
 
 class CitationRequest(BaseModel):
@@ -339,6 +339,12 @@ class PhraseResult(TextChunk):
     type: Literal["phrase"] = Field("phrase", description="Message type identifier")
     start_char: Optional[int] = Field(None, description="Starting character position (if with_offsets format)")
     end_char: Optional[int] = Field(None, description="Ending character position (if with_offsets format)")
+
+    @model_validator(mode="after")
+    def validate_optional_positions(self):
+        """Allow optional position fields for PhraseResult."""
+        # Override parent validation to allow None values
+        return self
 
 
 StreamingPhrasalResponse = Union[
