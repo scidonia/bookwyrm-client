@@ -30,29 +30,52 @@ client = BookWyrmClient(api_key="your-api-key")
 
 ## Basic Usage
 
-### Citation Finding
+### Step 1: Process Text into Chunks
 
-Find citations that answer a specific question:
+First, process your text into meaningful chunks using `stream_process_text`:
 
 ```python
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import CitationRequest, TextChunk
+from bookwyrm.models import TextResult, TextSpanResult
 
-# Create text chunks
-chunks = [
-    TextChunk(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
-    TextChunk(text="Water boils at 100°C at sea level.", start_char=43, end_char=78)
-]
+# Initialize client
+client = BookWyrmClient(api_key="your-api-key")
 
-# Create request
-request = CitationRequest(
+# Process text into chunks
+text = """
+The sky appears blue due to a phenomenon called Rayleigh scattering. 
+When sunlight enters Earth's atmosphere, it collides with gas molecules. 
+Blue light waves are shorter than red light waves, so they get scattered 
+more in all directions by the tiny gas molecules in the atmosphere.
+
+Water boils at 100°C (212°F) at sea level. This temperature is called 
+the boiling point and occurs when the vapor pressure of the liquid equals 
+the atmospheric pressure surrounding it.
+"""
+
+chunks = []
+for response in client.stream_process_text(
+    text=text,
+    chunk_size=1000,  # Create bounded phrasal chunks
+    offsets=True  # Include position information
+):
+    if isinstance(response, (TextResult, TextSpanResult)):
+        chunks.append(response)
+        print(f"Chunk: {response.text[:50]}...")
+
+print(f"Created {len(chunks)} chunks")
+```
+
+### Step 2: Find Citations
+
+Use the generated chunks to find citations that answer specific questions:
+
+```python
+# Use the chunks from Step 1 to find citations
+response = client.get_citations(
     chunks=chunks,
     question="Why is the sky blue?"
 )
-
-# Get citations
-client = BookWyrmClient()
-response = client.get_citations(request)
 
 for citation in response.citations:
     print(f"Quality: {citation.quality}/4")
@@ -60,33 +83,49 @@ for citation in response.citations:
     print(f"Reasoning: {citation.reasoning}")
 ```
 
-### Text Summarization
+### Step 3: Text Summarization
 
-Summarize text content:
+Summarize your processed chunks or phrases:
 
 ```python
-from bookwyrm.models import SummarizeRequest
-
-# Load your JSONL content
-with open("phrases.jsonl", "r") as f:
-    content = f.read()
-
-request = SummarizeRequest(
-    content=content,
+# Use chunks from Step 1 for summarization
+response = client.summarize(
+    phrases=chunks,  # Use the chunks we created
     max_tokens=10000
 )
 
-response = client.summarize(request)
 print(response.summary)
+
+# Or load from JSONL file if you saved chunks
+# with open("phrases.jsonl", "r") as f:
+#     jsonl_content = f.read()
+# 
+# response = client.summarize(
+#     jsonl_content=jsonl_content,
+#     max_tokens=10000
+# )
 ```
 
-### Streaming Operations
+### Step 4: Streaming Operations
 
-Use streaming for real-time progress updates:
+Use streaming for real-time progress updates on any operation:
 
 ```python
+# Stream text processing (always streaming)
+for response in client.stream_process_text(
+    text_url="https://www.gutenberg.org/files/11/11-0.txt",
+    chunk_size=2000
+):
+    if isinstance(response, (TextResult, TextSpanResult)):
+        print(f"Processed chunk: {response.text[:50]}...")
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
 # Stream citations
-for update in client.stream_citations(request):
+for update in client.stream_citations(
+    chunks=chunks,
+    question="Why is the sky blue?"
+):
     if hasattr(update, 'message'):
         print(f"Progress: {update.message}")
     elif hasattr(update, 'citation'):
@@ -104,8 +143,8 @@ bookwyrm cite "Why is the sky blue?" data/chunks.jsonl
 # Summarize text
 bookwyrm summarize data/phrases.jsonl --output summary.json
 
-# Process text into phrases
-bookwyrm phrasal "Your text here" --output phrases.jsonl
+# Process text into phrases/chunks
+bookwyrm phrasal "Your text here" --output phrases.jsonl --chunk-size 1000
 
 # Extract PDF content
 bookwyrm extract-pdf document.pdf --output extracted.json
