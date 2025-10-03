@@ -483,7 +483,7 @@ def cite(
                 task = progress.add_task("Processing chunks...", total=total_chunks)
 
                 for response in client.stream_citations(**request.model_dump(exclude_none=True)):
-                    if response.__class__.__name__ == 'CitationProgressUpdate':
+                    if isinstance(response, CitationProgressUpdate):
                         # For URL sources, set total when we first get it
                         if url and progress.tasks[task].total is None:
                             progress.update(task, total=response.total_chunks)
@@ -492,7 +492,7 @@ def cite(
                             completed=response.chunks_processed,
                             description=response.message,
                         )
-                    elif response.__class__.__name__ == 'CitationStreamResponse':
+                    elif isinstance(response, CitationStreamResponse):
                         citations.append(response.citation)
                         if state.verbose:
                             display_verbose_citation(response.citation)
@@ -503,7 +503,7 @@ def cite(
                         # Immediately append to output file if specified
                         if output:
                             append_citation_to_jsonl(response.citation, output)
-                    elif response.__class__.__name__ == 'CitationSummaryResponse':
+                    elif isinstance(response, CitationSummaryResponse):
                         progress.update(
                             task,
                             completed=response.chunks_processed,
@@ -521,7 +521,7 @@ def cite(
                             console.print(
                                 f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                             )
-                    elif response.__class__.__name__ == 'CitationErrorResponse':
+                    elif isinstance(response, CitationErrorResponse):
                         console.print(f"[red]Error: {response.error}[/red]")
 
             display_citations_table(citations)
@@ -817,7 +817,7 @@ def summarize(
                 level_tasks = {}  # Track tasks for each level
 
                 for response in client.stream_summarize(**request.model_dump(exclude_none=True)):
-                    if response.__class__.__name__ == 'SummarizeProgressUpdate':
+                    if isinstance(response, SummarizeProgressUpdate):
                         # Create or update task for this level
                         task_id = f"level_{response.current_level}"
 
@@ -835,13 +835,13 @@ def summarize(
                             description=f"Level {response.current_level}/{response.total_levels}: {response.message}",
                         )
 
-                    elif response.__class__.__name__ == 'RateLimitMessage':
+                    elif isinstance(response, RateLimitMessage):
                         console.print(
                             f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]",
                             end="\r",
                         )
 
-                    elif response.__class__.__name__ == 'StructuralErrorMessage':
+                    elif isinstance(response, StructuralErrorMessage):
                         if response.error_type == "fallback":
                             console.print(f"[orange1]⚠ {response.message}[/orange1]")
                         else:
@@ -850,7 +850,7 @@ def summarize(
                                 end="\r",
                             )
 
-                    elif response.__class__.__name__ == 'SummaryResponse':
+                    elif isinstance(response, SummaryResponse):
                         final_result = response
 
                         # Complete all remaining tasks
@@ -863,7 +863,7 @@ def summarize(
 
                         console.print("[green]✓ Summarization complete![/green]")
 
-                    elif response.__class__.__name__ == 'SummarizeErrorResponse':
+                    elif isinstance(response, SummarizeErrorResponse):
                         console.print(f"[red]Error: {response.error}[/red]")
                         sys.exit(1)
 
@@ -1234,7 +1234,7 @@ def phrasal(
                         )
                     continue  # Don't process raw debug lines further
 
-                if response.__class__.__name__ == 'PhraseProgressUpdate':
+                if isinstance(response, PhraseProgressUpdate):
                     progress.update(
                         task,
                         description=response.message,
@@ -1244,12 +1244,12 @@ def phrasal(
                             f"[dim]Processed {response.phrases_processed} phrases, "
                             f"created {response.chunks_created} chunks[/dim]"
                         )
-                elif response.__class__.__name__ in ('TextResult', 'TextSpanResult'):
+                elif isinstance(response, (TextResult, TextSpanResult)):
                     # Handle both TextResult and TextSpanResult properly
                     phrases.append(response)
 
                     if state.verbose:
-                        if response.__class__.__name__ == 'TextSpanResult':
+                        if isinstance(response, TextSpanResult):
                             console.print(
                                 f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
                             )
@@ -1749,7 +1749,7 @@ def extract_pdf(
                 )  # Start with 100 as placeholder
 
                 for response in client.stream_extract_pdf(**request.model_dump(exclude_none=True)):
-                    if response.__class__.__name__ == 'PDFStreamMetadata':
+                    if isinstance(response, PDFStreamMetadata):
                         # Set up progress bar with known total
                         progress.update(
                             task,
@@ -1762,7 +1762,7 @@ def extract_pdf(
                                 f"[dim]Document has {response.total_pages_in_document} total pages, "
                                 f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
                             )
-                    elif response.__class__.__name__ == 'PDFStreamPageResponse':
+                    elif isinstance(response, PDFStreamPageResponse):
                         pages.append(response.page_data)
                         total_elements += len(response.page_data.text_blocks)
 
@@ -1776,7 +1776,7 @@ def extract_pdf(
                             console.print(
                                 f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
                             )
-                    elif response.__class__.__name__ == 'PDFStreamPageError':
+                    elif isinstance(response, PDFStreamPageError):
                         progress.update(
                             task,
                             completed=response.current_page,
@@ -1785,14 +1785,14 @@ def extract_pdf(
                         console.print(
                             f"[red]Error on page {response.document_page}: {response.error}[/red]"
                         )
-                    elif response.__class__.__name__ == 'PDFStreamComplete':
+                    elif isinstance(response, PDFStreamComplete):
                         progress.update(
                             task,
                             completed=response.current_page,
                             description="Complete!",
                         )
                         console.print("[green]✓ PDF extraction complete![/green]")
-                    elif response.__class__.__name__ == 'PDFStreamError':
+                    elif isinstance(response, PDFStreamError):
                         console.print(f"[red]Extraction error: {response.error}[/red]")
                         raise typer.Exit(1)
 
