@@ -51,10 +51,10 @@ text: str = """Natural language processing enables computers to understand human
 Machine learning algorithms power these systems. Deep learning has revolutionized the field. 
 Modern NLP applications include chatbots, translation, and sentiment analysis."""
 
-# Create phrasal chunks of specific size - each chunk contains multiple phrases
+# Create phrasal chunks bounded by size - fit as many complete phrases as possible
 request: ProcessTextRequest = ProcessTextRequest(
     text=text,
-    chunk_size=125,  # ~125 characters per chunk (smaller for demo)
+    chunk_size=125,  # Bounded by 125 characters per chunk (smaller for demo)
     response_format=ResponseFormat.WITH_OFFSETS
 )
 
@@ -69,7 +69,7 @@ print(f"Created {len(chunks)} phrasal chunks")
 # Chunk 1: "Natural language processing enables computers to understand human language. Machine learning algorithms power these systems."
 # Chunk 2: "Deep learning has revolutionized the field. Modern NLP applications include chatbots, translation, and sentiment analysis."
 
-# Each chunk is composed of complete phrases/sentences up to the size limit
+# Each chunk is bounded by the chunk size but fits as many complete phrases/sentences as possible up to that limit
 # chunks is now List[TextSpanResult] where each phrasal chunk has:
 # - type: Literal["text_span"]
 # - text: str (the chunk content containing multiple phrases)
