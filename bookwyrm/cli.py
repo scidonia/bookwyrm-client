@@ -361,6 +361,9 @@ def cite(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
+    debug: Annotated[
+        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
+    ] = False,
 ):
     """Find citations for a question in text chunks.
     
@@ -556,7 +559,7 @@ def summarize(
     max_tokens: Annotated[
         int, typer.Option(help="Maximum tokens per chunk (max: 131,072, default: 10000)")
     ] = 10000,
-    debug: Annotated[bool, typer.Option(help="Include intermediate summaries")] = False,
+    include_debug: Annotated[bool, typer.Option("--include-debug", help="Include intermediate summaries")] = False,
     stream: Annotated[
         bool, typer.Option("--stream/--no-stream", help="Use streaming API (default: --stream)")
     ] = True,
@@ -767,7 +770,7 @@ def summarize(
     request = SummarizeRequest(
         content=content,
         max_tokens=max_tokens,
-        debug=debug,
+        debug=include_debug,
         # Structured output options (set to None)
         # model_name=model_name,
         # model_schema_json=model_schema_json,
@@ -842,7 +845,7 @@ def summarize(
                 sys.exit(1)
 
             # Display results
-            if state.verbose or debug:
+            if state.verbose or include_debug:
                 console.print(
                     f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
                 )
@@ -852,7 +855,7 @@ def summarize(
                 console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
 
             # Show intermediate summaries if debug mode
-            if debug and final_result.intermediate_summaries:
+            if include_debug and final_result.intermediate_summaries:
                 console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
                 for level, summaries in enumerate(
                     final_result.intermediate_summaries, 1
@@ -902,7 +905,7 @@ def summarize(
                         "max_tokens": max_tokens,
                         # "model_used": model_name if model_name else None,
                         "intermediate_summaries": (
-                            final_result.intermediate_summaries if debug else None
+                            final_result.intermediate_summaries if include_debug else None
                         ),
                     }
 
@@ -931,7 +934,7 @@ def summarize(
                 console.print(f"[dim]Levels used: {response.levels_used}[/dim]")
 
             # Show intermediate summaries if debug mode
-            if debug and response.intermediate_summaries:
+            if include_debug and response.intermediate_summaries:
                 console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
                 for level, summaries in enumerate(response.intermediate_summaries, 1):
                     console.print(
@@ -978,7 +981,7 @@ def summarize(
                         "max_tokens": max_tokens,
                         # "model_used": model_name if model_name else None,
                         "intermediate_summaries": (
-                            response.intermediate_summaries if debug else None
+                            response.intermediate_summaries if include_debug else None
                         ),
                     }
 
