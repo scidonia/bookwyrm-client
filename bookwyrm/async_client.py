@@ -399,14 +399,16 @@ class AsyncBookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
             
         Examples:
-            Basic async phrasal processing with function arguments:
+            Basic async phrasal processing:
             
             ```python
-            from bookwyrm.models import ResponseFormat
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult, PhraseProgressUpdate
             
             async def process_text_example():
                 phrases = []
-                async with AsyncBookWyrmClient() as client:
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                     async for response in client.process_text(
                         text="Your text here",
                         offsets=True  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
@@ -424,10 +426,14 @@ class AsyncBookWyrmClient:
             Process multiple texts concurrently:
             
             ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import TextResult, TextSpanResult
+            
             async def process_multiple_texts():
                 async def process_single(text, name):
                     phrases = []
-                    async with AsyncBookWyrmClient() as client:
+                    async with AsyncBookWyrmClient(api_key="your-api-key") as client:
                         async for response in client.process_text(
                             text=text,
                             chunk_size=500
@@ -443,20 +449,8 @@ class AsyncBookWyrmClient:
                 
                 for name, phrases in results:
                     print(f"{name}: {len(phrases)} phrases")
-            ```
-
-            Legacy request object usage (still supported):
             
-            ```python
-            from bookwyrm.models import ProcessTextRequest, ResponseFormat
-            
-            request = ProcessTextRequest(
-                text="Your text here",
-                response_format=ResponseFormat.WITH_OFFSETS
-            )
-            
-            async for response in client.process_text(request):
-                # Process responses...
+            asyncio.run(process_multiple_texts())
             ```
         """
         if text is None and text_url is None:

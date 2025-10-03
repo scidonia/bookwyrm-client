@@ -372,13 +372,15 @@ class BookWyrmClient:
             Extract phrases from text with position offsets:
 
             ```python
-            from bookwyrm.models import ResponseFormat
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult
 
             text = '''
             Natural language processing (NLP) is a subfield of linguistics, computer science,
             and artificial intelligence concerned with the interactions between computers and human language.
             '''
 
+            client = BookWyrmClient(api_key="your-api-key")
             phrases = []
             for response in client.process_text(
                 text=text,
@@ -394,6 +396,10 @@ class BookWyrmClient:
             Create fixed-size chunks:
 
             ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextResult, TextSpanResult
+
+            client = BookWyrmClient(api_key="your-api-key")
             chunks = []
             for response in client.process_text(
                 text=long_text,
@@ -409,6 +415,10 @@ class BookWyrmClient:
             Process text from URL:
 
             ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextResult, TextSpanResult
+
+            client = BookWyrmClient(api_key="your-api-key")
             # Save to JSONL file
             with open("alice_phrases.jsonl", "w") as f:
                 for response in client.process_text(
