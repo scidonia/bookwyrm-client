@@ -8,6 +8,7 @@ from typing import Optional, List, Annotated
 
 import typer
 from rich.console import Console
+import sys
 from rich.progress import (
     Progress,
     SpinnerColumn,
@@ -60,6 +61,7 @@ from bookwyrm.models import (
 )
 
 console = Console()
+error_console = Console(stderr=True)
 
 
 def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
@@ -79,13 +81,13 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     chunks.append(chunk)
                 except (json.JSONDecodeError, KeyError) as e:
-                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]", file=sys.stderr)
+                    error_console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
                     sys.exit(1)
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
+        error_console.print(f"[red]File not found: {file_path}[/red]")
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
+        error_console.print(f"[red]Error reading file: {e}[/red]")
         sys.exit(1)
 
     return chunks
@@ -108,13 +110,13 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
                     )
                     phrases.append(phrase)
                 except (json.JSONDecodeError, KeyError) as e:
-                    console.print(f"[red]Error parsing line {line_num}: {e}[/red]", file=sys.stderr)
+                    error_console.print(f"[red]Error parsing line {line_num}: {e}[/red]")
                     sys.exit(1)
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
+        error_console.print(f"[red]File not found: {file_path}[/red]")
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
+        error_console.print(f"[red]Error reading file: {e}[/red]")
         sys.exit(1)
 
     return phrases
@@ -125,10 +127,10 @@ def load_jsonl_content(file_path: Path) -> str:
     try:
         return file_path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        console.print(f"[red]File not found: {file_path}[/red]", file=sys.stderr)
+        error_console.print(f"[red]File not found: {file_path}[/red]")
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Error reading file: {e}[/red]", file=sys.stderr)
+        error_console.print(f"[red]Error reading file: {e}[/red]")
         sys.exit(1)
 
 
@@ -306,16 +308,16 @@ def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
 def validate_api_key(api_key: Optional[str]) -> None:
     """Validate that an API key is provided and inform user if missing."""
     if not api_key:
-        console.print("[red]Error: No API key provided![/red]", file=sys.stderr)
-        console.print(
-            "[yellow]Please provide an API key using one of these methods:[/yellow]", file=sys.stderr
+        error_console.print("[red]Error: No API key provided![/red]")
+        error_console.print(
+            "[yellow]Please provide an API key using one of these methods:[/yellow]"
         )
-        console.print(
-            "  1. Set environment variable: [cyan]export BOOKWYRM_API_KEY='your-api-key'[/cyan]", file=sys.stderr
+        error_console.print(
+            "  1. Set environment variable: [cyan]export BOOKWYRM_API_KEY='your-api-key'[/cyan]"
         )
-        console.print("  2. Use CLI option: [cyan]--api-key your-api-key[/cyan]", file=sys.stderr)
-        console.print(
-            "\n[dim]You can get an API key from https://api.bookwyrm.ai[/dim]", file=sys.stderr
+        error_console.print("  2. Use CLI option: [cyan]--api-key your-api-key[/cyan]")
+        error_console.print(
+            "\n[dim]You can get an API key from https://api.bookwyrm.ai[/dim]"
         )
         raise typer.Exit(1)
 
@@ -424,8 +426,8 @@ def cite(
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
-        console.print(
-            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]", file=sys.stderr
+        error_console.print(
+            "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
         )
         raise typer.Exit(1)
 
@@ -552,12 +554,12 @@ def cite(
                 save_citations_to_json(response.citations, output)
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]", file=sys.stderr)
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]", file=sys.stderr)
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]", file=sys.stderr)
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
