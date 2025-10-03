@@ -279,6 +279,7 @@ class GlobalState:
         self.base_url: str = ""
         self.api_key: Optional[str] = None
         self.verbose: bool = False
+        self.debug: bool = False
 
 
 state = GlobalState()
@@ -402,6 +403,7 @@ def cite(
     state.base_url = get_base_url(base_url)
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
+    state.debug = debug
 
     # Validate API key before proceeding
     validate_api_key(state.api_key)
@@ -602,6 +604,9 @@ def summarize(
     ] = None,
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
+    debug: Annotated[
+        bool, typer.Option("--debug", help="Show raw API response objects for debugging")
     ] = False,
 ):
     """Summarize text content from JSONL files.
@@ -1177,6 +1182,11 @@ def phrasal(
                     # Handle both TextResult and TextSpanResult properly
                     phrases.append(response)
 
+                    if state.debug:
+                        console.print(f"[blue]DEBUG - Response object:[/blue]")
+                        console.print(f"[dim]Type: {type(response)}[/dim]")
+                        console.print(f"[dim]Raw: {response.model_dump_json(exclude_none=True)}[/dim]")
+
                     if state.verbose:
                         if isinstance(response, TextSpanResult):
                             console.print(
@@ -1201,7 +1211,14 @@ def phrasal(
                             )
                 else:
                     # Debug: print unknown response types
-                    if state.verbose:
+                    if state.debug:
+                        console.print(f"[yellow]DEBUG - Unknown response:[/yellow]")
+                        console.print(f"[dim]Type: {type(response)}[/dim]")
+                        console.print(f"[dim]Attributes: {dir(response)}[/dim]")
+                        console.print(f"[dim]Raw: {response}[/dim]")
+                        if hasattr(response, 'model_dump_json'):
+                            console.print(f"[dim]JSON: {response.model_dump_json(exclude_none=True)}[/dim]")
+                    elif state.verbose:
                         console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
 
             progress.update(task, description="Complete!")
