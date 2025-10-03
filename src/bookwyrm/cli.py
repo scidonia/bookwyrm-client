@@ -1,6 +1,5 @@
 """Command-line interface for BookWyrm client."""
 
-import dis
 import json
 import os
 import sys
@@ -377,8 +376,6 @@ def cite(
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
 ):
-    console.print(f"CitationSummaryResponse = {BW_CitationSummaryResponse!r}")
-    print(dis.code_info(cite))
     """Find citations for a question in text chunks.
 
     This command searches through text chunks to find relevant citations that answer
