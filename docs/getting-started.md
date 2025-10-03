@@ -49,10 +49,10 @@ response = client.classify(
     filename="research_paper.pdf"
 )
 
-print(f"File type: {response.classification.file_type}")
+print(f"Format type: {response.classification.format_type}")
 print(f"Content type: {response.classification.content_type}")
 print(f"Confidence: {response.classification.confidence}")
-print(f"Description: {response.classification.description}")
+print(f"MIME type: {response.classification.mime_type}")
 ```
 
 ### Step 2: Extract Content from PDFs
@@ -69,9 +69,8 @@ response = client.extract_pdf(
 # Get the extracted text by concatenating all text elements
 extracted_text = ""
 for page in response.pages:
-    for element in page.elements:
-        if element.type == "text":
-            extracted_text += element.text + "\n"
+    for text_block in page.text_blocks:
+        extracted_text += text_block.text + "\n"
 
 print(f"Extracted {len(extracted_text)} characters from PDF")
 ```
@@ -114,10 +113,17 @@ Use the generated chunks to find citations that answer specific questions:
 
 ```python
 # Use the chunks from Step 1 to find citations
-response = client.get_citations(
+citations = []
+for stream_response in client.stream_citations(
     chunks=chunks,
     question="Why is the sky blue?"
-)
+):
+    if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
+    elif hasattr(stream_response, 'total_citations'):
+        print(f"Found {stream_response.total_citations} total citations")
+
+response = type('obj', (object,), {'citations': citations})()
 
 for citation in response.citations:
     print(f"Quality: {citation.quality}/4")
@@ -131,21 +137,32 @@ Summarize your processed chunks or phrases:
 
 ```python
 # Use chunks from Step 1 for summarization
-response = client.summarize(
+final_summary = None
+for response in client.stream_summarize(
     phrases=chunks,  # Use the chunks we created
     max_tokens=10000
-)
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
 
-print(response.summary)
+if final_summary:
+    print(final_summary.summary)
 
 # Or load from JSONL file if you saved chunks
 # with open("phrases.jsonl", "r") as f:
 #     jsonl_content = f.read()
 # 
-# response = client.summarize(
+# final_summary = None
+# for response in client.stream_summarize(
 #     jsonl_content=jsonl_content,
 #     max_tokens=10000
-# )
+# ):
+#     if hasattr(response, 'summary'):
+#         final_summary = response
+#         break
 ```
 
 ### Step 6: Streaming Operations
@@ -213,7 +230,13 @@ Handle API errors gracefully:
 from bookwyrm.client import BookWyrmAPIError
 
 try:
-    response = client.get_citations(request)
+    citations = []
+    for stream_response in client.stream_citations(
+        chunks=chunks,
+        question="Your question here"
+    ):
+        if hasattr(stream_response, 'citation'):
+            citations.append(stream_response.citation)
 except BookWyrmAPIError as e:
     print(f"API Error: {e}")
     if e.status_code:
