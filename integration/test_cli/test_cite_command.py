@@ -86,15 +86,14 @@ def test_cite_command_with_jsonl_file(sample_chunks):
         # Check that command executed (may fail due to API key, but should parse args correctly)
         if result.returncode != 0:
             # If it fails due to API key or network, that's expected in test environment
-            # Check both stderr and stdout for error indicators
-            error_text = (result.stderr + result.stdout).lower()
+            # Error messages should be in stderr
             assert (
-                "api" in error_text
-                or "key" in error_text
-                or "connection" in error_text
-                or "network" in error_text
-                or "timeout" in error_text
-                or "error" in error_text
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
             )
         else:
             # If it succeeds, should have some output
@@ -116,15 +115,14 @@ def test_cite_command_with_file_option(sample_chunks):
 
         # Check command parsing (may fail on API call)
         if result.returncode != 0:
-            # Check both stderr and stdout for error indicators
-            error_text = (result.stderr + result.stdout).lower()
+            # Error messages should be in stderr
             assert (
-                "api" in error_text
-                or "key" in error_text
-                or "connection" in error_text
-                or "network" in error_text
-                or "timeout" in error_text
-                or "error" in error_text
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
             )
         else:
             assert len(result.stdout) > 0
