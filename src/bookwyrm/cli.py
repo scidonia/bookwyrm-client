@@ -1,5 +1,6 @@
 """Command-line interface for BookWyrm client."""
 
+import dis
 import json
 import os
 import sys
@@ -377,6 +378,7 @@ def cite(
     ] = False,
 ):
     console.print(f"CitationSummaryResponse = {CitationSummaryResponse!r}")
+    print(dis.code_info(cite))
     """Find citations for a question in text chunks.
 
     This command searches through text chunks to find relevant citations that answer
