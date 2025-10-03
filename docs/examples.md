@@ -307,17 +307,15 @@ print(f"Extracted {len(pages)} pages")
 
 ```python
 from typing import BinaryIO, Any
-import base64
 from bookwyrm.models import ClassifyRequest, ClassifyResponse
 
 # Read file as binary
 with open("unknown_file.dat", "rb") as f:
     f: BinaryIO
     file_bytes: bytes = f.read()
-    content: str = base64.b64encode(file_bytes).decode('ascii')
 
 request: ClassifyRequest = ClassifyRequest(
-    content=content,
+    content_bytes=file_bytes,
     filename="unknown_file.dat"
 )
 
