@@ -23,7 +23,7 @@ and artificial intelligence concerned with the interactions between computers an
 phrases: List[TextSpanResult] = []
 for response in client.process_text(
     text=text,
-    response_format="with_offsets",  # or ResponseFormat.WITH_OFFSETS
+    offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
     spacy_model="en_core_web_sm"
 ):
     if isinstance(response, TextSpanResult):
@@ -56,7 +56,7 @@ chunks: List[TextSpanResult] = []
 for response in client.process_text(
     text=text,
     chunk_size=125,  # Bounded by 125 characters per chunk (smaller for demo)
-    response_format="offsets"  # shorthand for WITH_OFFSETS
+    with_offsets=True  # boolean flag for WITH_OFFSETS
 ):
     if isinstance(response, TextSpanResult):
         chunks.append(response)
@@ -86,7 +86,7 @@ with open("alice_phrases.jsonl", "w") as f:
     for response in client.process_text(
         text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
         chunk_size=2000,
-        response_format="with_offsets"
+        text_only=True  # boolean flag for TEXT_ONLY
     ):
         if isinstance(response, TextSpanResult):
             f.write(response.model_dump_json() + "\n")

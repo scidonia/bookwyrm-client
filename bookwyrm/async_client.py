@@ -360,6 +360,11 @@ class AsyncBookWyrmClient:
         chunk_size: Optional[int] = None,
         response_format: Union[ResponseFormat, Literal["with_offsets", "offsets", "text_only", "text"]] = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
+        # Boolean flags for response format
+        offsets: Optional[bool] = None,
+        with_offsets: Optional[bool] = None,
+        text_only: Optional[bool] = None,
+        text: Optional[bool] = None,
     ) -> AsyncIterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with async streaming results.
         
@@ -373,6 +378,10 @@ class AsyncBookWyrmClient:
             chunk_size: Optional chunk size for fixed-size chunking
             response_format: Response format - use ResponseFormat enum, "with_offsets"/"offsets", or "text_only"/"text"
             spacy_model: SpaCy model to use for processing
+            offsets: Set to True for WITH_OFFSETS format (boolean flag)
+            with_offsets: Set to True for WITH_OFFSETS format (boolean flag)
+            text_only: Set to True for TEXT_ONLY format (boolean flag)
+            text: Set to True for TEXT_ONLY format (boolean flag)
 
         Yields:
             StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
@@ -391,7 +400,7 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     async for response in client.process_text(
                         text="Your text here",
-                        response_format="with_offsets"  # or ResponseFormat.WITH_OFFSETS
+                        offsets=True  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
                     ):
                         if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
                             phrases.append(response)
@@ -443,6 +452,19 @@ class AsyncBookWyrmClient:
         """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
+        
+        # Handle boolean flags for response format
+        boolean_flags = [offsets, with_offsets, text_only, text]
+        true_flags = [flag for flag in boolean_flags if flag is True]
+        
+        if len(true_flags) > 1:
+            raise ValueError("Only one response format flag can be True")
+        
+        if len(true_flags) == 1:
+            if offsets or with_offsets:
+                response_format = ResponseFormat.WITH_OFFSETS
+            elif text_only or text:
+                response_format = ResponseFormat.TEXT_ONLY
         
         # Convert string to enum if needed
         if isinstance(response_format, str):
