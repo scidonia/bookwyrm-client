@@ -12,23 +12,27 @@ Thank you for your interest in contributing to the BookWyrm client library! This
 ### Setting up the Development Environment
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/your-org/bookwyrm-client.git
    cd bookwyrm-client
    ```
 
-2. **Create a virtual environment:**
+1. **Create a virtual environment:**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies:**
+1. **Install dependencies:**
+
    ```bash
    pip install -e ".[dev]"
    ```
 
-4. **Set up pre-commit hooks:**
+1. **Set up pre-commit hooks:**
+
    ```bash
    pre-commit install
    ```
@@ -75,11 +79,13 @@ We use several tools to maintain code quality:
 - **mypy** for type checking
 
 Run all checks:
+
 ```bash
 make lint
 ```
 
 Format code:
+
 ```bash
 make format
 ```
@@ -89,16 +95,19 @@ make format
 We use pytest for testing. Tests are located in the `tests/` directory.
 
 Run tests:
+
 ```bash
 pytest
 ```
 
 Run tests with coverage:
+
 ```bash
 pytest --cov=bookwyrm --cov-report=html
 ```
 
 Run specific test files:
+
 ```bash
 pytest tests/test_client.py
 ```
@@ -106,11 +115,13 @@ pytest tests/test_client.py
 ### Adding New Features
 
 1. **Create a feature branch:**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-2. **Write tests first** (TDD approach):
+1. **Write tests first** (TDD approach):
+
    ```python
    # tests/test_new_feature.py
    def test_new_feature():
@@ -118,17 +129,20 @@ pytest tests/test_client.py
        pass
    ```
 
-3. **Implement the feature:**
+1. **Implement the feature:**
+
    - Add new models to `models.py` if needed
    - Add client methods to `client.py` and `async_client.py`
    - Add CLI commands to `cli.py` if applicable
 
-4. **Update documentation:**
+1. **Update documentation:**
+
    - Add docstrings to all new functions/classes
    - Update relevant documentation files in `docs/`
    - Add examples if appropriate
 
-5. **Test your changes:**
+1. **Test your changes:**
+
    ```bash
    pytest
    make lint
@@ -139,6 +153,7 @@ pytest tests/test_client.py
 When adding new Pydantic models:
 
 1. **Define the model in `models.py`:**
+
    ```python
    class NewModel(BaseModel):
        field1: str
@@ -150,17 +165,19 @@ When adding new Pydantic models:
            return self
    ```
 
-2. **Add to `__init__.py`:**
+1. **Add to `__init__.py`:**
+
    ```python
    from .models import NewModel
-   
+
    __all__ = [
        # ... existing exports
        "NewModel",
    ]
    ```
 
-3. **Write tests:**
+1. **Write tests:**
+
    ```python
    def test_new_model_validation():
        model = NewModel(field1="test")
@@ -172,6 +189,7 @@ When adding new Pydantic models:
 When adding new CLI commands:
 
 1. **Add the command to `cli.py`:**
+
    ```python
    @app.command()
    def new_command(
@@ -182,14 +200,16 @@ When adding new CLI commands:
        # Implementation
    ```
 
-2. **Add tests:**
+1. **Add tests:**
+
    ```python
    def test_new_command():
        result = runner.invoke(app, ["new-command", "test-arg"])
        assert result.exit_code == 0
    ```
 
-3. **Update CLI documentation:**
+1. **Update CLI documentation:**
+
    - Add command documentation to `docs/cli.md`
    - Include examples and option descriptions
 
@@ -281,35 +301,38 @@ def example_function(param1: str, param2: int = 0) -> bool:
 ### Pull Request Process
 
 1. **Ensure all tests pass:**
+
    ```bash
    pytest
    make lint
    ```
 
-2. **Update documentation** if needed
+1. **Update documentation** if needed
 
-3. **Create a pull request:**
+1. **Create a pull request:**
+
    - Use a descriptive title
    - Include a detailed description of changes
    - Reference any related issues
    - Add screenshots for UI changes
 
-4. **Pull request template:**
+1. **Pull request template:**
+
    ```markdown
    ## Description
    Brief description of changes
-   
+
    ## Type of Change
    - [ ] Bug fix
    - [ ] New feature
    - [ ] Breaking change
    - [ ] Documentation update
-   
+
    ## Testing
    - [ ] Tests pass locally
    - [ ] Added tests for new functionality
    - [ ] Updated documentation
-   
+
    ## Checklist
    - [ ] Code follows style guidelines
    - [ ] Self-review completed
@@ -329,6 +352,7 @@ type(scope): description
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -338,6 +362,7 @@ Types:
 - `chore`: Maintenance tasks
 
 Examples:
+
 ```
 feat(client): add support for PDF extraction
 fix(cli): handle missing API key gracefully
@@ -357,13 +382,13 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 ### Creating a Release
 
 1. **Update version in `pyproject.toml`**
-2. **Update CHANGELOG.md**
-3. **Create a git tag:**
+1. **Update CHANGELOG.md**
+1. **Create a git tag:**
    ```bash
    git tag v1.2.3
    git push origin v1.2.3
    ```
-4. **GitHub Actions will automatically publish to PyPI**
+1. **GitHub Actions will automatically publish to PyPI**
 
 ## Getting Help
 

@@ -472,45 +472,46 @@ class BookWyrmClient:
 
         try:
             request_data = request.model_dump(exclude_none=True)
-            
+
             # Debug: Print the HTTP request details if BOOKWYRM_DEBUG is set
             if os.getenv("BOOKWYRM_DEBUG") == "1":
                 print(f"DEBUG: Making POST request to: {self.base_url}/phrasal")
                 print(f"DEBUG: Request headers: {headers}")
                 print(f"DEBUG: Request JSON data: {json.dumps(request_data, indent=2)}")
-            
+
             response: requests.Response = self.session.post(
                 f"{self.base_url}/phrasal",
                 json=request_data,
                 headers=headers,
                 stream=True,
             )
-            
+
             # Debug: Print response details if BOOKWYRM_DEBUG is set
             if os.getenv("BOOKWYRM_DEBUG") == "1":
                 print(f"DEBUG: Response status code: {response.status_code}")
                 print(f"DEBUG: Response headers: {dict(response.headers)}")
-            
+
             response.raise_for_status()
 
             line_count = 0
             for line in response.iter_lines(decode_unicode=True):
                 line_count += 1
-                
+
                 # Debug: Print every line received if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
                     print(f"DEBUG: Line {line_count}: {repr(line)}")
-                
+
                 # Always yield raw line info for debugging if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
                     from types import SimpleNamespace
+
                     raw_line_response = SimpleNamespace()
                     raw_line_response.type = "raw_line_debug"
                     raw_line_response.raw_line = line
                     raw_line_response.line_stripped = line.strip() if line else ""
                     raw_line_response.line_length = len(line) if line else 0
                     yield raw_line_response
-                
+
                 if line and line.strip():
                     try:
                         data: Dict[str, Any] = json.loads(line)
@@ -526,12 +527,14 @@ class BookWyrmClient:
                             case _:
                                 # Unknown response type - create a generic response object for debugging
                                 from types import SimpleNamespace
+
                                 unknown_response = SimpleNamespace(**data)
                                 unknown_response.type = response_type
                                 yield unknown_response
                     except json.JSONDecodeError as e:
                         # Create a debug object for malformed JSON
                         from types import SimpleNamespace
+
                         error_response = SimpleNamespace()
                         error_response.type = "json_decode_error"
                         error_response.raw_line = line

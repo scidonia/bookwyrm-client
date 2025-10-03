@@ -3,7 +3,6 @@ site_description: Python client library for the BookWyrm API
 site_url: https://bookwyrm.ai
 repo_url: https://github.com/scidonia/bookwyrm
 repo_name: scidonia/bookwyrm
-
 theme:
   name: material
   palette:
@@ -27,7 +26,6 @@ theme:
     - search.highlight
     - search.share
     - content.code.copy
-
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
@@ -35,12 +33,11 @@ nav:
   - AI Integration: ai.md
   - CLI Reference: cli.md
   - API Reference:
-    - api/index.md
-    - Synchronous Client: api/client.md
-    - Asynchronous Client: api/async-client.md
-    - Models: api/models.md
+      - api/index.md
+      - Synchronous Client: api/client.md
+      - Asynchronous Client: api/async-client.md
+      - Models: api/models.md
   - Contributing: contributing.md
-
 plugins:
   - search
   - section-index
@@ -58,12 +55,11 @@ plugins:
             show_inheritance_diagram: false
             members_order: source
             filters:
-              - "!^_"  # Hide private methods
+              - "!^_" # Hide private methods
             show_signature_annotations: true
             separate_signature: true
             show_if_no_docstring: true
             show_signature: true
-
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -81,7 +77,6 @@ markdown_extensions:
   - toc:
       permalink: true
   - mkdocs-typer
-
 extra:
   social:
     - icon: fontawesome/brands/github

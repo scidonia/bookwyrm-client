@@ -3,10 +3,10 @@
 The BookWyrm client includes a comprehensive command-line interface for all text processing operations. The documentation below is automatically generated from the CLI code.
 
 ::: mkdocs-typer
-    :module: bookwyrm.cli
-    :command: app
-    :prog_name: bookwyrm
-    :depth: 2
+:module: bookwyrm.cli
+:command: app
+:prog_name: bookwyrm
+:depth: 2
 
 ## Additional Information
 
@@ -37,6 +37,7 @@ The CLI provides helpful error messages and exit codes:
 #### Citations Output
 
 **JSON format (non-streaming):**
+
 ```json
 [
   {
@@ -50,6 +51,7 @@ The CLI provides helpful error messages and exit codes:
 ```
 
 **JSONL format (streaming):**
+
 ```jsonl
 {"start_chunk": 0, "end_chunk": 0, "text": "Citation 1", "reasoning": "...", "quality": 3}
 {"start_chunk": 1, "end_chunk": 1, "text": "Citation 2", "reasoning": "...", "quality": 4}

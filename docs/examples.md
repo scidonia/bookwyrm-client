@@ -39,7 +39,6 @@ for response in client.stream_process_text(
 # - end_char: int (ending character position)
 ```
 
-
 ### Create Phrasal Text Chunks
 
 ```python
@@ -142,7 +141,6 @@ for citation in response.citations:
 # - quality: int (0-4 scale, 4=best)
 ```
 
-
 ### Streaming Citations with Progress
 
 ```python
@@ -242,7 +240,6 @@ for page in response.pages:
 # - coordinates: PDFBoundingBox (x1, y1, x2, y2 rectangle)
 ```
 
-
 ### Stream PDF Extraction with Progress
 
 ```python
@@ -335,7 +332,6 @@ if response.classification.details:
 # - classification_methods: Optional[List[str]]
 ```
 
-
 ## Text Summarization
 
 ### Basic Text Summarization
@@ -373,7 +369,6 @@ print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used}
 # - total_tokens: int (total tokens processed)
 # - intermediate_summaries: Optional[List[List[str]]] (debug info if requested)
 ```
-
 
 ### Summarize from URL
 

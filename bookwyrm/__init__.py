@@ -2,6 +2,7 @@
 
 try:
     from importlib.metadata import version
+
     __version__ = version("bookwyrm")
 except ImportError:
     # Fallback for Python < 3.8 or if package not installed
@@ -68,7 +69,7 @@ __all__ = [
     "ProcessTextRequest",
     "ResponseFormat",
     "PhraseProgressUpdate",
-    "TextResult", 
+    "TextResult",
     "TextSpanResult",
     "StreamingPhrasalResponse",
     "ClassifyRequest",

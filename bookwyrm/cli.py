@@ -23,6 +23,7 @@ from rich.layout import Layout
 
 try:
     from importlib.metadata import version
+
     __version__ = version("bookwyrm")
 except ImportError:
     __version__ = "unknown"
@@ -250,23 +251,27 @@ bookwyrm classify document.pdf -o classification.json
 
 For detailed help on any command, use: `bookwyrm COMMAND --help`
 """,
-    rich_markup_mode="markdown"
+    rich_markup_mode="markdown",
 )
+
 
 def version_callback(value: bool):
     if value:
         typer.echo(f"bookwyrm {__version__}")
         raise typer.Exit()
 
+
 @app.callback()
 def main(
     version: Annotated[
-        Optional[bool], 
-        typer.Option("--version", callback=version_callback, help="Show version and exit")
+        Optional[bool],
+        typer.Option(
+            "--version", callback=version_callback, help="Show version and exit"
+        ),
     ] = None,
 ):
     """BookWyrm Client CLI - Accelerate RAG and AI agent development.
-    
+
     The BookWyrm client provides powerful text processing capabilities for building
     sophisticated document analysis and citation systems.
     """
@@ -319,7 +324,10 @@ def validate_api_key(api_key: Optional[str]) -> None:
 def cite(
     question: Annotated[str, typer.Argument(help="The question to find citations for")],
     jsonl_input: Annotated[
-        Optional[str], typer.Argument(help="Path to JSONL file containing text chunks (optional if using --file or --url)")
+        Optional[str],
+        typer.Argument(
+            help="Path to JSONL file containing text chunks (optional if using --file or --url)"
+        ),
     ] = None,
     url: Annotated[
         Optional[str],
@@ -341,9 +349,14 @@ def cite(
     limit: Annotated[
         Optional[int], typer.Option(help="Limit number of chunks to process")
     ] = None,
-    max_tokens: Annotated[int, typer.Option(help="Maximum tokens per chunk (default: 1000)")] = 1000,
+    max_tokens: Annotated[
+        int, typer.Option(help="Maximum tokens per chunk (default: 1000)")
+    ] = 1000,
     stream: Annotated[
-        bool, typer.Option("--stream/--no-stream", help="Use streaming API (default: --stream)")
+        bool,
+        typer.Option(
+            "--stream/--no-stream", help="Use streaming API (default: --stream)"
+        ),
     ] = True,
     base_url: Annotated[
         Optional[str],
@@ -362,38 +375,38 @@ def cite(
     ] = False,
 ):
     """Find citations for a question in text chunks.
-    
+
     This command searches through text chunks to find relevant citations that answer
     a specific question. It supports both local JSONL files and remote URLs.
-    
+
     ## Input Format
-    
+
     The JSONL file should contain text chunks in this format:
     ```json
     {"text": "chunk text", "start_char": 0, "end_char": 10}
     ```
-    
+
     ## Examples
-    
+
     ```bash
     # Basic citation finding
     bookwyrm cite "What is machine learning?" ml_chunks.jsonl
-    
-    # With output file  
+
+    # With output file
     bookwyrm cite "Climate change causes" data.jsonl -o citations.json
-    
+
     # Streaming with verbose output
     bookwyrm cite "AI applications" chunks.jsonl --stream -v
-    
+
     # From URL
     bookwyrm cite "Question here" --url https://example.com/chunks.jsonl
-    
+
     # Limit processing
     bookwyrm cite "Question" data.jsonl --start 10 --limit 50
     ```
-    
+
     ## Output Formats
-    
+
     - **JSON (non-streaming)**: Array of citation objects
     - **JSONL (streaming)**: One citation per line as they're found
     """
@@ -498,7 +511,11 @@ def cite(
                             f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
                         )
                         if response.usage:
-                            cost_str = f"${response.usage.estimated_cost:.4f}" if response.usage.estimated_cost is not None else "N/A"
+                            cost_str = (
+                                f"${response.usage.estimated_cost:.4f}"
+                                if response.usage.estimated_cost is not None
+                                else "N/A"
+                            )
                             console.print(
                                 f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                             )
@@ -520,7 +537,11 @@ def cite(
 
             console.print(f"[green]Found {response.total_citations} citations[/green]")
             if response.usage:
-                cost_str = f"${response.usage.estimated_cost:.4f}" if response.usage.estimated_cost is not None else "N/A"
+                cost_str = (
+                    f"${response.usage.estimated_cost:.4f}"
+                    if response.usage.estimated_cost is not None
+                    else "N/A"
+                )
                 console.print(
                     f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                 )
@@ -552,11 +573,17 @@ def summarize(
         typer.Option("-o", "--output", help="Output file for summary (JSON format)"),
     ] = None,
     max_tokens: Annotated[
-        int, typer.Option(help="Maximum tokens per chunk (max: 131,072, default: 10000)")
+        int,
+        typer.Option(help="Maximum tokens per chunk (max: 131,072, default: 10000)"),
     ] = 10000,
-    include_debug: Annotated[bool, typer.Option("--include-debug", help="Include intermediate summaries")] = False,
+    include_debug: Annotated[
+        bool, typer.Option("--include-debug", help="Include intermediate summaries")
+    ] = False,
     stream: Annotated[
-        bool, typer.Option("--stream/--no-stream", help="Use streaming API (default: --stream)")
+        bool,
+        typer.Option(
+            "--stream/--no-stream", help="Use streaming API (default: --stream)"
+        ),
     ] = True,
     # Structured output options (commented out)
     # model_class_file: Annotated[
@@ -725,36 +752,36 @@ def summarize(
     # if model_class_file and model_class_name:
     #     try:
     #         console.print(f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]")
-    #         
+    #
     #         # Load the Python file as a module
     #         import importlib.util
     #         import sys
-    #         
+    #
     #         spec = importlib.util.spec_from_file_location("user_model", model_class_file)
     #         if spec is None or spec.loader is None:
     #             raise ImportError(f"Could not load module from {model_class_file}")
-    #         
+    #
     #         user_module = importlib.util.module_from_spec(spec)
     #         sys.modules["user_model"] = user_module
     #         spec.loader.exec_module(user_module)
-    #         
+    #
     #         # Get the model class
     #         if not hasattr(user_module, model_class_name):
     #             raise AttributeError(f"Class '{model_class_name}' not found in {model_class_file}")
-    #         
+    #
     #         model_class = getattr(user_module, model_class_name)
-    #         
+    #
     #         # Validate it's a Pydantic model
     #         from pydantic import BaseModel
     #         if not issubclass(model_class, BaseModel):
     #             raise TypeError(f"Class '{model_class_name}' must be a Pydantic BaseModel")
-    #         
+    #
     #         # Get the schema
     #         model_name = model_class_name
     #         model_schema_json = json.dumps(model_class.model_json_schema())
-    #         
+    #
     #         console.print(f"[green]Successfully loaded model class '{model_class_name}'[/green]")
-    #         
+    #
     #     except Exception as e:
     #         console.print(f"[red]Error loading model class: {e}[/red]")
     #         raise typer.Exit(1)
@@ -807,13 +834,19 @@ def summarize(
                         )
 
                     elif isinstance(response, RateLimitMessage):
-                        console.print(f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]", end="\r")
+                        console.print(
+                            f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]",
+                            end="\r",
+                        )
 
                     elif isinstance(response, StructuralErrorMessage):
                         if response.error_type == "fallback":
                             console.print(f"[orange1]⚠ {response.message}[/orange1]")
                         else:
-                            console.print(f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]", end="\r")
+                            console.print(
+                                f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]",
+                                end="\r",
+                            )
 
                     elif isinstance(response, SummaryResponse):
                         final_result = response
@@ -859,7 +892,7 @@ def summarize(
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
             console.print("\n[bold]Final Summary:[/bold]")
-            
+
             # Structured output display (commented out)
             # If we used a structured model, try to parse and display the JSON nicely
             # if model_name and model_schema_json:
@@ -887,7 +920,7 @@ def summarize(
                     #     except json.JSONDecodeError:
                     #         # Keep as string if parsing fails
                     #         pass
-                    
+
                     output_data = {
                         "summary": summary_data,
                         "subsummary_count": final_result.subsummary_count,
@@ -897,7 +930,9 @@ def summarize(
                         "max_tokens": max_tokens,
                         # "model_used": model_name if model_name else None,
                         "intermediate_summaries": (
-                            final_result.intermediate_summaries if include_debug else None
+                            final_result.intermediate_summaries
+                            if include_debug
+                            else None
                         ),
                     }
 
@@ -936,7 +971,7 @@ def summarize(
                         console.print(f"[dim]{i}.[/dim] {summary}")
 
             console.print("\n[bold]Final Summary:[/bold]")
-            
+
             # If we used a structured model, try to parse and display the JSON nicely
             if model_name and model_schema_json:
                 try:
@@ -963,7 +998,7 @@ def summarize(
                     #     except json.JSONDecodeError:
                     #         # Keep as string if parsing fails
                     #         pass
-                    
+
                     output_data = {
                         "summary": summary_data,
                         "subsummary_count": response.subsummary_count,
@@ -998,12 +1033,13 @@ def summarize(
 
 @app.command()
 def phrasal(
-    input_text: Annotated[Optional[str], typer.Argument(help="Text to process (optional if using --url or --file)")] = None,
+    input_text: Annotated[
+        Optional[str],
+        typer.Argument(help="Text to process (optional if using --url or --file)"),
+    ] = None,
     url: Annotated[
         Optional[str],
-        typer.Option(
-            help="URL to fetch text from"
-        ),
+        typer.Option(help="URL to fetch text from"),
     ] = None,
     file: Annotated[
         Optional[Path],
@@ -1019,7 +1055,9 @@ def phrasal(
             help="Target size for each chunk (if not specified, returns phrases individually)"
         ),
     ] = None,
-    text_only: Annotated[bool, typer.Option("--text-only", help="Return text only without position data")] = False,
+    text_only: Annotated[
+        bool, typer.Option("--text-only", help="Return text only without position data")
+    ] = False,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1037,55 +1075,55 @@ def phrasal(
     ] = False,
 ):
     """Stream text processing using phrasal analysis to extract phrases or chunks.
-    
+
     This command breaks down text into meaningful phrases or chunks using NLP with
     real-time streaming results. It supports processing from direct text input, files, or URLs.
-    
+
     ## Response Formats
-    
+
     - **with_offsets**: Include character position information (start_char, end_char)
     - **text_only**: Return only the text content without position data
-    
+
     ## Response Format Control
-    
+
     - **Default**: Include character position information (with_offsets)
     - **--text-only**: Return only text content without position data
-    
+
     ## Chunking
-    
+
     Use `--chunk-size` to create chunks of approximately the specified character count.
     Without `--chunk-size`, returns individual phrases.
-    
+
     ## Examples
-    
+
     ```bash
     # Process text directly
     bookwyrm phrasal "Natural language processing is fascinating." -o phrases.jsonl
-    
+
     # Process file with position offsets (default behavior)
     bookwyrm phrasal -f document.txt --output phrases.jsonl
-    
+
     # Create chunks of specific size (with position offsets by default)
     bookwyrm phrasal -f large_text.txt --chunk-size 1000 --output chunks.jsonl
-    
+
     # Process from URL
     bookwyrm phrasal --url https://example.com/text.txt --output phrases.jsonl
-    
+
     # Text only format using boolean flag
     bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
-    
+
     # Text-only format (no position data)
     bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
-    
+
     ```
-    
+
     ## Output Format
-    
+
     JSONL file with one phrase/chunk per line:
     ```json
     {"type": "text_span", "text": "phrase text", "start_char": 0, "end_char": 12}
     ```
-    
+
     Or for text-only format:
     ```json
     {"type": "text", "text": "phrase text"}
@@ -1156,12 +1194,12 @@ def phrasal(
                 response_format = ResponseFormat.TEXT_ONLY
             else:
                 response_format = ResponseFormat.WITH_OFFSETS  # default
-            
+
             for response in client.stream_process_text(
                 text=text,
                 text_url=url,
                 chunk_size=chunk_size,
-                response_format=response_format
+                response_format=response_format,
             ):
                 # Show ALL responses in debug mode FIRST
                 debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
@@ -1169,19 +1207,29 @@ def phrasal(
                     console.print(f"[blue]DEBUG - Raw response received:[/blue]")
                     console.print(f"[dim]Type: {type(response)}[/dim]")
                     console.print(f"[dim]String representation: {response}[/dim]")
-                    if hasattr(response, 'model_dump_json'):
-                        console.print(f"[dim]JSON: {response.model_dump_json(exclude_none=True)}[/dim]")
-                    elif hasattr(response, '__dict__'):
+                    if hasattr(response, "model_dump_json"):
+                        console.print(
+                            f"[dim]JSON: {response.model_dump_json(exclude_none=True)}[/dim]"
+                        )
+                    elif hasattr(response, "__dict__"):
                         console.print(f"[dim]Dict: {response.__dict__}[/dim]")
-                    console.print(f"[dim]Attributes: {[attr for attr in dir(response) if not attr.startswith('_')]}[/dim]")
-                    console.print("[dim]" + "="*50 + "[/dim]")
+                    console.print(
+                        f"[dim]Attributes: {[attr for attr in dir(response) if not attr.startswith('_')]}[/dim]"
+                    )
+                    console.print("[dim]" + "=" * 50 + "[/dim]")
 
                 # Handle raw line debug responses
-                if hasattr(response, 'type') and response.type == "raw_line_debug":
+                if hasattr(response, "type") and response.type == "raw_line_debug":
                     if debug_enabled:
-                        console.print(f"[cyan]RAW LINE DEBUG:[/cyan] length={response.line_length}")
-                        console.print(f"[cyan]Raw line:[/cyan] {repr(response.raw_line)}")
-                        console.print(f"[cyan]Stripped:[/cyan] {repr(response.line_stripped)}")
+                        console.print(
+                            f"[cyan]RAW LINE DEBUG:[/cyan] length={response.line_length}"
+                        )
+                        console.print(
+                            f"[cyan]Raw line:[/cyan] {repr(response.raw_line)}"
+                        )
+                        console.print(
+                            f"[cyan]Stripped:[/cyan] {repr(response.line_stripped)}"
+                        )
                     continue  # Don't process raw debug lines further
 
                 if isinstance(response, PhraseProgressUpdate):
@@ -1224,10 +1272,14 @@ def phrasal(
                     # Unknown response types - always show these in debug mode
                     debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
                     if debug_enabled or state.verbose:
-                        console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
+                        console.print(
+                            f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]"
+                        )
                         # Also show the raw data for unknown types
-                        if hasattr(response, 'model_dump'):
-                            console.print(f"[yellow]Raw data: {response.model_dump()}[/yellow]")
+                        if hasattr(response, "model_dump"):
+                            console.print(
+                                f"[yellow]Raw data: {response.model_dump()}[/yellow]"
+                            )
 
             progress.update(task, description="Complete!")
 
@@ -1280,13 +1332,12 @@ def phrasal(
 @app.command()
 def classify(
     file_path: Annotated[
-        Optional[Path], typer.Argument(help="File to classify (optional if using --file or --url)")
+        Optional[Path],
+        typer.Argument(help="File to classify (optional if using --file or --url)"),
     ] = None,
     url: Annotated[
         Optional[str],
-        typer.Option(
-            help="URL to classify"
-        ),
+        typer.Option(help="URL to classify"),
     ] = None,
     file: Annotated[
         Optional[Path], typer.Option("--file", help="File to classify", exists=True)
@@ -1319,37 +1370,37 @@ def classify(
     ] = False,
 ):
     """Classify files to determine their type and format.
-    
+
     This command analyzes files or URLs to determine their format type, content type,
     MIME type, and other classification details. It supports both local files and
     remote URLs.
-    
+
     ## Classification Includes
-    
+
     - **Format type** (text, image, binary, archive, etc.)
     - **Content type** (python_code, json_data, jpeg_image, etc.)
     - **MIME type** detection
     - **Confidence score** (0.0-1.0)
     - **Additional details** (encoding, language, etc.)
-    
+
     ## Examples
-    
+
     ```bash
     # Classify local file
     bookwyrm classify document.pdf
-    
+
     # Classify from URL
     bookwyrm classify --url https://example.com/file.dat
-    
+
     # With output file
     bookwyrm classify unknown_file.bin --output classification.json
-    
+
     # With filename hint
     bookwyrm classify data.txt --filename "research_data.csv" --output results.json
     ```
-    
+
     ## Output Format
-    
+
     JSON file containing classification results, file size, and sample preview
     """
 
@@ -1379,6 +1430,7 @@ def classify(
         try:
             # Always read as binary and base64 encode for multipart upload
             import base64
+
             binary_content = actual_file.read_bytes()
             content = base64.b64encode(binary_content).decode("ascii")
             console.print(
@@ -1396,18 +1448,21 @@ def classify(
         try:
             import httpx
             import base64
-            
+
             with httpx.Client() as client:
                 response = client.get(url)
                 response.raise_for_status()
                 content = base64.b64encode(response.content).decode("ascii")
-                
-            console.print(f"[blue]Downloaded {len(response.content)} bytes from URL[/blue]")
-            
+
+            console.print(
+                f"[blue]Downloaded {len(response.content)} bytes from URL[/blue]"
+            )
+
             # Extract filename hint from URL if not provided
             effective_filename = filename
             if not effective_filename:
                 from urllib.parse import urlparse
+
                 parsed_url = urlparse(url)
                 if parsed_url.path:
                     potential_filename = parsed_url.path.split("/")[-1]
@@ -1512,13 +1567,14 @@ def classify(
 @app.command()
 def extract_pdf(
     pdf_file: Annotated[
-        Optional[Path], typer.Argument(help="PDF file to extract from (optional if using --file or --url)")
+        Optional[Path],
+        typer.Argument(
+            help="PDF file to extract from (optional if using --file or --url)"
+        ),
     ] = None,
     url: Annotated[
         Optional[str],
-        typer.Option(
-            help="PDF URL to extract from"
-        ),
+        typer.Option(help="PDF URL to extract from"),
     ] = None,
     file: Annotated[
         Optional[Path],
@@ -1541,7 +1597,11 @@ def extract_pdf(
         typer.Option(help="Number of pages to process from start_page"),
     ] = None,
     stream: Annotated[
-        bool, typer.Option("--stream/--no-stream", help="Use streaming API with progress (default: --stream)")
+        bool,
+        typer.Option(
+            "--stream/--no-stream",
+            help="Use streaming API with progress (default: --stream)",
+        ),
     ] = True,
     base_url: Annotated[
         Optional[str],
@@ -1560,50 +1620,50 @@ def extract_pdf(
     ] = False,
 ):
     """Extract structured data from PDF files using OCR.
-    
+
     This command extracts text elements from PDF files with position coordinates,
     confidence scores, and bounding box information. It supports both local files
     and remote URLs, with optional page range selection.
-    
+
     ## Features
-    
+
     - **OCR-based text extraction** with confidence scores
     - **Bounding box coordinates** for each text element
     - **Page range selection** (start_page + num_pages)
     - **Streaming progress updates**
     - **Support for both local files and URLs**
-    
+
     ## Page Selection
-    
+
     - `start_page`: 1-based page number to begin extraction
     - `num_pages`: Number of pages to process from start_page
     - Omit both to process entire document
-    
+
     ## Examples
-    
+
     ```bash
     # Extract entire PDF
     bookwyrm extract-pdf document.pdf --output extracted.json
-    
+
     # Extract specific pages
     bookwyrm extract-pdf large_doc.pdf --start-page 5 --num-pages 10 --output pages_5_14.json
-    
+
     # Extract from URL
     bookwyrm extract-pdf --url https://example.com/document.pdf --output extracted.json
-    
+
     # Non-streaming mode
     bookwyrm extract-pdf doc.pdf --no-stream --output extracted.json
-    
+
     # Verbose output
     bookwyrm extract-pdf document.pdf -v --output extracted.json
-    
+
     # Auto-save with generated filename (no --output needed)
     bookwyrm extract-pdf my_document.pdf --start-page 5 --num-pages 3
     # Saves to: my_document_pages_5-7_extracted.json
     ```
-    
+
     ## Output Format
-    
+
     JSON file containing pages array with text elements, coordinates, and metadata
     """
 
@@ -1634,21 +1694,22 @@ def extract_pdf(
         if not actual_file.exists():
             console.print(f"[red]Error: File not found: {actual_file}[/red]")
             raise typer.Exit(1)
-            
+
         console.print(f"[blue]Reading PDF file: {actual_file}[/blue]")
-        
+
         try:
             # Read file as binary and base64 encode
             import base64
+
             pdf_bytes = actual_file.read_bytes()
-            pdf_content = base64.b64encode(pdf_bytes).decode('ascii')
+            pdf_content = base64.b64encode(pdf_bytes).decode("ascii")
             console.print(f"[green]Loaded PDF file ({len(pdf_bytes)} bytes)[/green]")
-            
+
             request = PDFExtractRequest(
                 pdf_content=pdf_content,
                 filename=actual_file.name,
                 start_page=start_page,
-                num_pages=num_pages
+                num_pages=num_pages,
             )
         except Exception as e:
             console.print(f"[red]Error reading PDF file: {e}[/red]")
@@ -1657,9 +1718,7 @@ def extract_pdf(
         # Use URL
         console.print(f"[blue]Using PDF from URL: {url}[/blue]")
         request = PDFExtractRequest(
-            pdf_url=url,
-            start_page=start_page,
-            num_pages=num_pages
+            pdf_url=url, start_page=start_page, num_pages=num_pages
         )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
@@ -1676,7 +1735,7 @@ def extract_pdf(
 
             pages = []
             total_elements = 0
-            
+
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -1685,7 +1744,9 @@ def extract_pdf(
                 console=console,
             ) as progress:
 
-                task = progress.add_task("Processing PDF...", total=100)  # Start with 100 as placeholder
+                task = progress.add_task(
+                    "Processing PDF...", total=100
+                )  # Start with 100 as placeholder
 
                 for response in client.stream_extract_pdf(request):
                     if isinstance(response, PDFStreamMetadata):
@@ -1704,13 +1765,13 @@ def extract_pdf(
                     elif isinstance(response, PDFStreamPageResponse):
                         pages.append(response.page_data)
                         total_elements += len(response.page_data.text_blocks)
-                        
+
                         progress.update(
                             task,
                             completed=response.current_page,
                             description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
                         )
-                        
+
                         if state.verbose:
                             console.print(
                                 f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
@@ -1721,7 +1782,9 @@ def extract_pdf(
                             completed=response.current_page,
                             description=f"Error on page {response.document_page}",
                         )
-                        console.print(f"[red]Error on page {response.document_page}: {response.error}[/red]")
+                        console.print(
+                            f"[red]Error on page {response.document_page}: {response.error}[/red]"
+                        )
                     elif isinstance(response, PDFStreamComplete):
                         progress.update(
                             task,
@@ -1751,27 +1814,26 @@ def extract_pdf(
                     for element in page.text_blocks:
                         if element_count >= 20:
                             break
-                        
+
                         position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
                         confidence = f"{element.confidence:.2f}"
                         text_preview = (
-                            element.text[:60] + "..." if len(element.text) > 60 else element.text
+                            element.text[:60] + "..."
+                            if len(element.text) > 60
+                            else element.text
                         )
-                        
+
                         table.add_row(
-                            str(page.page_number),
-                            position,
-                            confidence,
-                            text_preview
+                            str(page.page_number), position, confidence, text_preview
                         )
                         element_count += 1
-                    
+
                     if element_count >= 20:
                         break
-                
+
                 if total_elements > 20:
                     table.add_row("...", "...", "...", "...")
-                
+
                 console.print(table)
 
             # Save to output file (specified or default)
@@ -1782,22 +1844,29 @@ def extract_pdf(
                         base_name = actual_file.stem
                     elif url:
                         from urllib.parse import urlparse
+
                         parsed = urlparse(url)
-                        base_name = parsed.path.split("/")[-1].replace(".pdf", "") if parsed.path else "pdf_extract"
+                        base_name = (
+                            parsed.path.split("/")[-1].replace(".pdf", "")
+                            if parsed.path
+                            else "pdf_extract"
+                        )
                         if not base_name or base_name == "":
                             base_name = "pdf_extract"
                     else:
                         base_name = "pdf_extract"
-                    
+
                     # Add page range to filename if specified
                     if start_page or num_pages:
                         page_suffix = f"_pages_{start_page or 1}"
                         if num_pages:
                             page_suffix += f"-{(start_page or 1) + num_pages - 1}"
                         base_name += page_suffix
-                    
+
                     output = Path(f"{base_name}_extracted.json")
-                    console.print(f"[dim]No output file specified, saving to: {output}[/dim]")
+                    console.print(
+                        f"[dim]No output file specified, saving to: {output}[/dim]"
+                    )
 
                 try:
                     output_data = {
@@ -1812,8 +1881,12 @@ def extract_pdf(
                         },
                     }
 
-                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
-                    console.print(f"\n[green]Extraction results saved to: {output}[/green]")
+                    output.write_text(
+                        json.dumps(output_data, indent=2), encoding="utf-8"
+                    )
+                    console.print(
+                        f"\n[green]Extraction results saved to: {output}[/green]"
+                    )
                 except Exception as e:
                     console.print(f"[red]Error saving to {output}: {e}[/red]")
 
@@ -1833,12 +1906,14 @@ def extract_pdf(
 
             # Display summary
             console.print(f"[green]Extracted {response.total_pages} pages[/green]")
-            
+
             total_elements = sum(len(page.text_blocks) for page in response.pages)
             console.print(f"[green]Found {total_elements} text elements[/green]")
-            
+
             if response.processing_time:
-                console.print(f"[dim]Processing time: {response.processing_time:.2f}s[/dim]")
+                console.print(
+                    f"[dim]Processing time: {response.processing_time:.2f}s[/dim]"
+                )
 
             # Display detailed results if verbose
             if state.verbose and response.pages:
@@ -1854,53 +1929,61 @@ def extract_pdf(
                     for element in page.text_blocks:
                         if element_count >= 20:
                             break
-                        
+
                         position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
                         confidence = f"{element.confidence:.2f}"
                         text_preview = (
-                            element.text[:60] + "..." if len(element.text) > 60 else element.text
+                            element.text[:60] + "..."
+                            if len(element.text) > 60
+                            else element.text
                         )
-                        
+
                         table.add_row(
-                            str(page.page_number),
-                            position,
-                            confidence,
-                            text_preview
+                            str(page.page_number), position, confidence, text_preview
                         )
                         element_count += 1
-                    
+
                     if element_count >= 20:
                         break
-                
+
                 if total_elements > 20:
                     table.add_row("...", "...", "...", "...")
-                
+
                 console.print(table)
 
             # Save to output file (specified or default)
-            if output or response.pages:  # Save if output specified OR if we have pages to save
+            if (
+                output or response.pages
+            ):  # Save if output specified OR if we have pages to save
                 if not output:
                     # Generate default filename
                     if actual_file:
                         base_name = actual_file.stem
                     elif url:
                         from urllib.parse import urlparse
+
                         parsed = urlparse(url)
-                        base_name = parsed.path.split("/")[-1].replace(".pdf", "") if parsed.path else "pdf_extract"
+                        base_name = (
+                            parsed.path.split("/")[-1].replace(".pdf", "")
+                            if parsed.path
+                            else "pdf_extract"
+                        )
                         if not base_name or base_name == "":
                             base_name = "pdf_extract"
                     else:
                         base_name = "pdf_extract"
-                    
+
                     # Add page range to filename if specified
                     if start_page or num_pages:
                         page_suffix = f"_pages_{start_page or 1}"
                         if num_pages:
                             page_suffix += f"-{(start_page or 1) + num_pages - 1}"
                         base_name += page_suffix
-                    
+
                     output = Path(f"{base_name}_extracted.json")
-                    console.print(f"[dim]No output file specified, saving to: {output}[/dim]")
+                    console.print(
+                        f"[dim]No output file specified, saving to: {output}[/dim]"
+                    )
 
                 try:
                     output_data = {
@@ -1916,8 +1999,12 @@ def extract_pdf(
                         },
                     }
 
-                    output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
-                    console.print(f"\n[green]Extraction results saved to: {output}[/green]")
+                    output.write_text(
+                        json.dumps(output_data, indent=2), encoding="utf-8"
+                    )
+                    console.print(
+                        f"\n[green]Extraction results saved to: {output}[/green]"
+                    )
                 except Exception as e:
                     console.print(f"[red]Error saving to {output}: {e}[/red]")
 

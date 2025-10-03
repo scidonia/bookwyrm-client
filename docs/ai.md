@@ -140,6 +140,7 @@ async def robust_citation_search(chunks: List[TextSpan], question: str, max_retr
 ## Minimal Working Examples
 
 ### Citation Finding (3 lines)
+
 ```python
 async with AsyncBookWyrmClient(api_key="key") as client:
     response = await client.get_citations(chunks=text_chunks, question="What is X?")
@@ -147,6 +148,7 @@ async with AsyncBookWyrmClient(api_key="key") as client:
 ```
 
 ### Document Processing (4 lines)
+
 ```python
 chunks = []
 async with AsyncBookWyrmClient() as client:
@@ -155,6 +157,7 @@ async with AsyncBookWyrmClient() as client:
 ```
 
 ### PDF Analysis (3 lines)
+
 ```python
 async with AsyncBookWyrmClient() as client:
     response = await client.extract_pdf(pdf_bytes=pdf_data)
@@ -164,6 +167,7 @@ async with AsyncBookWyrmClient() as client:
 ## Performance Optimization for AI Systems
 
 ### Batch Processing
+
 ```python
 async def batch_process_citations(chunk_groups: List[List[TextSpan]], questions: List[str]):
     """Process multiple citation requests concurrently."""
@@ -176,6 +180,7 @@ async def batch_process_citations(chunk_groups: List[List[TextSpan]], questions:
 ```
 
 ### Memory-Efficient Streaming
+
 ```python
 async def stream_large_document(text: str, chunk_size: int = 2000):
     """Process large documents without loading everything into memory."""
@@ -206,101 +211,101 @@ async def stream_large_document(text: str, chunk_size: int = 2000):
 ## Core Models
 
 ::: bookwyrm.models.TextSpan
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.Citation
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.CitationResponse
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.PDFExtractResponse
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.ClassifyResponse
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.SummaryResponse
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.TextResult
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ::: bookwyrm.models.TextSpanResult
-    options:
-      show_root_heading: true
-      members_order: source
-      show_bases: true
-      inherited_members: true
+options:
+show_root_heading: true
+members_order: source
+show_bases: true
+inherited_members: true
 
 ## Synchronous Client Methods
 
 ::: bookwyrm.BookWyrmClient.classify
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.extract_pdf
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.stream_process_text
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.get_citations
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.BookWyrmClient.summarize
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ## Asynchronous Client Methods
 
 ::: bookwyrm.AsyncBookWyrmClient.classify
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.extract_pdf
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.stream_process_text
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.get_citations
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
 
 ::: bookwyrm.AsyncBookWyrmClient.summarize
-    options:
-      show_root_heading: true
+options:
+show_root_heading: true
