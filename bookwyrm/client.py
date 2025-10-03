@@ -424,7 +424,7 @@ class BookWyrmClient:
             # Save to JSONL file
             with open("alice_phrases.jsonl", "w") as f:
                 for response in client.process_text(
-                    text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+                    text_url="https://www.gutenberg.org/files/11/11-0.txt",
                     chunk_size=2000,
                     text_only=True  # boolean flag for TEXT_ONLY
                 ):
