@@ -1164,11 +1164,19 @@ def phrasal(
             task = progress.add_task("Processing text...", total=None)
 
             # Use function-based interface with boolean flags
+            # Convert format string to ResponseFormat enum
+            if format == "with_offsets":
+                response_format = ResponseFormat.WITH_OFFSETS
+            elif format == "text_only":
+                response_format = ResponseFormat.TEXT_ONLY
+            else:
+                response_format = ResponseFormat.WITH_OFFSETS  # default
+            
             for response in client.stream_process_text(
                 text=text,
                 text_url=url,
                 chunk_size=chunk_size,
-                response_format=format
+                response_format=response_format
             ):
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
