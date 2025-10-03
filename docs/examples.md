@@ -31,6 +31,12 @@ for response in client.process_text(request):
         print(f"Phrase: {response.text}")
         if response.start_char is not None:
             print(f"Position: {response.start_char}-{response.end_char}")
+
+# phrases is now List[PhraseResult] where each PhraseResult has:
+# - type: Literal["phrase"] 
+# - text: str
+# - start_char: Optional[int]
+# - end_char: Optional[int]
 ```
 
 ### Create Text Chunks
@@ -49,6 +55,12 @@ for response in client.process_text(request):
         chunks.append(response)
 
 print(f"Created {len(chunks)} chunks")
+
+# chunks is now List[PhraseResult] where each chunk has:
+# - type: Literal["phrase"]
+# - text: str (the chunk content)
+# - start_char: Optional[int] (position in original text)
+# - end_char: Optional[int] (position in original text)
 ```
 
 ### Process Text from URL
@@ -104,6 +116,18 @@ response = client.get_citations(request)
 print(f"Found {response.total_citations} citations:")
 for citation in response.citations:
     print(f"- Quality {citation.quality}/4: {citation.text}")
+
+# response is CitationResponse with:
+# - citations: List[Citation] 
+# - total_citations: int
+# - usage: Optional[UsageInfo]
+#
+# Each Citation has:
+# - start_chunk: int (inclusive)
+# - end_chunk: int (inclusive) 
+# - text: str (the citation content)
+# - reasoning: str (why it's relevant)
+# - quality: int (0-4 scale, 4=best)
 ```
 
 ### Streaming Citations with Progress
@@ -123,6 +147,14 @@ with Progress(SpinnerColumn(), TextColumn("{task.description}")) as progress:
             print(f"Found: {update.citation.text[:50]}...")
 
 print(f"Total citations found: {len(citations)}")
+
+# update can be one of:
+# - CitationProgressUpdate: type="progress", message: str, chunks_processed: int, etc.
+# - CitationStreamResponse: type="citation", citation: Citation
+# - CitationSummaryResponse: type="summary", total_citations: int, usage: UsageInfo
+# - CitationErrorResponse: type="error", error: str
+#
+# citations is List[Citation] (same structure as non-streaming)
 ```
 
 ### Using JSONL Files
@@ -162,6 +194,14 @@ print("Summary:")
 print(response.summary)
 print(f"\nUsed {response.levels_used} levels")
 print(f"Created {response.subsummary_count} subsummaries")
+
+# response is SummaryResponse with:
+# - type: Literal["summary"]
+# - summary: str (the final summary text)
+# - subsummary_count: int
+# - levels_used: int (hierarchical levels)
+# - total_tokens: int
+# - intermediate_summaries: Optional[List[List[str]]] (if debug=True)
 ```
 
 
@@ -191,6 +231,24 @@ for page in response.pages:
     print(f"Page {page.page_number}: {len(page.text_blocks)} text elements")
     for element in page.text_blocks[:3]:  # Show first 3 elements
         print(f"  - {element.text[:50]}...")
+
+# response is PDFExtractResponse with:
+# - pages: List[PDFPage]
+# - total_pages: int
+# - extraction_method: str (e.g., "paddleocr")
+# - processing_time: Optional[float]
+#
+# Each PDFPage has:
+# - page_number: int (1-based)
+# - text_blocks: List[PDFTextElement]
+# - tables: List[dict] (placeholder)
+# - images: List[dict] (placeholder)
+#
+# Each PDFTextElement has:
+# - text: str (extracted text)
+# - confidence: float (0.0-1.0 OCR confidence)
+# - bbox: List[List[float]] (raw polygon coordinates)
+# - coordinates: PDFBoundingBox (x1, y1, x2, y2 rectangle)
 ```
 
 ### Stream PDF Extraction with Progress
@@ -216,6 +274,15 @@ with Progress(BarColumn(), TaskProgressColumn()) as progress:
             progress.update(task, completed=response.current_page)
 
 print(f"Extracted {len(pages)} pages")
+
+# response can be one of:
+# - PDFStreamMetadata: type="metadata", total_pages: int, start_page: int, etc.
+# - PDFStreamPageResponse: type="page", page_data: PDFPage, document_page: int
+# - PDFStreamPageError: type="page_error", error: str, document_page: int
+# - PDFStreamComplete: type="complete", current_page: int
+# - PDFStreamError: type="error", error: str
+#
+# pages is List[PDFPage] (same structure as non-streaming)
 ```
 
 ## File Classification
@@ -247,6 +314,19 @@ if response.classification.details:
     print("Details:")
     for key, value in response.classification.details.items():
         print(f"  {key}: {value}")
+
+# response is ClassifyResponse with:
+# - classification: FileClassification
+# - file_size: int (bytes)
+# - sample_preview: Optional[str] (first few chars if text)
+#
+# FileClassification has:
+# - format_type: str (e.g., "text", "image", "binary")
+# - content_type: str (e.g., "python_code", "jpeg_image")
+# - mime_type: str (e.g., "text/plain", "image/jpeg")
+# - confidence: float (0.0-1.0)
+# - details: dict (encoding, language, etc.)
+# - classification_methods: Optional[List[str]]
 ```
 
 ## Async Usage
@@ -270,6 +350,14 @@ async def main():
 
 # Run async code
 asyncio.run(main())
+
+# All async methods return the same types as their sync counterparts:
+# - get_citations() -> CitationResponse
+# - stream_citations() -> AsyncIterator[StreamingCitationResponse]
+# - classify() -> ClassifyResponse
+# - extract_pdf() -> PDFExtractResponse
+# - stream_extract_pdf() -> AsyncIterator[StreamingPDFResponse]
+# - etc.
 ```
 
 ## Error Handling
