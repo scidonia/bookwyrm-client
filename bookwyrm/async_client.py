@@ -666,7 +666,13 @@ class AsyncBookWyrmClient:
         (base64-encoded) and remote URLs, with optional page range selection.
 
         Args:
-            request: PDF extraction request with URL/content, optional page range, and filename
+            request: PDF extraction request with URL/content, optional page range, and filename (legacy)
+            pdf_url: URL to PDF file (alternative to request)
+            pdf_content: Base64 encoded PDF content (alternative to request)
+            pdf_bytes: Raw PDF bytes (alternative to request, will be encoded to base64)
+            filename: Optional filename hint
+            start_page: 1-based page number to start from
+            num_pages: Number of pages to process from start_page
 
         Returns:
             PDF extraction response with structured page data, text elements, and metadata
@@ -675,20 +681,20 @@ class AsyncBookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
             
         Examples:
-            Basic async PDF extraction:
+            Basic async PDF extraction with function arguments:
             
             ```python
-            from bookwyrm.models import PDFExtractRequest
-            
             async def extract_pdf_example():
-                request = PDFExtractRequest(
-                    pdf_url="https://example.com/document.pdf",
-                    start_page=1,
-                    num_pages=5
-                )
+                with open("document.pdf", "rb") as f:
+                    pdf_bytes = f.read()
                 
                 async with AsyncBookWyrmClient() as client:
-                    response = await client.extract_pdf(request)
+                    response = await client.extract_pdf(
+                        pdf_bytes=pdf_bytes,
+                        filename="document.pdf",
+                        start_page=1,
+                        num_pages=5
+                    )
                     print(f"Extracted {response.total_pages} pages")
                     
                     for page in response.pages:
@@ -696,27 +702,35 @@ class AsyncBookWyrmClient:
             
             asyncio.run(extract_pdf_example())
             ```
-            
-            Extract multiple PDFs concurrently:
+
+            Legacy request object usage (still supported):
             
             ```python
-            async def extract_multiple_pdfs():
-                requests = [
-                    PDFExtractRequest(pdf_url="https://example.com/doc1.pdf"),
-                    PDFExtractRequest(pdf_url="https://example.com/doc2.pdf"),
-                    PDFExtractRequest(pdf_url="https://example.com/doc3.pdf")
-                ]
-                
-                async with AsyncBookWyrmClient() as client:
-                    responses = await asyncio.gather(*[
-                        client.extract_pdf(req) for req in requests
-                    ])
-                    
-                    for i, response in enumerate(responses):
-                        total_elements = sum(len(page.text_blocks) for page in response.pages)
-                        print(f"PDF {i+1}: {response.total_pages} pages, {total_elements} elements")
+            from bookwyrm.models import PDFExtractRequest
+            
+            request = PDFExtractRequest(
+                pdf_bytes=pdf_bytes,
+                filename="document.pdf"
+            )
+            
+            response = await client.extract_pdf(request)
             ```
         """
+        # Handle both new function interface and legacy request object
+        if request is None:
+            sources = [pdf_url, pdf_content, pdf_bytes]
+            provided_sources = [s for s in sources if s is not None]
+            if len(provided_sources) != 1:
+                raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
+            
+            request = PDFExtractRequest(
+                pdf_url=pdf_url,
+                pdf_content=pdf_content,
+                pdf_bytes=pdf_bytes,
+                filename=filename,
+                start_page=start_page,
+                num_pages=num_pages,
+            )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
