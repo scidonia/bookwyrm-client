@@ -1019,9 +1019,6 @@ def phrasal(
             help="Target size for each chunk (if not specified, returns phrases individually)"
         ),
     ] = None,
-    format: Annotated[str, typer.Option(help='Response format: "text_only" or "with_offsets" (default: "with_offsets")')] = "with_offsets",
-    # Boolean flags for response format
-    offsets: Annotated[bool, typer.Option("--offsets", help="Include position offsets (shorthand for with_offsets)")] = False,
     text_only: Annotated[bool, typer.Option("--text-only", help="Return text only without position data")] = False,
     base_url: Annotated[
         Optional[str],
@@ -1049,10 +1046,10 @@ def phrasal(
     - **with_offsets**: Include character position information (start_char, end_char)
     - **text_only**: Return only the text content without position data
     
-    ## Boolean Flags (Alternative to --format)
+    ## Response Format Control
     
-    - **--offsets**: Shorthand for `--format with_offsets`
-    - **--text-only**: Shorthand for `--format text_only`
+    - **Default**: Include character position information (with_offsets)
+    - **--text-only**: Return only text content without position data
     
     ## Chunking
     
@@ -1065,11 +1062,11 @@ def phrasal(
     # Process text directly
     bookwyrm phrasal "Natural language processing is fascinating." -o phrases.jsonl
     
-    # Process file with position offsets (using boolean flag)
-    bookwyrm phrasal -f document.txt --offsets --output phrases.jsonl
+    # Process file with position offsets (default behavior)
+    bookwyrm phrasal -f document.txt --output phrases.jsonl
     
-    # Create chunks of specific size
-    bookwyrm phrasal -f large_text.txt --chunk-size 1000 --offsets --output chunks.jsonl
+    # Create chunks of specific size (with position offsets by default)
+    bookwyrm phrasal -f large_text.txt --chunk-size 1000 --output chunks.jsonl
     
     # Process from URL
     bookwyrm phrasal --url https://example.com/text.txt --output phrases.jsonl
@@ -1077,8 +1074,8 @@ def phrasal(
     # Text only format using boolean flag
     bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
     
-    # Traditional format option still works
-    bookwyrm phrasal -f text.txt --format text_only --output simple_phrases.jsonl
+    # Text-only format (no position data)
+    bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
     
     ```
     
@@ -1100,23 +1097,11 @@ def phrasal(
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
-    # Validate format choice and boolean flags
-    if format not in ["text_only", "with_offsets"]:
-        console.print(
-            f"[red]Error: format must be 'text_only' or 'with_offsets', got '{format}'[/red]"
-        )
-        raise typer.Exit(1)
-    
-    # Check for conflicting boolean flags
-    if offsets and text_only:
-        console.print("[red]Error: Cannot specify both --offsets and --text-only[/red]")
-        raise typer.Exit(1)
-    
-    # Override format with boolean flags if specified
-    if offsets:
-        format = "with_offsets"
-    elif text_only:
+    # Set format based on text_only flag
+    if text_only:
         format = "text_only"
+    else:
+        format = "with_offsets"  # Default
 
     # Validate input sources
     input_sources = [input_text, url, file]
