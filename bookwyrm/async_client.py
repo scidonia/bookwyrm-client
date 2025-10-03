@@ -348,9 +348,9 @@ class AsyncBookWyrmClient:
                 phrases = []
                 async with AsyncBookWyrmClient() as client:
                     async for response in client.process_text(request):
-                        if hasattr(response, 'text'):  # Phrase result
+                        if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
                             phrases.append(response)
-                        elif hasattr(response, 'message'):  # Progress
+                        elif isinstance(response, PhraseProgressUpdate):  # Progress
                             print(f"Progress: {response.message}")
                 
                 print(f"Extracted {len(phrases)} phrases")
@@ -372,7 +372,7 @@ class AsyncBookWyrmClient:
                     phrases = []
                     async with AsyncBookWyrmClient() as client:
                         async for response in client.process_text(req):
-                            if hasattr(response, 'text'):
+                            if isinstance(response, (TextResult, TextSpanResult)):
                                 phrases.append(response)
                     return name, phrases
                 
@@ -450,12 +450,12 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     citations = []
                     async for response in client.stream_citations(request):
-                        if hasattr(response, 'message'):  # Progress update
+                        if isinstance(response, CitationProgressUpdate):  # Progress update
                             print(f"Progress: {response.message}")
-                        elif hasattr(response, 'citation'):  # Citation found
+                        elif isinstance(response, CitationStreamResponse):  # Citation found
                             citations.append(response.citation)
                             print(f"Found: {response.citation.text[:50]}...")
-                        elif hasattr(response, 'total_citations'):  # Summary
+                        elif isinstance(response, CitationSummaryResponse):  # Summary
                             print(f"Complete: {response.total_citations} citations found")
             
             asyncio.run(stream_citations_example())
@@ -468,11 +468,13 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     async def handle_stream_1():
                         async for response in client.stream_citations(request1):
-                            print(f"Stream 1: {response}")
+                            if isinstance(response, CitationStreamResponse):
+                                print(f"Stream 1: Found citation")
                     
                     async def handle_stream_2():
                         async for response in client.stream_citations(request2):
-                            print(f"Stream 2: {response}")
+                            if isinstance(response, CitationStreamResponse):
+                                print(f"Stream 2: Found citation")
                     
                     # Run both streams concurrently
                     await asyncio.gather(handle_stream_1(), handle_stream_2())
@@ -485,7 +487,7 @@ class AsyncBookWyrmClient:
                 try:
                     async with AsyncBookWyrmClient() as client:
                         async for response in client.stream_citations(request):
-                            if hasattr(response, 'error'):
+                            if isinstance(response, CitationErrorResponse):
                                 print(f"Error: {response.error}")
                                 break
                             # Process other response types...
@@ -665,12 +667,12 @@ class AsyncBookWyrmClient:
                 pages = []
                 async with AsyncBookWyrmClient() as client:
                     async for response in client.stream_extract_pdf(request):
-                        if hasattr(response, 'page_data'):  # Page extracted
+                        if isinstance(response, PDFStreamPageResponse):  # Page extracted
                             pages.append(response.page_data)
                             print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
-                        elif hasattr(response, 'total_pages'):  # Metadata
+                        elif isinstance(response, PDFStreamMetadata):  # Metadata
                             print(f"Processing {response.total_pages} pages")
-                        elif hasattr(response, 'error') and hasattr(response, 'document_page'):
+                        elif isinstance(response, PDFStreamPageError):
                             print(f"Error on page {response.document_page}: {response.error}")
                 
                 print(f"Extracted {len(pages)} pages total")
@@ -691,7 +693,7 @@ class AsyncBookWyrmClient:
                     pages = []
                     async with AsyncBookWyrmClient() as client:
                         async for response in client.stream_extract_pdf(req):
-                            if hasattr(response, 'page_data'):
+                            if isinstance(response, PDFStreamPageResponse):
                                 pages.append(response.page_data)
                                 print(f"{name} - Page {response.document_page} extracted")
                     return name, pages
@@ -717,7 +719,7 @@ class AsyncBookWyrmClient:
                 total_chars = 0
                 async with AsyncBookWyrmClient() as client:
                     async for response in client.stream_extract_pdf(request):
-                        if hasattr(response, 'page_data'):
+                        if isinstance(response, PDFStreamPageResponse):
                             char_count = await process_page(response.page_data)
                             total_chars += char_count
                             print(f"Processed page {response.document_page}: {char_count} chars")
@@ -943,9 +945,9 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     final_result = None
                     async for response in client.stream_summarize(request):
-                        if hasattr(response, 'message'):  # Progress update
+                        if isinstance(response, SummarizeProgressUpdate):  # Progress update
                             print(f"Progress: {response.message}")
-                        elif hasattr(response, 'summary'):  # Final summary
+                        elif isinstance(response, SummaryResponse):  # Final summary
                             final_result = response
                             print("Summary complete!")
                     
@@ -962,9 +964,9 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     async def handle_summarization(req, name):
                         async for response in client.stream_summarize(req):
-                            if hasattr(response, 'message'):
+                            if isinstance(response, SummarizeProgressUpdate):
                                 print(f"{name}: {response.message}")
-                            elif hasattr(response, 'summary'):
+                            elif isinstance(response, SummaryResponse):
                                 print(f"{name}: Complete!")
                     
                     # Run multiple summarizations concurrently
@@ -982,12 +984,12 @@ class AsyncBookWyrmClient:
                 async with AsyncBookWyrmClient() as client:
                     try:
                         async for response in client.stream_summarize(request):
-                            if hasattr(response, 'attempt'):  # Retry message
+                            if isinstance(response, (RateLimitMessage, StructuralErrorMessage)):  # Retry message
                                 print(f"Retry {response.attempt}/{response.max_attempts}")
-                            elif hasattr(response, 'current_level'):  # Progress
+                            elif isinstance(response, SummarizeProgressUpdate):  # Progress
                                 progress = response.chunks_processed / response.total_chunks
                                 print(f"Level {response.current_level}: {progress:.1%}")
-                            elif hasattr(response, 'error'):  # Error
+                            elif isinstance(response, SummarizeErrorResponse):  # Error
                                 print(f"Error: {response.error}")
                                 break
                     except BookWyrmAPIError as e:

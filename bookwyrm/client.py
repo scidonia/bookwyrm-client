@@ -368,10 +368,10 @@ class BookWyrmClient:
 
             phrases = []
             for response in client.process_text(request):
-                if hasattr(response, 'text'):  # Phrase result
+                if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
                     phrases.append(response)
                     print(f"Phrase: {response.text}")
-                    if response.start_char is not None:
+                    if isinstance(response, TextSpanResult):
                         print(f"Position: {response.start_char}-{response.end_char}")
             ```
 
@@ -386,7 +386,7 @@ class BookWyrmClient:
 
             chunks = []
             for response in client.process_text(request):
-                if hasattr(response, 'text'):
+                if isinstance(response, (TextResult, TextSpanResult)):
                     chunks.append(response)
 
             print(f"Created {len(chunks)} chunks")
@@ -404,7 +404,7 @@ class BookWyrmClient:
             # Save to JSONL file
             with open("alice_phrases.jsonl", "w") as f:
                 for response in client.process_text(request):
-                    if hasattr(response, 'text'):
+                    if isinstance(response, (TextResult, TextSpanResult)):
                         f.write(response.model_dump_json() + "\n")
             ```
 
@@ -418,9 +418,9 @@ class BookWyrmClient:
             )
 
             for response in client.process_text(request):
-                if hasattr(response, 'text'):
+                if isinstance(response, (TextResult, TextSpanResult)):
                     print(f"Phrase: {response.text}")
-                elif hasattr(response, 'message'):
+                elif isinstance(response, PhraseProgressUpdate):
                     print(f"Progress: {response.message}")
             ```
         """
@@ -488,12 +488,12 @@ class BookWyrmClient:
             ```python
             citations = []
             for response in client.stream_citations(request):
-                if hasattr(response, 'message'):  # Progress update
+                if isinstance(response, CitationProgressUpdate):  # Progress update
                     print(f"Progress: {response.message}")
-                elif hasattr(response, 'citation'):  # Citation found
+                elif isinstance(response, CitationStreamResponse):  # Citation found
                     citations.append(response.citation)
                     print(f"Found: {response.citation.text[:50]}...")
-                elif hasattr(response, 'total_citations'):  # Summary
+                elif isinstance(response, CitationSummaryResponse):  # Summary
                     print(f"Complete: {response.total_citations} citations found")
             ```
 
@@ -507,9 +507,9 @@ class BookWyrmClient:
 
                 citations = []
                 for update in client.stream_citations(request):
-                    if hasattr(update, 'message'):
+                    if isinstance(update, CitationProgressUpdate):
                         progress.update(task, description=update.message)
-                    elif hasattr(update, 'citation'):
+                    elif isinstance(update, CitationStreamResponse):
                         citations.append(update.citation)
             ```
 
@@ -740,9 +740,9 @@ class BookWyrmClient:
                 task = progress.add_task("Extracting PDF...", total=100)
 
                 for response in client.stream_extract_pdf(request):
-                    if hasattr(response, 'total_pages'):  # Metadata
+                    if isinstance(response, PDFStreamMetadata):  # Metadata
                         progress.update(task, total=response.total_pages)
-                    elif hasattr(response, 'page_data'):  # Page response
+                    elif isinstance(response, PDFStreamPageResponse):  # Page response
                         pages.append(response.page_data)
                         progress.update(task, completed=response.current_page)
             ```
@@ -993,9 +993,9 @@ class BookWyrmClient:
             ```python
             final_result = None
             for response in client.stream_summarize(request):
-                if hasattr(response, 'message'):  # Progress update
+                if isinstance(response, SummarizeProgressUpdate):  # Progress update
                     print(f"Progress: {response.message}")
-                elif hasattr(response, 'summary'):  # Final summary
+                elif isinstance(response, SummaryResponse):  # Final summary
                     final_result = response
                     print(f"Summary complete!")
 
@@ -1018,7 +1018,7 @@ class BookWyrmClient:
                 level_tasks = {}
 
                 for response in client.stream_summarize(request):
-                    if hasattr(response, 'current_level'):  # Progress update
+                    if isinstance(response, SummarizeProgressUpdate):  # Progress update
                         task_id = f"level_{response.current_level}"
                         if task_id not in level_tasks:
                             level_tasks[task_id] = progress.add_task(
@@ -1030,7 +1030,7 @@ class BookWyrmClient:
                             completed=response.chunks_processed,
                             description=f"Level {response.current_level}: {response.message}",
                         )
-                    elif hasattr(response, 'summary'):  # Final result
+                    elif isinstance(response, SummaryResponse):  # Final result
                         final_result = response
             ```
 
@@ -1038,9 +1038,9 @@ class BookWyrmClient:
 
             ```python
             for response in client.stream_summarize(request):
-                if hasattr(response, 'attempt'):  # Rate limit or structural error
+                if isinstance(response, (RateLimitMessage, StructuralErrorMessage)):  # Rate limit or structural error
                     print(f"Retry {response.attempt}/{response.max_attempts}: {response.message}")
-                elif hasattr(response, 'error'):  # General error
+                elif isinstance(response, SummarizeErrorResponse):  # General error
                     print(f"Error: {response.error}")
                     break
                 # Handle other response types...
