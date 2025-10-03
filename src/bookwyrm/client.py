@@ -546,6 +546,9 @@ class BookWyrmClient:
         if chunks is not None and len(chunks) == 0:
             yield CitationSummaryResponse(
                 total_citations=0,
+                chunks_processed=0,
+                token_chunks_processed=0,
+                start_offset=0,
                 usage=UsageInfo(
                     tokens_processed=0,
                     chunks_processed=0,
