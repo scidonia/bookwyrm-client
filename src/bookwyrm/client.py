@@ -210,10 +210,14 @@ class BookWyrmClient:
             if request.content_bytes is not None:
                 file_bytes: bytes = request.content_bytes
             elif request.content is not None:
-                # Decode base64 content
-                import base64
-
-                file_bytes = base64.b64decode(request.content)
+                # Handle content based on encoding
+                if request.content_encoding == "base64":
+                    # Decode base64 content
+                    import base64
+                    file_bytes = base64.b64decode(request.content)
+                else:
+                    # Treat as raw text content and encode to bytes
+                    file_bytes = request.content.encode('utf-8')
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
