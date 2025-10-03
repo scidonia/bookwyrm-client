@@ -34,26 +34,32 @@ chunks = [
 
 # Synchronous
 client = BookWyrmClient(api_key="your-key")
-response = client.get_citations(
+citations = []
+for stream_response in client.stream_citations(
     chunks=chunks,
     question="Why is the sky blue?"
-)
+):
+    if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
 
 # Asynchronous
 async with AsyncBookWyrmClient(api_key="your-key") as client:
-    response = await client.get_citations(
+    citations = []
+    async for stream_response in client.stream_citations(
         chunks=chunks,
         question="Why is the sky blue?"
-    )
+    ):
+        if hasattr(stream_response, 'citation'):
+            citations.append(stream_response.citation)
 ```
 
 ### Available methods
 
 Both clients provide the same methods:
 
-- `get_citations()` / `stream_citations()` - Find citations in text
-- `summarize()` / `stream_summarize()` - Summarize text content
-- `process_text()` - Extract phrases from text
+- `stream_citations()` - Find citations in text
+- `stream_summarize()` - Summarize text content
+- `stream_process_text()` - Extract phrases from text
 - `classify()` - Classify file content
 - `extract_pdf()` / `stream_extract_pdf()` - Extract text from PDFs
 
@@ -63,7 +69,13 @@ Both clients provide the same methods:
 from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError
 
 try:
-    response = client.get_citations(request)
+    citations = []
+    for stream_response in client.stream_citations(
+        chunks=chunks,
+        question="Your question here"
+    ):
+        if hasattr(stream_response, 'citation'):
+            citations.append(stream_response.citation)
 except BookWyrmAPIError as e:
     print(f"API Error: {e}")
     if e.status_code:

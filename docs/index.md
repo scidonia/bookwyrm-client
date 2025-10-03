@@ -21,13 +21,19 @@ from bookwyrm import BookWyrmClient
 client = BookWyrmClient(api_key="your-api-key")
 
 # Find citations
-from bookwyrm.models import CitationRequest, TextChunk
+from bookwyrm.models import TextSpan
 
-chunks = [TextChunk(text="Your text here", start_char=0, end_char=14)]
-request = CitationRequest(chunks=chunks, question="What is this about?")
-response = client.get_citations(request)
+chunks = [TextSpan(text="Your text here", start_char=0, end_char=14)]
 
-print(f"Found {response.total_citations} citations")
+citations = []
+for stream_response in client.stream_citations(
+    chunks=chunks,
+    question="What is this about?"
+):
+    if hasattr(stream_response, 'citation'):
+        citations.append(stream_response.citation)
+    elif hasattr(stream_response, 'total_citations'):
+        print(f"Found {stream_response.total_citations} citations")
 ```
 
 ## Installation
