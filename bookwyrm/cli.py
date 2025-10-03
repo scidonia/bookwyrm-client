@@ -1175,6 +1175,18 @@ def phrasal(
                 chunk_size=chunk_size,
                 response_format=response_format
             ):
+                # Show ALL responses in debug mode FIRST
+                if state.debug:
+                    console.print(f"[blue]DEBUG - Raw response received:[/blue]")
+                    console.print(f"[dim]Type: {type(response)}[/dim]")
+                    console.print(f"[dim]String representation: {response}[/dim]")
+                    if hasattr(response, 'model_dump_json'):
+                        console.print(f"[dim]JSON: {response.model_dump_json(exclude_none=True)}[/dim]")
+                    elif hasattr(response, '__dict__'):
+                        console.print(f"[dim]Dict: {response.__dict__}[/dim]")
+                    console.print(f"[dim]Attributes: {[attr for attr in dir(response) if not attr.startswith('_')]}[/dim]")
+                    console.print("[dim]" + "="*50 + "[/dim]")
+
                 if isinstance(response, PhraseProgressUpdate):
                     progress.update(
                         task,
@@ -1188,11 +1200,6 @@ def phrasal(
                 elif isinstance(response, (TextResult, TextSpanResult)):
                     # Handle both TextResult and TextSpanResult properly
                     phrases.append(response)
-
-                    if state.debug:
-                        console.print(f"[blue]DEBUG - Response object:[/blue]")
-                        console.print(f"[dim]Type: {type(response)}[/dim]")
-                        console.print(f"[dim]Raw: {response.model_dump_json(exclude_none=True)}[/dim]")
 
                     if state.verbose:
                         if isinstance(response, TextSpanResult):
@@ -1217,15 +1224,8 @@ def phrasal(
                                 f"[red]Error writing to output file: {e}[/red]"
                             )
                 else:
-                    # Debug: print unknown response types
-                    if state.debug:
-                        console.print(f"[yellow]DEBUG - Unknown response:[/yellow]")
-                        console.print(f"[dim]Type: {type(response)}[/dim]")
-                        console.print(f"[dim]Attributes: {dir(response)}[/dim]")
-                        console.print(f"[dim]Raw: {response}[/dim]")
-                        if hasattr(response, 'model_dump_json'):
-                            console.print(f"[dim]JSON: {response.model_dump_json(exclude_none=True)}[/dim]")
-                    elif state.verbose:
+                    # Unknown response types
+                    if state.verbose:
                         console.print(f"[yellow]Unknown response type: {type(response)} - {getattr(response, 'type', 'no type field')}[/yellow]")
 
             progress.update(task, description="Complete!")
