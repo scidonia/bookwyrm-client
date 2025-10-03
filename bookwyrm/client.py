@@ -366,6 +366,12 @@ class BookWyrmClient:
             response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
             offsets: Set to True for WITH_OFFSETS format (boolean flag)
             text_only: Set to True for TEXT_ONLY format (boolean flag)
+
+        Yields:
+            StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
+
+        Raises:
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
         """
 
         # This method breaks down text into meaningful phrases or chunks using NLP,
