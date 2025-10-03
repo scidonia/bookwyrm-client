@@ -25,8 +25,8 @@ These capabilities work together to provide a complete pipeline for document ing
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bookwyrm.git
-cd bookwyrm
+git clone https://github.com/scidonia/bookwyrm-client.git
+cd bookwyrm-client
 
 # Install dependencies and create virtual environment
 uv sync
