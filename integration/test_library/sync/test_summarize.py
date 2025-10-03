@@ -304,3 +304,76 @@ def test_stream_summarize_from_url_skip(client):
     """Test streaming summarization from URL (skipped - requires test URL)."""
     # Skip this test for now - requires a publicly accessible content URL
     pytest.skip("Requires a publicly accessible content URL for testing")
+
+
+@pytest.mark.liveonly
+def test_stream_summarize_live_api_comprehensive(client, sample_content, sample_phrases):
+    """Comprehensive test of streaming summarization against live API."""
+    # Test 1: Basic streaming summarization with content
+    final_summary1 = None
+    for response in client.stream_summarize(
+        content=sample_content,
+        max_tokens=5000,
+        debug=False
+    ):
+        if isinstance(response, SummaryResponse):
+            final_summary1 = response
+            break
+    assert final_summary1 is not None
+    assert isinstance(final_summary1, SummaryResponse)
+    assert len(final_summary1.summary) > 0
+
+    # Test 2: Streaming summarization with phrases
+    final_summary2 = None
+    for response in client.stream_summarize(
+        phrases=sample_phrases,
+        max_tokens=3000,
+        debug=True
+    ):
+        if isinstance(response, SummaryResponse):
+            final_summary2 = response
+            break
+    assert final_summary2 is not None
+    assert isinstance(final_summary2, SummaryResponse)
+    assert len(final_summary2.summary) > 0
+
+    # Test 3: Progress tracking
+    final_summary3 = None
+    progress_count = 0
+    for response in client.stream_summarize(
+        content=sample_content[:500],  # Limit for test speed
+        max_tokens=2000
+    ):
+        if isinstance(response, SummarizeProgressUpdate):
+            progress_count += 1
+        elif isinstance(response, SummaryResponse):
+            final_summary3 = response
+            break  # Exit early for test speed
+
+    assert final_summary3 is not None
+    assert len(final_summary3.summary) > 0
+
+    # Test 4: Different max_tokens values
+    final_summary4 = None
+    for response in client.stream_summarize(
+        content=sample_content,
+        max_tokens=1000
+    ):
+        if isinstance(response, SummaryResponse):
+            final_summary4 = response
+            break
+    assert final_summary4 is not None
+    assert isinstance(final_summary4, SummaryResponse)
+
+    # Test 5: Debug mode
+    final_summary5 = None
+    for response in client.stream_summarize(
+        phrases=sample_phrases[:3],  # Limit for test speed
+        max_tokens=2000,
+        debug=True
+    ):
+        if isinstance(response, SummaryResponse):
+            final_summary5 = response
+            break
+    assert final_summary5 is not None
+    assert isinstance(final_summary5, SummaryResponse)
