@@ -239,27 +239,6 @@ def test_extract_pdf_command_with_start_page_only():
         test_file.unlink()
 
 
-def test_extract_pdf_command_with_no_stream_option():
-    """Test extract-pdf command with --no-stream option."""
-    test_file = create_test_pdf_file()
-
-    try:
-        result = run_bookwyrm_command(
-            ["extract-pdf", "--file", str(test_file), "--no-stream"]
-        )
-
-        # Check command parsing
-        if result.returncode != 0:
-            assert (
-                "api" in result.stderr.lower()
-                or "key" in result.stderr.lower()
-                or "connection" in result.stderr.lower()
-                or "network" in result.stderr.lower()
-                or "timeout" in result.stderr.lower()
-            )
-
-    finally:
-        test_file.unlink()
 
 
 def test_extract_pdf_command_with_verbose_option():
@@ -456,7 +435,6 @@ def test_extract_pdf_command_with_complex_options():
                 "--output",
                 str(output_path),
                 "--verbose",
-                "--no-stream",
             ]
         )
 
@@ -590,46 +568,6 @@ def test_extract_pdf_command_live_api_with_page_range(api_key, api_url):
         test_file.unlink()
 
 
-@pytest.mark.liveonly
-def test_extract_pdf_command_live_api_no_stream(api_key, api_url):
-    """Test extract-pdf command against live API with --no-stream."""
-    if not api_key:
-        pytest.skip("No API key provided for live test")
-
-    test_file = create_test_pdf_file()
-    output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-    output_path = Path(output_file.name)
-    output_file.close()
-
-    try:
-        result = run_bookwyrm_command(
-            [
-                "extract-pdf",
-                "--file",
-                str(test_file),
-                "--no-stream",
-                "--api-key",
-                api_key,
-                "--base-url",
-                api_url,
-                "--output",
-                str(output_path),
-            ]
-        )
-
-        assert result.returncode == 0, f"Command failed: {result.stderr}"
-
-        # Check that output file was created
-        if output_path.exists():
-            with open(output_path, "r") as f:
-                output_data = json.load(f)
-            assert isinstance(output_data, dict)
-            assert "pages" in output_data or "total_pages" in output_data
-
-    finally:
-        test_file.unlink()
-        if output_path.exists():
-            output_path.unlink()
 
 
 @pytest.mark.liveonly
