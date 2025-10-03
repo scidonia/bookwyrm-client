@@ -347,6 +347,85 @@ if response.classification.details:
 # - classification_methods: Optional[List[str]]
 ```
 
+## Text Summarization
+
+### Basic Text Summarization
+
+```python
+from typing import List
+from bookwyrm.models import SummarizeRequest, SummaryResponse, TextSpan
+
+# Summarize from plain text
+text: str = """
+Natural language processing (NLP) is a subfield of linguistics, computer science, 
+and artificial intelligence concerned with the interactions between computers and human language.
+In particular, how to program computers to process and analyze large amounts of natural language data.
+The goal is a computer capable of understanding the contents of documents, including 
+the contextual nuances of the language within them. The technology can then accurately 
+extract information and insights contained in the documents as well as categorize and 
+organize the documents themselves.
+"""
+
+request: SummarizeRequest = SummarizeRequest(
+    content=text,
+    max_tokens=5000
+)
+
+response: SummaryResponse = client.summarize(request)
+
+print("Summary:")
+print(response.summary)
+print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used} levels")
+
+# response is SummaryResponse with:
+# - type: Literal["summary"]
+# - summary: str (the final summary text)
+# - subsummary_count: int (number of intermediate summaries)
+# - levels_used: int (hierarchical levels used)
+# - total_tokens: int (total tokens processed)
+# - intermediate_summaries: Optional[List[List[str]]] (debug info if requested)
+```
+
+### Summarize from URL
+
+```python
+request: SummarizeRequest = SummarizeRequest(
+    url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+    max_tokens=10000,
+    debug=True  # Include intermediate summaries
+)
+
+response: SummaryResponse = client.summarize(request)
+
+print("Final Summary:")
+print(response.summary)
+
+if response.intermediate_summaries:
+    print(f"\nDebug: {len(response.intermediate_summaries)} levels of summaries")
+    for level, summaries in enumerate(response.intermediate_summaries):
+        print(f"Level {level + 1}: {len(summaries)} summaries")
+```
+
+### Summarize from Phrases
+
+```python
+# Use phrases from previous phrasal analysis
+phrases: List[TextSpan] = [
+    TextSpan(text="Machine learning is a subset of AI.", start_char=0, end_char=38),
+    TextSpan(text="It uses algorithms to learn from data.", start_char=39, end_char=77),
+    TextSpan(text="Deep learning uses neural networks.", start_char=78, end_char=113),
+    # ... more phrases
+]
+
+request: SummarizeRequest = SummarizeRequest(
+    phrases=phrases,
+    max_tokens=2000
+)
+
+response: SummaryResponse = client.summarize(request)
+print(response.summary)
+```
+
 ## Async Usage
 
 ### Using AsyncBookWyrmClient
