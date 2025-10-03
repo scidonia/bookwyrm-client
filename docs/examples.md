@@ -2,18 +2,79 @@
 
 This page contains practical examples of using the BookWyrm client library.
 
+## Phrasal Analysis
+
+### Extract Phrases from Text
+
+```python
+from bookwyrm import BookWyrmClient
+from bookwyrm.models import ProcessTextRequest, ResponseFormat
+
+# Create client
+client = BookWyrmClient()
+
+text = """
+Natural language processing (NLP) is a subfield of linguistics, computer science, 
+and artificial intelligence concerned with the interactions between computers and human language.
+"""
+
+request = ProcessTextRequest(
+    text=text,
+    response_format=ResponseFormat.WITH_OFFSETS,
+    spacy_model="en_core_web_sm"
+)
+
+phrases = []
+for response in client.process_text(request):
+    if hasattr(response, 'text'):  # PhraseResult
+        phrases.append(response)
+        print(f"Phrase: {response.text}")
+        if response.start_char is not None:
+            print(f"Position: {response.start_char}-{response.end_char}")
+```
+
+### Create Text Chunks
+
+```python
+# Create chunks of specific size
+request = ProcessTextRequest(
+    text=long_text,
+    chunk_size=1000,  # ~1000 characters per chunk
+    response_format=ResponseFormat.WITH_OFFSETS
+)
+
+chunks = []
+for response in client.process_text(request):
+    if hasattr(response, 'text'):
+        chunks.append(response)
+
+print(f"Created {len(chunks)} chunks")
+```
+
+### Process Text from URL
+
+```python
+request = ProcessTextRequest(
+    text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+    chunk_size=2000,
+    response_format=ResponseFormat.WITH_OFFSETS
+)
+
+# Save to JSONL file
+with open("alice_phrases.jsonl", "w") as f:
+    for response in client.process_text(request):
+        if hasattr(response, 'text'):
+            f.write(response.model_dump_json() + "\n")
+```
+
 ## Citation Finding
 
 ### Basic Citation Finding
 
 ```python
-from bookwyrm import BookWyrmClient
 from bookwyrm.models import CitationRequest, TextChunk
 
-# Create client
-client = BookWyrmClient()
-
-# Prepare text chunks
+# Prepare text chunks (you can get these from phrasal analysis above)
 chunks = [
     TextChunk(
         text="Climate change refers to long-term shifts in global temperatures and weather patterns.",
@@ -167,66 +228,6 @@ request = SummarizeRequest(
 response = client.summarize(request)
 ```
 
-## Phrasal Analysis
-
-### Extract Phrases from Text
-
-```python
-from bookwyrm.models import ProcessTextRequest, ResponseFormat
-
-text = """
-Natural language processing (NLP) is a subfield of linguistics, computer science, 
-and artificial intelligence concerned with the interactions between computers and human language.
-"""
-
-request = ProcessTextRequest(
-    text=text,
-    response_format=ResponseFormat.WITH_OFFSETS,
-    spacy_model="en_core_web_sm"
-)
-
-phrases = []
-for response in client.process_text(request):
-    if hasattr(response, 'text'):  # PhraseResult
-        phrases.append(response)
-        print(f"Phrase: {response.text}")
-        if response.start_char is not None:
-            print(f"Position: {response.start_char}-{response.end_char}")
-```
-
-### Create Text Chunks
-
-```python
-# Create chunks of specific size
-request = ProcessTextRequest(
-    text=long_text,
-    chunk_size=1000,  # ~1000 characters per chunk
-    response_format=ResponseFormat.WITH_OFFSETS
-)
-
-chunks = []
-for response in client.process_text(request):
-    if hasattr(response, 'text'):
-        chunks.append(response)
-
-print(f"Created {len(chunks)} chunks")
-```
-
-### Process Text from URL
-
-```python
-request = ProcessTextRequest(
-    text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
-    chunk_size=2000,
-    response_format=ResponseFormat.WITH_OFFSETS
-)
-
-# Save to JSONL file
-with open("alice_phrases.jsonl", "w") as f:
-    for response in client.process_text(request):
-        if hasattr(response, 'text'):
-            f.write(response.model_dump_json() + "\n")
-```
 
 ## PDF Extraction
 
