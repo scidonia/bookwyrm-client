@@ -14,9 +14,6 @@
     options:
       show_source: true
 
-::: bookwyrm.TextChunk
-    options:
-      show_source: true
 
 ::: bookwyrm.Citation
     options:

@@ -102,21 +102,21 @@ with open("alice_phrases.jsonl", "w") as f:
 
 ```python
 from typing import List
-from bookwyrm.models import CitationRequest, TextChunk, CitationResponse, Citation
+from bookwyrm.models import CitationRequest, TextSpan, CitationResponse, Citation
 
 # Prepare text chunks (you can get these from phrasal analysis above)
-chunks: List[TextChunk] = [
-    TextChunk(
+chunks: List[TextSpan] = [
+    TextSpan(
         text="Climate change refers to long-term shifts in global temperatures and weather patterns.",
         start_char=0,
         end_char=89
     ),
-    TextChunk(
+    TextSpan(
         text="The primary cause is human activities, particularly fossil fuel burning.",
         start_char=90,
         end_char=161
     ),
-    TextChunk(
+    TextSpan(
         text="This releases greenhouse gases like CO2 into the atmosphere.",
         start_char=162,
         end_char=222

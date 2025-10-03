@@ -64,15 +64,15 @@ The BookWyrm client provides both synchronous and asynchronous interfaces for te
 #### Synchronous Client
 
 ```python
-from bookwyrm import BookWyrmClient, CitationRequest, TextChunk, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest, PDFExtractRequest
+from bookwyrm import BookWyrmClient, CitationRequest, TextSpan, ProcessTextRequest, ResponseFormat, ClassifyRequest, SummarizeRequest, PDFExtractRequest
 
 # Initialize client
 client = BookWyrmClient(base_url="https://api.bookwyrm.ai:443", api_key="your-key")
 
 # Citation finding
 chunks = [
-    TextChunk(text="This is the first chunk.", start_char=0, end_char=25),
-    TextChunk(text="This is the second chunk.", start_char=26, end_char=52),
+    TextSpan(text="This is the first chunk.", start_char=0, end_char=25),
+    TextSpan(text="This is the second chunk.", start_char=26, end_char=52),
 ]
 
 request = CitationRequest(
@@ -415,7 +415,7 @@ pytest -k "async"
 
 ### Models
 
-- `TextChunk`: Represents a text chunk with start/end character positions
+- `TextSpan`: Represents a text span with start/end character positions
 - `CitationRequest`: Request model for citation processing
 - `Citation`: A found citation with quality score and reasoning
 - `CitationResponse`: Response containing multiple citations

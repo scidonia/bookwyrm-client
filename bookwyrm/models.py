@@ -26,13 +26,6 @@ class TextSpan(Text, Span):
     pass
 
 
-class TextChunk(TextSpan):
-    """A chunk of text with position information.
-    
-    This model represents a segment of text along with its character
-    position within the original document.
-    """
-    pass
 
 
 class CitationRequest(BaseModel):
@@ -42,7 +35,7 @@ class CitationRequest(BaseModel):
     Provide exactly one of: chunks, jsonl_content, or jsonl_url.
     """
 
-    chunks: Optional[List[TextChunk]] = Field(None, description="List of text chunks to search")
+    chunks: Optional[List[TextSpan]] = Field(None, description="List of text chunks to search")
     jsonl_content: Optional[str] = Field(None, description="Raw JSONL content as string")
     jsonl_url: Optional[str] = Field(None, description="URL to fetch JSONL content from")
     question: str = Field(..., description="The question to find citations for")
@@ -170,7 +163,7 @@ class SummarizeRequest(BaseModel):
 
     content: Optional[str] = None
     url: Optional[str] = None
-    phrases: Optional[List[TextChunk]] = None
+    phrases: Optional[List[TextSpan]] = None
     max_tokens: int = 10000  # Default max tokens for chunking
     debug: bool = False  # Include intermediate summaries in response
     # Pydantic model option for structured output (commented out)
