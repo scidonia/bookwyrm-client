@@ -206,6 +206,77 @@ class BookWyrmClient:
             )
             ```
         """
+        if not question or not question.strip():
+            raise ValueError("question cannot be empty")
+            
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
+        """Get citations for a question from text chunks.
+
+        This method finds relevant citations that answer a specific question by analyzing
+        the provided text chunks. Each citation includes a quality score (0-4) and reasoning
+        for why it's relevant to the question.
+
+        Args:
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
+            start: Starting chunk index (0-based)
+            limit: Maximum number of chunks to process
+            max_tokens_per_chunk: Maximum tokens per chunk
+
+        Returns:
+            Citation response with found citations, total count, and usage information
+
+        Raises:
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+
+        Examples:
+            Using text chunks directly:
+
+            ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextSpan
+
+            # Create some example chunks
+            chunks = [
+                TextSpan(text="The sky is blue.", start_char=0, end_char=16),
+                TextSpan(text="Water is wet.", start_char=17, end_char=30),
+                TextSpan(text="Grass is green.", start_char=31, end_char=46)
+            ]
+
+            client = BookWyrmClient(api_key="your-api-key")
+            response = client.get_citations(
+                chunks=chunks,
+                question="Why is the sky blue?"
+            )
+            print(f"Found {response.total_citations} citations")
+
+            for citation in response.citations:
+                print(f"Quality: {citation.quality}/4")
+                print(f"Text: {citation.text}")
+                print(f"Reasoning: {citation.reasoning}")
+            ```
+
+            Using a JSONL URL:
+
+            ```python
+            response = client.get_citations(
+                jsonl_url="https://example.com/chunks.jsonl",
+                question="What is machine learning?",
+                start=0,
+                limit=100
+            )
+            ```
+        """
         request = CitationRequest(
             chunks=chunks,
             jsonl_content=jsonl_content,
@@ -557,6 +628,69 @@ class BookWyrmClient:
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
     ) -> Iterator[StreamingCitationResponse]:
+        """Stream citations as they are found with real-time progress updates.
+
+        This method provides real-time streaming of citation results, allowing you to
+        process citations as they're found rather than waiting for all results. Useful
+        for large datasets or when you want to show progress to users.
+
+        Args:
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
+            start: Starting chunk index (0-based)
+            limit: Maximum number of chunks to process
+            max_tokens_per_chunk: Maximum tokens per chunk
+
+        Yields:
+            StreamingCitationResponse: Union of progress updates, individual citations,
+            final summary, or error messages
+
+        Raises:
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+
+        Examples:
+            Basic streaming:
+
+            ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import TextSpan, CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse
+
+            # Create some example chunks
+            chunks = [
+                TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
+                TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
+                TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
+            ]
+
+            client = BookWyrmClient(api_key="your-api-key")
+            citations = []
+            for response in client.stream_citations(
+                chunks=chunks,
+                question="Why is the sky blue?"
+            ):
+                if isinstance(response, CitationProgressUpdate):  # Progress update
+                    print(f"Progress: {response.message}")
+                elif isinstance(response, CitationStreamResponse):  # Citation found
+                    citations.append(response.citation)
+                    print(f"Found: {response.citation.text[:50]}...")
+                elif isinstance(response, CitationSummaryResponse):  # Summary
+                    print(f"Complete: {response.total_citations} citations found")
+            ```
+        """
+        if not question or not question.strip():
+            raise ValueError("question cannot be empty")
+            
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
         """Stream citations as they are found with real-time progress updates.
 
         This method provides real-time streaming of citation results, allowing you to

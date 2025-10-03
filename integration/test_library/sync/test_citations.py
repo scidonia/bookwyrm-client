@@ -140,7 +140,7 @@ def test_get_citations_error_multiple_inputs(client, sample_chunks, sample_jsonl
 
 def test_get_citations_error_empty_question(client, sample_chunks):
     """Test that empty question raises an error."""
-    with pytest.raises(ValueError, match="question cannot be empty"):
+    with pytest.raises(ValueError, match="question.*empty"):
         client.get_citations(
             chunks=sample_chunks,
             question=""
