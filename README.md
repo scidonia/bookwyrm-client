@@ -99,7 +99,7 @@ for stream_response in client.stream_citations(
         print(f"Progress: {stream_response.message}")
 
 # Phrasal text processing with boolean flags
-for response in client.process_text(
+for response in client.stream_process_text(
     text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",  # Triplanetary by E. E. Smith
     chunk_size=1000,
     offsets=True  # Boolean flag for WITH_OFFSETS
@@ -210,7 +210,7 @@ async def main():
                 print(f"New citation: {stream_response.citation.text}")
 
         # Phrasal text processing with boolean flags
-        async for response in client.process_text(
+        async for response in client.stream_process_text(
             text_url="https://www.gutenberg.org/cache/epub/32706/pg32706.txt",  # Triplanetary by E. E. Smith
             chunk_size=500,
             text_only=True  # Boolean flag for TEXT_ONLY
