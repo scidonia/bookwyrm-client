@@ -72,8 +72,8 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextChunk]:
                     data = json.loads(line)
                     chunk = TextChunk(
                         text=data["text"],
-                        start_char=data["start_char"],
-                        end_char=data["end_char"],
+                        start_char=data.get("start_char"),
+                        end_char=data.get("end_char"),
                     )
                     chunks.append(chunk)
                 except (json.JSONDecodeError, KeyError) as e:
@@ -101,8 +101,8 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextChunk]:
                     data = json.loads(line)
                     phrase = TextChunk(
                         text=data["text"],
-                        start_char=data.get("start_char", 0),
-                        end_char=data.get("end_char", len(data["text"])),
+                        start_char=data.get("start_char"),
+                        end_char=data.get("end_char"),
                     )
                     phrases.append(phrase)
                 except (json.JSONDecodeError, KeyError) as e:

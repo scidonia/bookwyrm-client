@@ -13,8 +13,8 @@ class TextChunk(BaseModel):
     """
 
     text: str = Field(..., description="The text content of the chunk")
-    start_char: int = Field(..., description="Starting character position in the original text")
-    end_char: int = Field(..., description="Ending character position in the original text")
+    start_char: Optional[int] = Field(None, description="Starting character position in the original text")
+    end_char: Optional[int] = Field(None, description="Ending character position in the original text")
 
 
 class CitationRequest(BaseModel):
@@ -329,14 +329,14 @@ class PhraseProgressUpdate(BaseModel):
     message: str = Field(..., description="Human-readable progress message")
 
 
-class PhraseResult(BaseModel):
+class PhraseResult(TextChunk):
     """Result containing a phrase or chunk.
     
     Individual phrase or chunk found during phrasal processing.
+    Inherits from TextChunk so it can be used anywhere TextChunk is expected.
     """
 
     type: Literal["phrase"] = Field("phrase", description="Message type identifier")
-    text: str = Field(..., description="The phrase or chunk text content")
     start_char: Optional[int] = Field(None, description="Starting character position (if with_offsets format)")
     end_char: Optional[int] = Field(None, description="Ending character position (if with_offsets format)")
 
