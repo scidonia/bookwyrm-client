@@ -270,8 +270,7 @@ def test_stream_extract_pdf_from_bytes_basic(client, minimal_pdf):
     metadata_received = False
 
     for response in client.stream_extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="test.pdf"
+        pdf_bytes=minimal_pdf, filename="test.pdf"
     ):
         if isinstance(response, PDFStreamMetadata):
             metadata_received = True
@@ -289,7 +288,7 @@ def test_stream_extract_pdf_from_bytes_basic(client, minimal_pdf):
         assert isinstance(page.page_number, int)
         assert page.page_number >= 1
         assert isinstance(page.text_blocks, list)
-        
+
         for text_block in page.text_blocks:
             assert isinstance(text_block, PDFTextElement)
             assert isinstance(text_block.text, str)
@@ -303,17 +302,12 @@ def test_stream_extract_pdf_with_page_range_basic(client, multi_page_pdf):
     responses = []
 
     for response in client.stream_extract_pdf(
-        pdf_bytes=multi_page_pdf,
-        filename="multipage.pdf",
-        start_page=2,
-        num_pages=2
+        pdf_bytes=multi_page_pdf, filename="multipage.pdf", start_page=2, num_pages=2
     ):
         responses.append(response)
 
     # Verify we got some responses
     assert len(responses) >= 0
-
-
 
 
 def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
@@ -324,8 +318,7 @@ def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
     errors_received = []
 
     for response in client.stream_extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="test.pdf"
+        pdf_bytes=minimal_pdf, filename="test.pdf"
     ):
         if isinstance(response, PDFStreamMetadata):
             metadata_received = True
@@ -344,7 +337,7 @@ def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
             completion_received = True
             # PDFStreamComplete may not have total_pages_processed attribute
             # Just verify we received the completion response
-            assert hasattr(response, 'type') or True  # Basic validation
+            assert hasattr(response, "type") or True  # Basic validation
         elif isinstance(response, PDFStreamError):
             errors_received.append(response)
             assert isinstance(response.error, str)
@@ -358,10 +351,7 @@ def test_stream_extract_pdf_with_page_range(client, two_page_pdf):
     pages_received = []
 
     for response in client.stream_extract_pdf(
-        pdf_bytes=two_page_pdf,
-        filename="multipage.pdf",
-        start_page=1,
-        num_pages=1
+        pdf_bytes=two_page_pdf, filename="multipage.pdf", start_page=1, num_pages=1
     ):
         if isinstance(response, PDFStreamPageResponse):
             pages_received.append(response)
@@ -378,29 +368,35 @@ def test_stream_extract_pdf_from_url(client):
 
 def test_stream_extract_pdf_error_no_input(client):
     """Test that missing PDF input raises an error."""
-    with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
+    with pytest.raises(
+        ValueError,
+        match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided",
+    ):
         list(client.stream_extract_pdf())
 
 
 def test_stream_extract_pdf_error_multiple_inputs(client):
     """Test that multiple PDF inputs raise an error."""
-    with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
-        list(client.stream_extract_pdf(
-            pdf_bytes=b"fake pdf",
-            pdf_url="https://example.com/test.pdf"
-        ))
+    with pytest.raises(
+        ValueError,
+        match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided",
+    ):
+        list(
+            client.stream_extract_pdf(
+                pdf_bytes=b"fake pdf", pdf_url="https://example.com/test.pdf"
+            )
+        )
 
 
 def test_stream_extract_pdf_with_base64_content_basic(client, minimal_pdf):
     """Test streaming PDF extraction using base64-encoded content."""
     import base64
-    
-    base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
-    
+
+    base64_content = base64.b64encode(minimal_pdf).decode("utf-8")
+
     responses = []
     for response in client.stream_extract_pdf(
-        pdf_content=base64_content,
-        filename="base64_test.pdf"
+        pdf_content=base64_content, filename="base64_test.pdf"
     ):
         responses.append(response)
 
@@ -411,13 +407,12 @@ def test_stream_extract_pdf_with_base64_content_basic(client, minimal_pdf):
 def test_stream_extract_pdf_with_base64_content(client, minimal_pdf):
     """Test streaming PDF extraction using base64-encoded content."""
     import base64
-    
-    base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
-    
+
+    base64_content = base64.b64encode(minimal_pdf).decode("utf-8")
+
     responses = []
     for response in client.stream_extract_pdf(
-        pdf_content=base64_content,
-        filename="base64_stream_test.pdf"
+        pdf_content=base64_content, filename="base64_stream_test.pdf"
     ):
         responses.append(response)
 
@@ -430,8 +425,7 @@ def test_stream_extract_pdf_bounding_box_validation(client, minimal_pdf):
     pages = []
 
     for response in client.stream_extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="bbox_test.pdf"
+        pdf_bytes=minimal_pdf, filename="bbox_test.pdf"
     ):
         if isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
@@ -455,8 +449,7 @@ def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
     # Test 1: Basic streaming extraction
     responses1 = []
     for response in client.stream_extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="live_test.pdf"
+        pdf_bytes=minimal_pdf, filename="live_test.pdf"
     ):
         responses1.append(response)
     assert len(responses1) >= 0
@@ -464,21 +457,18 @@ def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
     # Test 2: With page range
     responses2 = []
     for response in client.stream_extract_pdf(
-        pdf_bytes=minimal_pdf,
-        filename="live_range_test.pdf",
-        start_page=1,
-        num_pages=1
+        pdf_bytes=minimal_pdf, filename="live_range_test.pdf", start_page=1, num_pages=1
     ):
         responses2.append(response)
     assert len(responses2) >= 0
 
     # Test 3: Base64 content
     import base64
-    base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
+
+    base64_content = base64.b64encode(minimal_pdf).decode("utf-8")
     responses3 = []
     for response in client.stream_extract_pdf(
-        pdf_content=base64_content,
-        filename="live_base64_test.pdf"
+        pdf_content=base64_content, filename="live_base64_test.pdf"
     ):
         responses3.append(response)
     assert len(responses3) >= 0

@@ -97,7 +97,9 @@ async def test_stream_citations_with_chunks(async_client, sample_chunks):
 
 
 @pytest.mark.asyncio
-async def test_stream_citations_with_jsonl_content_basic(async_client, sample_jsonl_content):
+async def test_stream_citations_with_jsonl_content_basic(
+    async_client, sample_jsonl_content
+):
     """Test streaming citation finding using JSONL content."""
     citations = []
     summary_received = False
@@ -215,7 +217,9 @@ async def test_stream_citations_with_progress_tracking(async_client, sample_chun
 
 
 @pytest.mark.asyncio
-async def test_stream_citations_with_jsonl_content_detailed(async_client, sample_jsonl_content):
+async def test_stream_citations_with_jsonl_content_detailed(
+    async_client, sample_jsonl_content
+):
     """Test streaming citation finding using JSONL content with detailed verification."""
     citations = []
 
@@ -382,11 +386,11 @@ async def test_async_get_citations_live_api(async_client, sample_chunks):
         question="What is machine learning?",
         max_tokens_per_chunk=1000,
     )
-    
+
     assert isinstance(response, CitationResponse)
     assert isinstance(response.citations, list)
     assert isinstance(response.usage, UsageInfo)
-    
+
     for citation in response.citations:
         assert isinstance(citation, Citation)
         assert isinstance(citation.text, str)

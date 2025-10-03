@@ -162,7 +162,9 @@ async def test_stream_process_text_response_format_string(async_client):
 
     # Test "text_only" string format
     phrases_text = []
-    async for response in async_client.stream_process_text(text=text, response_format="text_only"):
+    async for response in async_client.stream_process_text(
+        text=text, response_format="text_only"
+    ):
         if isinstance(response, (TextResult, TextSpanResult)):
             phrases_text.append(response)
 
@@ -178,13 +180,17 @@ async def test_stream_process_text_alternative_string_formats(async_client):
 
     # Test "offsets" string format
     phrases_offsets = []
-    async for response in async_client.stream_process_text(text=text, response_format="offsets"):
+    async for response in async_client.stream_process_text(
+        text=text, response_format="offsets"
+    ):
         if isinstance(response, (TextResult, TextSpanResult)):
             phrases_offsets.append(response)
 
     # Test "text" string format
     phrases_text = []
-    async for response in async_client.stream_process_text(text=text, response_format="text"):
+    async for response in async_client.stream_process_text(
+        text=text, response_format="text"
+    ):
         if isinstance(response, (TextResult, TextSpanResult)):
             phrases_text.append(response)
 
@@ -219,7 +225,9 @@ async def test_stream_process_text_error_multiple_boolean_flags(async_client):
     text = "Testing multiple boolean flags error."
 
     with pytest.raises(ValueError, match="Only one response format flag can be True"):
-        async for _ in async_client.stream_process_text(text=text, offsets=True, text_only=True):
+        async for _ in async_client.stream_process_text(
+            text=text, offsets=True, text_only=True
+        ):
             pass
 
 
@@ -237,5 +245,7 @@ async def test_stream_process_text_error_invalid_string_format(async_client):
     text = "Testing invalid format string."
 
     with pytest.raises(ValueError, match="Invalid response_format"):
-        async for _ in async_client.stream_process_text(text=text, response_format="invalid_format"):
+        async for _ in async_client.stream_process_text(
+            text=text, response_format="invalid_format"
+        ):
             pass

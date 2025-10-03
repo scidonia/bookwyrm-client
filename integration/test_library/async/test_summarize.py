@@ -130,7 +130,9 @@ async def test_stream_summarize_error_no_input(async_client):
 
 
 @pytest.mark.asyncio
-async def test_stream_summarize_error_multiple_inputs(async_client, sample_content, sample_phrases):
+async def test_stream_summarize_error_multiple_inputs(
+    async_client, sample_content, sample_phrases
+):
     """Test that multiple inputs raise an error."""
     with pytest.raises(
         ValueError, match="Exactly one of.*content.*url.*phrases.*must be provided"
@@ -177,7 +179,9 @@ async def test_stream_summarize_single_phrase(async_client):
     ]
 
     final_summary = None
-    async for response in async_client.stream_summarize(phrases=single_phrase, max_tokens=2000):
+    async for response in async_client.stream_summarize(
+        phrases=single_phrase, max_tokens=2000
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -210,7 +214,9 @@ async def test_stream_summarize_levels_and_subsummaries(async_client, sample_con
     """Test that streaming summarization provides level and subsummary information."""
     final_summary = None
 
-    async for response in async_client.stream_summarize(content=sample_content, max_tokens=2000):
+    async for response in async_client.stream_summarize(
+        content=sample_content, max_tokens=2000
+    ):
         if isinstance(response, SummaryResponse):
             final_summary = response
             break
@@ -284,7 +290,9 @@ async def test_stream_summarize_progress_tracking(async_client, sample_content):
     progress_messages = []
     summary_received = False
 
-    async for response in async_client.stream_summarize(content=sample_content, max_tokens=4000):
+    async for response in async_client.stream_summarize(
+        content=sample_content, max_tokens=4000
+    ):
         if isinstance(response, SummarizeProgressUpdate):
             progress_messages.append(response.message)
         elif isinstance(response, SummaryResponse):

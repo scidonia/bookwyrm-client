@@ -155,11 +155,13 @@ def test_stream_citations_error_multiple_inputs(
         ValueError,
         match="Exactly one of.*chunks.*jsonl_content.*jsonl_url.*must be provided",
     ):
-        list(client.stream_citations(
-            chunks=sample_chunks,
-            jsonl_content=sample_jsonl_content,
-            question="What is AI?",
-        ))
+        list(
+            client.stream_citations(
+                chunks=sample_chunks,
+                jsonl_content=sample_jsonl_content,
+                question="What is AI?",
+            )
+        )
 
 
 def test_stream_citations_error_empty_question(client, sample_chunks):
@@ -242,8 +244,6 @@ def test_stream_citations_with_pagination_detailed(client, sample_chunks):
     assert len(responses) >= 0
 
 
-
-
 def test_stream_citations_quality_scores(client, sample_chunks):
     """Test that citation quality scores are within valid range."""
     citations = []
@@ -310,8 +310,6 @@ def test_stream_citations_with_different_chunk_sizes(client, sample_chunks):
     # Both should return valid responses
     assert len(responses_small) >= 0
     assert len(responses_large) >= 0
-
-
 
 
 def test_stream_citations_empty_chunks(client):

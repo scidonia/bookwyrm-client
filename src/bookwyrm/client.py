@@ -138,7 +138,6 @@ class BookWyrmClient:
         self.api_key: Optional[str] = api_key or os.getenv("BOOKWYRM_API_KEY")
         self.session: requests.Session = requests.Session()
 
-
     def classify(
         self,
         *,
@@ -201,12 +200,12 @@ class BookWyrmClient:
 
             ```python
             import base64
-            
+
             with open("image.png", "rb") as f:
                 raw_bytes = f.read()
-            
+
             base64_content = base64.b64encode(raw_bytes).decode('ascii')
-            
+
             response = client.classify(
                 content=base64_content,
                 filename="image.png",
@@ -237,16 +236,19 @@ class BookWyrmClient:
                 if request.content_encoding == ContentEncoding.BASE64:
                     # Decode base64 content
                     import base64
+
                     file_bytes = base64.b64decode(request.content)
                 elif request.content_encoding == ContentEncoding.UTF8:
                     # Encode UTF-8 text to bytes
-                    file_bytes = request.content.encode('utf-8')
+                    file_bytes = request.content.encode("utf-8")
                 elif request.content_encoding == ContentEncoding.RAW:
                     # Treat as raw bytes (assume content is already bytes-like)
                     # This case should typically use content_bytes instead
-                    file_bytes = request.content.encode('latin-1')  # Preserve raw bytes
+                    file_bytes = request.content.encode("latin-1")  # Preserve raw bytes
                 else:
-                    raise BookWyrmAPIError(f"Unsupported content encoding: {request.content_encoding}")
+                    raise BookWyrmAPIError(
+                        f"Unsupported content encoding: {request.content_encoding}"
+                    )
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
@@ -539,7 +541,7 @@ class BookWyrmClient:
         """
         if not question or not question.strip():
             raise ValueError("question cannot be empty")
-        
+
         # Handle empty chunks list - return empty response immediately
         if chunks is not None and len(chunks) == 0:
             yield CitationSummaryResponse(
@@ -548,11 +550,11 @@ class BookWyrmClient:
                     tokens_processed=0,
                     chunks_processed=0,
                     estimated_cost=None,
-                    remaining_credits=0.0
-                )
+                    remaining_credits=0.0,
+                ),
             )
             return
-            
+
         request = CitationRequest(
             chunks=chunks,
             jsonl_content=jsonl_content,
@@ -661,7 +663,6 @@ class BookWyrmClient:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
-
 
     def stream_extract_pdf(
         self,
@@ -831,7 +832,6 @@ class BookWyrmClient:
     ) -> None:
         """Context manager exit."""
         self.close()
-
 
     def stream_summarize(
         self,

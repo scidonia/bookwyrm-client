@@ -353,10 +353,11 @@ class AsyncBookWyrmClient:
                 if request.content_encoding == "base64":
                     # Decode base64 content and send as multipart form data
                     import base64
+
                     file_bytes = base64.b64decode(request.content)
                 else:
                     # Handle raw text content
-                    file_bytes = request.content.encode('utf-8')
+                    file_bytes = request.content.encode("utf-8")
             else:
                 raise BookWyrmAPIError(
                     "Either content or content_bytes must be provided"
