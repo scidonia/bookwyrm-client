@@ -1,4 +1,4 @@
-"""Integration tests for synchronous PDF extraction."""
+"""Integration tests for asynchronous PDF extraction."""
 
 import pytest
 from pathlib import Path
@@ -264,12 +264,13 @@ startxref
 %%EOF"""
 
 
-def test_stream_extract_pdf_from_bytes_basic(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_from_bytes_basic(async_client, minimal_pdf):
     """Test streaming PDF extraction using raw bytes."""
     pages = []
     metadata_received = False
 
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="test.pdf"
     ):
@@ -298,11 +299,12 @@ def test_stream_extract_pdf_from_bytes_basic(client, minimal_pdf):
             assert isinstance(text_block.coordinates, PDFBoundingBox)
 
 
-def test_stream_extract_pdf_with_page_range_basic(client, multi_page_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_with_page_range_basic(async_client, multi_page_pdf):
     """Test streaming PDF extraction with specific page range."""
     responses = []
 
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=multi_page_pdf,
         filename="multipage.pdf",
         start_page=2,
@@ -316,14 +318,15 @@ def test_stream_extract_pdf_with_page_range_basic(client, multi_page_pdf):
 
 
 
-def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_from_bytes(async_client, minimal_pdf):
     """Test streaming PDF extraction using raw bytes."""
     metadata_received = False
     pages_received = []
     completion_received = False
     errors_received = []
 
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="test.pdf"
     ):
@@ -353,11 +356,12 @@ def test_stream_extract_pdf_from_bytes(client, minimal_pdf):
     # Note: Some responses may not be received depending on PDF content and processing
 
 
-def test_stream_extract_pdf_with_page_range(client, two_page_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_with_page_range(async_client, two_page_pdf):
     """Test streaming PDF extraction with specific page range."""
     pages_received = []
 
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=two_page_pdf,
         filename="multipage.pdf",
         start_page=1,
@@ -370,35 +374,41 @@ def test_stream_extract_pdf_with_page_range(client, two_page_pdf):
     # Note: Actual behavior depends on PDF processing implementation
 
 
-def test_stream_extract_pdf_from_url(client):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_from_url(async_client):
     """Test streaming PDF extraction from URL."""
     # Skip this test for now - requires a publicly accessible PDF URL
     pytest.skip("Requires a publicly accessible PDF URL for testing")
 
 
-def test_stream_extract_pdf_error_no_input(client):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_error_no_input(async_client):
     """Test that missing PDF input raises an error."""
     with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
-        list(client.stream_extract_pdf())
+        async for _ in async_client.stream_extract_pdf():
+            pass
 
 
-def test_stream_extract_pdf_error_multiple_inputs(client):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_error_multiple_inputs(async_client):
     """Test that multiple PDF inputs raise an error."""
     with pytest.raises(ValueError, match="Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided"):
-        list(client.stream_extract_pdf(
+        async for _ in async_client.stream_extract_pdf(
             pdf_bytes=b"fake pdf",
             pdf_url="https://example.com/test.pdf"
-        ))
+        ):
+            pass
 
 
-def test_stream_extract_pdf_with_base64_content_basic(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_with_base64_content_basic(async_client, minimal_pdf):
     """Test streaming PDF extraction using base64-encoded content."""
     import base64
     
     base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
     
     responses = []
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_content=base64_content,
         filename="base64_test.pdf"
     ):
@@ -408,14 +418,15 @@ def test_stream_extract_pdf_with_base64_content_basic(client, minimal_pdf):
     assert len(responses) >= 0
 
 
-def test_stream_extract_pdf_with_base64_content(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_with_base64_content(async_client, minimal_pdf):
     """Test streaming PDF extraction using base64-encoded content."""
     import base64
     
     base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
     
     responses = []
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_content=base64_content,
         filename="base64_stream_test.pdf"
     ):
@@ -425,11 +436,12 @@ def test_stream_extract_pdf_with_base64_content(client, minimal_pdf):
     assert len(responses) >= 0  # May be empty if PDF processing fails
 
 
-def test_stream_extract_pdf_bounding_box_validation(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_bounding_box_validation(async_client, minimal_pdf):
     """Test that PDF text elements have valid bounding box coordinates."""
     pages = []
 
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="bbox_test.pdf"
     ):
@@ -450,11 +462,12 @@ def test_stream_extract_pdf_bounding_box_validation(client, minimal_pdf):
 
 
 @pytest.mark.liveonly
-def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
+@pytest.mark.asyncio
+async def test_stream_extract_pdf_live_api_comprehensive(async_client, minimal_pdf):
     """Comprehensive test of streaming PDF extraction against live API."""
     # Test 1: Basic streaming extraction
     responses1 = []
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="live_test.pdf"
     ):
@@ -463,7 +476,7 @@ def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
 
     # Test 2: With page range
     responses2 = []
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_bytes=minimal_pdf,
         filename="live_range_test.pdf",
         start_page=1,
@@ -476,7 +489,7 @@ def test_stream_extract_pdf_live_api_comprehensive(client, minimal_pdf):
     import base64
     base64_content = base64.b64encode(minimal_pdf).decode('utf-8')
     responses3 = []
-    for response in client.stream_extract_pdf(
+    async for response in async_client.stream_extract_pdf(
         pdf_content=base64_content,
         filename="live_base64_test.pdf"
     ):
