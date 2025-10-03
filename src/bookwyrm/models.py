@@ -61,6 +61,9 @@ class CitationRequest(BaseModel):
                 "Exactly one of 'chunks', 'jsonl_content', or 'jsonl_url' must be provided"
             )
 
+        if not self.question or not self.question.strip():
+            raise ValueError("question cannot be empty")
+
         if self.start is not None and self.start < 0:
             raise ValueError("start must be >= 0")
 
