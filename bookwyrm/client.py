@@ -137,13 +137,12 @@ class BookWyrmClient:
         self.session: requests.Session = requests.Session()
 
     def get_citations(
-        self, 
-        request: Optional[CitationRequest] = None,
+        self,
         *,
         chunks: Optional[List[TextSpan]] = None,
         jsonl_content: Optional[str] = None,
         jsonl_url: Optional[str] = None,
-        question: Optional[str] = None,
+        question: str,
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
@@ -155,11 +154,10 @@ class BookWyrmClient:
         for why it's relevant to the question.
 
         Args:
-            request: Citation request containing chunks/URL and question to answer (legacy)
-            chunks: List of text chunks to search (alternative to request)
-            jsonl_content: Raw JSONL content as string (alternative to request)
-            jsonl_url: URL to fetch JSONL content from (alternative to request)
-            question: The question to find citations for (required if not using request)
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
             start: Starting chunk index (0-based)
             limit: Maximum number of chunks to process
             max_tokens_per_chunk: Maximum tokens per chunk
@@ -171,7 +169,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Using function arguments directly:
+            Using text chunks directly:
 
             ```python
             from bookwyrm.models import TextSpan
@@ -203,33 +201,16 @@ class BookWyrmClient:
                 limit=100
             )
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import CitationRequest
-
-            request = CitationRequest(
-                chunks=chunks,
-                question="Why is the sky blue?"
-            )
-
-            response = client.get_citations(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if question is None:
-                raise ValueError("question is required when not using request object")
-            request = CitationRequest(
-                chunks=chunks,
-                jsonl_content=jsonl_content,
-                jsonl_url=jsonl_url,
-                question=question,
-                start=start,
-                limit=limit,
-                max_tokens_per_chunk=max_tokens_per_chunk,
-            )
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
         headers: Dict[str, str] = {
             **DEFAULT_HEADERS,
             "Content-Type": "application/json",
@@ -258,7 +239,6 @@ class BookWyrmClient:
 
     def classify(
         self,
-        request: Optional[ClassifyRequest] = None,
         *,
         content: Optional[str] = None,
         content_bytes: Optional[bytes] = None,
@@ -272,9 +252,8 @@ class BookWyrmClient:
         confidence scores and additional metadata about the detected format.
 
         Args:
-            request: Classification request with base64-encoded content and optional filename hint (legacy)
-            content: Base64-encoded file content (alternative to request)
-            content_bytes: Raw file bytes (alternative to request, will be encoded to base64)
+            content: Base64-encoded file content
+            content_bytes: Raw file bytes
             filename: Optional filename hint for classification
             content_encoding: Content encoding format (always "base64")
 
@@ -312,30 +291,16 @@ class BookWyrmClient:
             )
             print(f"Detected as: {response.classification.content_type}")
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import ClassifyRequest
-
-            request = ClassifyRequest(
-                content_bytes=file_bytes,
-                filename="document.pdf"
-            )
-
-            response = client.classify(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if content is None and content_bytes is None:
-                raise ValueError("Either content or content_bytes is required when not using request object")
-            request = ClassifyRequest(
-                content=content,
-                content_bytes=content_bytes,
-                filename=filename,
-                content_encoding=content_encoding,
-            )
+        if content is None and content_bytes is None:
+            raise ValueError("Either content or content_bytes is required")
+        
+        request = ClassifyRequest(
+            content=content,
+            content_bytes=content_bytes,
+            filename=filename,
+            content_encoding=content_encoding,
+        )
         headers: Dict[str, str] = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -369,13 +334,12 @@ class BookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     def process_text(
-        self, 
-        request: Optional[ProcessTextRequest] = None,
+        self,
         *,
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: Optional[ResponseFormat] = ResponseFormat.WITH_OFFSETS,
+        response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
     ) -> Iterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with streaming results.
@@ -385,9 +349,8 @@ class BookWyrmClient:
         or extract individual phrases with optional position information.
 
         Args:
-            request: Text processing request with text/URL, chunking options, and format preferences (legacy)
-            text: Text content to process (alternative to request)
-            text_url: URL to fetch text from (alternative to request)
+            text: Text content to process
+            text_url: URL to fetch text from
             chunk_size: Optional chunk size for fixed-size chunking
             response_format: Response format (WITH_OFFSETS or TEXT_ONLY)
             spacy_model: SpaCy model to use for processing
@@ -450,32 +413,17 @@ class BookWyrmClient:
                     if isinstance(response, (TextResult, TextSpanResult)):
                         f.write(response.model_dump_json() + "\n")
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import ProcessTextRequest, ResponseFormat
-
-            request = ProcessTextRequest(
-                text=text,
-                response_format=ResponseFormat.WITH_OFFSETS
-            )
-
-            for response in client.process_text(request):
-                # Process responses...
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if text is None and text_url is None:
-                raise ValueError("Either text or text_url is required when not using request object")
-            request = ProcessTextRequest(
-                text=text,
-                text_url=text_url,
-                chunk_size=chunk_size,
-                response_format=response_format,
-                spacy_model=spacy_model,
-            )
+        if text is None and text_url is None:
+            raise ValueError("Either text or text_url is required")
+        
+        request = ProcessTextRequest(
+            text=text,
+            text_url=text_url,
+            chunk_size=chunk_size,
+            response_format=response_format,
+            spacy_model=spacy_model,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -515,13 +463,12 @@ class BookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     def stream_citations(
-        self, 
-        request: Optional[CitationRequest] = None,
+        self,
         *,
         chunks: Optional[List[TextSpan]] = None,
         jsonl_content: Optional[str] = None,
         jsonl_url: Optional[str] = None,
-        question: Optional[str] = None,
+        question: str,
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
@@ -533,11 +480,10 @@ class BookWyrmClient:
         for large datasets or when you want to show progress to users.
 
         Args:
-            request: Citation request containing chunks/URL and question to answer (legacy)
-            chunks: List of text chunks to search (alternative to request)
-            jsonl_content: Raw JSONL content as string (alternative to request)
-            jsonl_url: URL to fetch JSONL content from (alternative to request)
-            question: The question to find citations for (required if not using request)
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
             start: Starting chunk index (0-based)
             limit: Maximum number of chunks to process
             max_tokens_per_chunk: Maximum tokens per chunk
@@ -550,7 +496,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Basic streaming with function arguments:
+            Basic streaming:
 
             ```python
             citations = []
@@ -566,34 +512,16 @@ class BookWyrmClient:
                 elif isinstance(response, CitationSummaryResponse):  # Summary
                     print(f"Complete: {response.total_citations} citations found")
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import CitationRequest
-
-            request = CitationRequest(
-                chunks=chunks,
-                question="Why is the sky blue?"
-            )
-
-            for response in client.stream_citations(request):
-                # Process responses...
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if question is None:
-                raise ValueError("question is required when not using request object")
-            request = CitationRequest(
-                chunks=chunks,
-                jsonl_content=jsonl_content,
-                jsonl_url=jsonl_url,
-                question=question,
-                start=start,
-                limit=limit,
-                max_tokens_per_chunk=max_tokens_per_chunk,
-            )
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -636,7 +564,6 @@ class BookWyrmClient:
 
     def extract_pdf(
         self,
-        request: Optional[PDFExtractRequest] = None,
         *,
         pdf_url: Optional[str] = None,
         pdf_content: Optional[str] = None,
@@ -652,10 +579,9 @@ class BookWyrmClient:
         (base64-encoded) and remote URLs, with optional page range selection.
 
         Args:
-            request: PDF extraction request with URL/content, optional page range, and filename (legacy)
-            pdf_url: URL to PDF file (alternative to request)
-            pdf_content: Base64 encoded PDF content (alternative to request)
-            pdf_bytes: Raw PDF bytes (alternative to request, will be encoded to base64)
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
@@ -713,35 +639,20 @@ class BookWyrmClient:
                 num_pages=5
             )
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import PDFExtractRequest
-
-            request = PDFExtractRequest(
-                pdf_bytes=pdf_bytes,
-                filename="document.pdf"
-            )
-
-            response = client.extract_pdf(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [pdf_url, pdf_content, pdf_bytes]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-            
-            request = PDFExtractRequest(
-                pdf_url=pdf_url,
-                pdf_content=pdf_content,
-                pdf_bytes=pdf_bytes,
-                filename=filename,
-                start_page=start_page,
-                num_pages=num_pages,
-            )
+        sources = [pdf_url, pdf_content, pdf_bytes]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
+        
+        request = PDFExtractRequest(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+        )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -802,7 +713,6 @@ class BookWyrmClient:
 
     def stream_extract_pdf(
         self,
-        request: Optional[PDFExtractRequest] = None,
         *,
         pdf_url: Optional[str] = None,
         pdf_content: Optional[str] = None,
@@ -818,10 +728,9 @@ class BookWyrmClient:
         where you want to show progress or process pages as they become available.
 
         Args:
-            request: PDF extraction request with URL/content, optional page range, and filename (legacy)
-            pdf_url: URL to PDF file (alternative to request)
-            pdf_content: Base64 encoded PDF content (alternative to request)
-            pdf_bytes: Raw PDF bytes (alternative to request, will be encoded to base64)
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
@@ -833,7 +742,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Basic streaming with function arguments:
+            Basic streaming:
 
             ```python
             pages = []
@@ -851,36 +760,20 @@ class BookWyrmClient:
 
             print(f"Extracted {len(pages)} pages total")
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import PDFExtractRequest
-
-            request = PDFExtractRequest(
-                pdf_bytes=pdf_bytes,
-                filename="document.pdf"
-            )
-
-            for response in client.stream_extract_pdf(request):
-                # Process responses...
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [pdf_url, pdf_content, pdf_bytes]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-            
-            request = PDFExtractRequest(
-                pdf_url=pdf_url,
-                pdf_content=pdf_content,
-                pdf_bytes=pdf_bytes,
-                filename=filename,
-                start_page=start_page,
-                num_pages=num_pages,
-            )
+        sources = [pdf_url, pdf_content, pdf_bytes]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
+        
+        request = PDFExtractRequest(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+        )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -986,7 +879,6 @@ class BookWyrmClient:
 
     def summarize(
         self,
-        request: Optional[SummarizeRequest] = None,
         *,
         content: Optional[str] = None,
         url: Optional[str] = None,
@@ -1001,10 +893,9 @@ class BookWyrmClient:
         large documents through hierarchical chunking and summarization.
 
         Args:
-            request: Summarization request with content, options, and optional structured output settings (legacy)
-            content: Text content to summarize (alternative to request)
-            url: URL to fetch content from (alternative to request)
-            phrases: List of text phrases to summarize (alternative to request)
+            content: Text content to summarize
+            url: URL to fetch content from
+            phrases: List of text phrases to summarize
             max_tokens: Maximum tokens for chunking (default: 10000)
             debug: Include intermediate summaries in response
 
@@ -1015,7 +906,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Basic text summarization with function arguments:
+            Basic text summarization:
 
             ```python
             # Load JSONL content
@@ -1052,35 +943,19 @@ class BookWyrmClient:
             )
             print(response.summary)
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import SummarizeRequest
-
-            request = SummarizeRequest(
-                content=content,
-                max_tokens=5000,
-                debug=True
-            )
-
-            response = client.summarize(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [content, url, phrases]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of content, url, or phrases must be provided")
-            
-            request = SummarizeRequest(
-                content=content,
-                url=url,
-                phrases=phrases,
-                max_tokens=max_tokens,
-                debug=debug,
-            )
+        sources = [content, url, phrases]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of content, url, or phrases must be provided")
+        
+        request = SummarizeRequest(
+            content=content,
+            url=url,
+            phrases=phrases,
+            max_tokens=max_tokens,
+            debug=debug,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -1106,7 +981,6 @@ class BookWyrmClient:
 
     def stream_summarize(
         self,
-        request: Optional[SummarizeRequest] = None,
         *,
         content: Optional[str] = None,
         url: Optional[str] = None,
@@ -1121,10 +995,9 @@ class BookWyrmClient:
         long-running summarization tasks where you want to show progress to users.
 
         Args:
-            request: Summarization request with content, options, and optional structured output settings (legacy)
-            content: Text content to summarize (alternative to request)
-            url: URL to fetch content from (alternative to request)
-            phrases: List of text phrases to summarize (alternative to request)
+            content: Text content to summarize
+            url: URL to fetch content from
+            phrases: List of text phrases to summarize
             max_tokens: Maximum tokens for chunking (default: 10000)
             debug: Include intermediate summaries in response
 
@@ -1136,7 +1009,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Basic streaming with function arguments:
+            Basic streaming:
 
             ```python
             final_result = None
@@ -1154,36 +1027,19 @@ class BookWyrmClient:
             if final_result:
                 print(final_result.summary)
             ```
-
-            Legacy request object usage (still supported):
-
-            ```python
-            from bookwyrm.models import SummarizeRequest
-
-            request = SummarizeRequest(
-                content=content,
-                max_tokens=5000,
-                debug=True
-            )
-
-            for response in client.stream_summarize(request):
-                # Process responses...
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [content, url, phrases]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of content, url, or phrases must be provided")
-            
-            request = SummarizeRequest(
-                content=content,
-                url=url,
-                phrases=phrases,
-                max_tokens=max_tokens,
-                debug=debug,
-            )
+        sources = [content, url, phrases]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of content, url, or phrases must be provided")
+        
+        request = SummarizeRequest(
+            content=content,
+            url=url,
+            phrases=phrases,
+            max_tokens=max_tokens,
+            debug=debug,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"

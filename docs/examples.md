@@ -40,21 +40,6 @@ for response in client.process_text(
 # - end_char: int (ending character position)
 ```
 
-#### Legacy Request Object Approach
-
-```python
-from bookwyrm.models import ProcessTextRequest
-
-# Legacy approach (still supported)
-request: ProcessTextRequest = ProcessTextRequest(
-    text=text,
-    response_format=ResponseFormat.WITH_OFFSETS,
-    spacy_model="en_core_web_sm"
-)
-
-for response in client.process_text(request):
-    # Process responses...
-```
 
 ### Create Phrasal Text Chunks
 
@@ -158,19 +143,6 @@ for citation in response.citations:
 # - quality: int (0-4 scale, 4=best)
 ```
 
-#### Legacy Request Object Approach
-
-```python
-from bookwyrm.models import CitationRequest
-
-# Legacy approach (still supported)
-request: CitationRequest = CitationRequest(
-    chunks=chunks,
-    question="What causes climate change?"
-)
-
-response: CitationResponse = client.get_citations(request)
-```
 
 ### Streaming Citations with Progress
 
@@ -271,19 +243,6 @@ for page in response.pages:
 # - coordinates: PDFBoundingBox (x1, y1, x2, y2 rectangle)
 ```
 
-#### Legacy Request Object Approach
-
-```python
-from bookwyrm.models import PDFExtractRequest
-
-# Legacy approach (still supported)
-request: PDFExtractRequest = PDFExtractRequest(
-    pdf_bytes=pdf_bytes,
-    filename="document.pdf"
-)
-
-response: PDFExtractResponse = client.extract_pdf(request)
-```
 
 ### Stream PDF Extraction with Progress
 
@@ -377,19 +336,6 @@ if response.classification.details:
 # - classification_methods: Optional[List[str]]
 ```
 
-#### Legacy Request Object Approach
-
-```python
-from bookwyrm.models import ClassifyRequest
-
-# Legacy approach (still supported)
-request: ClassifyRequest = ClassifyRequest(
-    content_bytes=file_bytes,
-    filename="unknown_file.dat"
-)
-
-response: ClassifyResponse = client.classify(request)
-```
 
 ## Text Summarization
 
@@ -429,19 +375,6 @@ print(f"\nProcessed {response.total_tokens} tokens across {response.levels_used}
 # - intermediate_summaries: Optional[List[List[str]]] (debug info if requested)
 ```
 
-#### Legacy Request Object Approach
-
-```python
-from bookwyrm.models import SummarizeRequest
-
-# Legacy approach (still supported)
-request: SummarizeRequest = SummarizeRequest(
-    content=text,
-    max_tokens=5000
-)
-
-response: SummaryResponse = client.summarize(request)
-```
 
 ### Summarize from URL
 
@@ -491,7 +424,7 @@ from bookwyrm.models import CitationResponse, CitationStreamResponse
 async def main() -> None:
     client: AsyncBookWyrmClient
     async with AsyncBookWyrmClient() as client:
-        # Async citation finding using function arguments
+        # Async citation finding
         response: CitationResponse = await client.get_citations(
             chunks=chunks,
             question="What causes climate change?"

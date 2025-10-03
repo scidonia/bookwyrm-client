@@ -144,13 +144,12 @@ class AsyncBookWyrmClient:
         self.client: httpx.AsyncClient = httpx.AsyncClient()
 
     async def get_citations(
-        self, 
-        request: Optional[CitationRequest] = None,
+        self,
         *,
         chunks: Optional[List[TextSpan]] = None,
         jsonl_content: Optional[str] = None,
         jsonl_url: Optional[str] = None,
-        question: Optional[str] = None,
+        question: str,
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
@@ -162,11 +161,10 @@ class AsyncBookWyrmClient:
         for why it's relevant to the question.
 
         Args:
-            request: Citation request containing chunks/URL and question to answer (legacy)
-            chunks: List of text chunks to search (alternative to request)
-            jsonl_content: Raw JSONL content as string (alternative to request)
-            jsonl_url: URL to fetch JSONL content from (alternative to request)
-            question: The question to find citations for (required if not using request)
+            chunks: List of text chunks to search
+            jsonl_content: Raw JSONL content as string
+            jsonl_url: URL to fetch JSONL content from
+            question: The question to find citations for
             start: Starting chunk index (0-based)
             limit: Maximum number of chunks to process
             max_tokens_per_chunk: Maximum tokens per chunk
@@ -178,7 +176,7 @@ class AsyncBookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
             
         Examples:
-            Basic async citation finding with function arguments:
+            Basic async citation finding:
             
             ```python
             from bookwyrm.models import TextSpan
@@ -218,33 +216,16 @@ class AsyncBookWyrmClient:
                     for i, response in enumerate(responses):
                         print(f"Request {i+1}: {response.total_citations} citations")
             ```
-
-            Legacy request object usage (still supported):
-            
-            ```python
-            from bookwyrm.models import CitationRequest
-            
-            request = CitationRequest(
-                chunks=chunks,
-                question="Why is the sky blue?"
-            )
-            
-            response = await client.get_citations(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if question is None:
-                raise ValueError("question is required when not using request object")
-            request = CitationRequest(
-                chunks=chunks,
-                jsonl_content=jsonl_content,
-                jsonl_url=jsonl_url,
-                question=question,
-                start=start,
-                limit=limit,
-                max_tokens_per_chunk=max_tokens_per_chunk,
-            )
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
         headers: Dict[str, str] = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -266,7 +247,6 @@ class AsyncBookWyrmClient:
 
     async def classify(
         self,
-        request: Optional[ClassifyRequest] = None,
         *,
         content: Optional[str] = None,
         content_bytes: Optional[bytes] = None,
@@ -280,9 +260,8 @@ class AsyncBookWyrmClient:
         confidence scores and additional metadata about the detected format.
 
         Args:
-            request: Classification request with base64-encoded content and optional filename hint (legacy)
-            content: Base64-encoded file content (alternative to request)
-            content_bytes: Raw file bytes (alternative to request, will be encoded to base64)
+            content: Base64-encoded file content
+            content_bytes: Raw file bytes
             filename: Optional filename hint for classification
             content_encoding: Content encoding format (always "base64")
 
@@ -293,7 +272,7 @@ class AsyncBookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
             
         Examples:
-            Basic async file classification with function arguments:
+            Basic async file classification:
             
             ```python
             async def classify_file():
@@ -333,30 +312,16 @@ class AsyncBookWyrmClient:
                     for filename, response in results:
                         print(f"{filename}: {response.classification.content_type} ({response.classification.confidence:.1%})")
             ```
-
-            Legacy request object usage (still supported):
-            
-            ```python
-            from bookwyrm.models import ClassifyRequest
-            
-            request = ClassifyRequest(
-                content_bytes=file_bytes,
-                filename="document.pdf"
-            )
-            
-            response = await client.classify(request)
-            ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if content is None and content_bytes is None:
-                raise ValueError("Either content or content_bytes is required when not using request object")
-            request = ClassifyRequest(
-                content=content,
-                content_bytes=content_bytes,
-                filename=filename,
-                content_encoding=content_encoding,
-            )
+        if content is None and content_bytes is None:
+            raise ValueError("Either content or content_bytes is required")
+        
+        request = ClassifyRequest(
+            content=content,
+            content_bytes=content_bytes,
+            filename=filename,
+            content_encoding=content_encoding,
+        )
         headers: Dict[str, str] = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -388,13 +353,12 @@ class AsyncBookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     async def process_text(
-        self, 
-        request: Optional[ProcessTextRequest] = None,
+        self,
         *,
         text: Optional[str] = None,
         text_url: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        response_format: Optional[ResponseFormat] = ResponseFormat.WITH_OFFSETS,
+        response_format: ResponseFormat = ResponseFormat.WITH_OFFSETS,
         spacy_model: str = "en_core_web_sm",
     ) -> AsyncIterator[StreamingPhrasalResponse]:
         """Process text using phrasal analysis with async streaming results.
@@ -478,17 +442,16 @@ class AsyncBookWyrmClient:
                 # Process responses...
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if text is None and text_url is None:
-                raise ValueError("Either text or text_url is required when not using request object")
-            request = ProcessTextRequest(
-                text=text,
-                text_url=text_url,
-                chunk_size=chunk_size,
-                response_format=response_format,
-                spacy_model=spacy_model,
-            )
+        if text is None and text_url is None:
+            raise ValueError("Either text or text_url is required")
+        
+        request = ProcessTextRequest(
+            text=text,
+            text_url=text_url,
+            chunk_size=chunk_size,
+            response_format=response_format,
+            spacy_model=spacy_model,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -528,13 +491,12 @@ class AsyncBookWyrmClient:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
     async def stream_citations(
-        self, 
-        request: Optional[CitationRequest] = None,
+        self,
         *,
         chunks: Optional[List[TextSpan]] = None,
         jsonl_content: Optional[str] = None,
         jsonl_url: Optional[str] = None,
-        question: Optional[str] = None,
+        question: str,
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
@@ -598,19 +560,15 @@ class AsyncBookWyrmClient:
                 # Process responses...
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            if question is None:
-                raise ValueError("question is required when not using request object")
-            request = CitationRequest(
-                chunks=chunks,
-                jsonl_content=jsonl_content,
-                jsonl_url=jsonl_url,
-                question=question,
-                start=start,
-                limit=limit,
-                max_tokens_per_chunk=max_tokens_per_chunk,
-            )
+        request = CitationRequest(
+            chunks=chunks,
+            jsonl_content=jsonl_content,
+            jsonl_url=jsonl_url,
+            question=question,
+            start=start,
+            limit=limit,
+            max_tokens_per_chunk=max_tokens_per_chunk,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -653,7 +611,6 @@ class AsyncBookWyrmClient:
 
     async def extract_pdf(
         self,
-        request: Optional[PDFExtractRequest] = None,
         *,
         pdf_url: Optional[str] = None,
         pdf_content: Optional[str] = None,
@@ -719,21 +676,19 @@ class AsyncBookWyrmClient:
             response = await client.extract_pdf(request)
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [pdf_url, pdf_content, pdf_bytes]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-            
-            request = PDFExtractRequest(
-                pdf_url=pdf_url,
-                pdf_content=pdf_content,
-                pdf_bytes=pdf_bytes,
-                filename=filename,
-                start_page=start_page,
-                num_pages=num_pages,
-            )
+        sources = [pdf_url, pdf_content, pdf_bytes]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
+        
+        request = PDFExtractRequest(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+        )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -788,7 +743,6 @@ class AsyncBookWyrmClient:
 
     async def stream_extract_pdf(
         self,
-        request: Optional[PDFExtractRequest] = None,
         *,
         pdf_url: Optional[str] = None,
         pdf_content: Optional[str] = None,
@@ -856,21 +810,19 @@ class AsyncBookWyrmClient:
                 # Process responses...
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [pdf_url, pdf_content, pdf_bytes]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
-            
-            request = PDFExtractRequest(
-                pdf_url=pdf_url,
-                pdf_content=pdf_content,
-                pdf_bytes=pdf_bytes,
-                filename=filename,
-                start_page=start_page,
-                num_pages=num_pages,
-            )
+        sources = [pdf_url, pdf_content, pdf_bytes]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of pdf_url, pdf_content, or pdf_bytes must be provided")
+        
+        request = PDFExtractRequest(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+        )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -992,7 +944,6 @@ class AsyncBookWyrmClient:
 
     async def summarize(
         self,
-        request: Optional[SummarizeRequest] = None,
         *,
         content: Optional[str] = None,
         url: Optional[str] = None,
@@ -1069,20 +1020,18 @@ class AsyncBookWyrmClient:
             response = await client.summarize(request)
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [content, url, phrases]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of content, url, or phrases must be provided")
-            
-            request = SummarizeRequest(
-                content=content,
-                url=url,
-                phrases=phrases,
-                max_tokens=max_tokens,
-                debug=debug,
-            )
+        sources = [content, url, phrases]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of content, url, or phrases must be provided")
+        
+        request = SummarizeRequest(
+            content=content,
+            url=url,
+            phrases=phrases,
+            max_tokens=max_tokens,
+            debug=debug,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -1104,7 +1053,6 @@ class AsyncBookWyrmClient:
 
     async def stream_summarize(
         self,
-        request: Optional[SummarizeRequest] = None,
         *,
         content: Optional[str] = None,
         url: Optional[str] = None,
@@ -1172,20 +1120,18 @@ class AsyncBookWyrmClient:
                 # Process responses...
             ```
         """
-        # Handle both new function interface and legacy request object
-        if request is None:
-            sources = [content, url, phrases]
-            provided_sources = [s for s in sources if s is not None]
-            if len(provided_sources) != 1:
-                raise ValueError("Exactly one of content, url, or phrases must be provided")
-            
-            request = SummarizeRequest(
-                content=content,
-                url=url,
-                phrases=phrases,
-                max_tokens=max_tokens,
-                debug=debug,
-            )
+        sources = [content, url, phrases]
+        provided_sources = [s for s in sources if s is not None]
+        if len(provided_sources) != 1:
+            raise ValueError("Exactly one of content, url, or phrases must be provided")
+        
+        request = SummarizeRequest(
+            content=content,
+            url=url,
+            phrases=phrases,
+            max_tokens=max_tokens,
+            debug=debug,
+        )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
