@@ -1573,7 +1573,7 @@ def extract_pdf(
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
-        console.print(
+        error_console.print(
             "[red]Error: Exactly one of file argument, --url, or --file must be provided[/red]"
         )
         raise typer.Exit(1)
@@ -1583,7 +1583,7 @@ def extract_pdf(
     if actual_file:
         # Use local file
         if not actual_file.exists():
-            console.print(f"[red]Error: File not found: {actual_file}[/red]")
+            error_console.print(f"[red]Error: File not found: {actual_file}[/red]")
             raise typer.Exit(1)
 
         console.print(f"[blue]Reading PDF file: {actual_file}[/blue]")
@@ -1603,7 +1603,7 @@ def extract_pdf(
                 num_pages=num_pages,
             )
         except Exception as e:
-            console.print(f"[red]Error reading PDF file: {e}[/red]")
+            error_console.print(f"[red]Error reading PDF file: {e}[/red]")
             raise typer.Exit(1)
     else:
         # Use URL
