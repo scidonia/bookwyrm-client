@@ -503,7 +503,7 @@ def cite(
                         # Immediately append to output file if specified
                         if output:
                             append_citation_to_jsonl(response.citation, output)
-                    elif isinstance(response, CitationSummaryResponse):
+                    elif response.__class__.__name__ == 'CitationSummaryResponse':
                         progress.update(
                             task,
                             completed=response.chunks_processed,
@@ -521,7 +521,7 @@ def cite(
                             console.print(
                                 f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                             )
-                    elif isinstance(response, CitationErrorResponse):
+                    elif response.__class__.__name__ == 'CitationErrorResponse':
                         console.print(f"[red]Error: {response.error}[/red]")
 
             display_citations_table(citations)
