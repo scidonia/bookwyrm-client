@@ -418,7 +418,7 @@ class ClassifyRequest(BaseModel):
     """Request model for file classification."""
 
     content: Optional[str] = None  # Base64-encoded file content
-    content_bytes: Optional[bytes] = None  # Raw file bytes (will be encoded to base64)
+    content_bytes: Optional[bytes] = None  # Raw file bytes
     filename: Optional[str] = None  # Optional hint for classification
     content_encoding: str = "base64"  # Always base64 for multipart uploads
 
@@ -432,11 +432,6 @@ class ClassifyRequest(BaseModel):
             raise ValueError(
                 "Exactly one of 'content' or 'content_bytes' must be provided"
             )
-
-        # If content_bytes is provided, encode it to base64 and set content
-        if self.content_bytes is not None:
-            self.content = base64.b64encode(self.content_bytes).decode('ascii')
-            delattr(self, 'content_bytes')  # Remove the field completely
 
         if self.content_encoding != "base64":
             raise ValueError("Content must be base64-encoded")
@@ -491,7 +486,7 @@ class PDFExtractRequest(BaseModel):
 
     pdf_url: Optional[str] = None
     pdf_content: Optional[str] = None  # Base64 encoded PDF content
-    pdf_bytes: Optional[bytes] = None  # Raw PDF bytes (will be encoded to base64)
+    pdf_bytes: Optional[bytes] = None  # Raw PDF bytes
     filename: Optional[str] = None  # Optional filename hint
     start_page: Optional[int] = None  # 1-based page number to start from
     num_pages: Optional[int] = None  # Number of pages to process from start_page
@@ -506,11 +501,6 @@ class PDFExtractRequest(BaseModel):
             raise ValueError(
                 "Exactly one of 'pdf_url', 'pdf_content', or 'pdf_bytes' must be provided"
             )
-
-        # If pdf_bytes is provided, encode it to base64 and set pdf_content
-        if self.pdf_bytes is not None:
-            self.pdf_content = base64.b64encode(self.pdf_bytes).decode('ascii')
-            delattr(self, 'pdf_bytes')  # Remove the field completely
 
         if self.start_page is not None and self.start_page < 1:
             raise ValueError("start_page must be >= 1")

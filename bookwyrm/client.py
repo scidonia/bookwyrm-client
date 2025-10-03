@@ -341,15 +341,15 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            if not request.content or request.content_encoding != "base64":
-                raise BookWyrmAPIError(
-                    "Content must be provided as base64-encoded data"
-                )
-
-            # Decode base64 content and send as multipart form data
-            import base64
-
-            file_bytes: bytes = base64.b64decode(request.content)
+            # Handle marshalling at API level
+            if request.content_bytes is not None:
+                file_bytes: bytes = request.content_bytes
+            elif request.content is not None:
+                # Decode base64 content
+                import base64
+                file_bytes = base64.b64decode(request.content)
+            else:
+                raise BookWyrmAPIError("Either content or content_bytes must be provided")
 
             files: Dict[str, tuple] = {
                 "file": (request.filename or "document", file_bytes)
@@ -747,11 +747,14 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            if request.pdf_content:
-                # Handle base64-encoded file content using form data
-                import base64
-
-                pdf_bytes: bytes = base64.b64decode(request.pdf_content)
+            if request.pdf_content or request.pdf_bytes:
+                # Handle marshalling at API level
+                if request.pdf_bytes is not None:
+                    pdf_bytes: bytes = request.pdf_bytes
+                else:
+                    # Handle base64-encoded file content
+                    import base64
+                    pdf_bytes = base64.b64decode(request.pdf_content)
 
                 files: Dict[str, tuple] = {
                     "file": (
@@ -883,11 +886,14 @@ class BookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            if request.pdf_content:
-                # Handle base64-encoded file content using form data
-                import base64
-
-                pdf_bytes = base64.b64decode(request.pdf_content)
+            if request.pdf_content or request.pdf_bytes:
+                # Handle marshalling at API level
+                if request.pdf_bytes is not None:
+                    pdf_bytes = request.pdf_bytes
+                else:
+                    # Handle base64-encoded file content using form data
+                    import base64
+                    pdf_bytes = base64.b64decode(request.pdf_content)
 
                 files = {
                     "file": (
