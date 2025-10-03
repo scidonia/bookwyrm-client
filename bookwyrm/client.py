@@ -353,85 +353,85 @@ class BookWyrmClient:
         offsets: Optional[bool] = None,
         text_only: Optional[bool] = None,
     ) -> Iterator[StreamingPhrasalResponse]:
-        """Process text using phrasal analysis with streaming results.
+        # """Process text using phrasal analysis with streaming results.
 
-        This method breaks down text into meaningful phrases or chunks using NLP,
-        supporting both direct text input and URLs. It can create fixed-size chunks
-        or extract individual phrases with optional position information.
+        # This method breaks down text into meaningful phrases or chunks using NLP,
+        # supporting both direct text input and URLs. It can create fixed-size chunks
+        # or extract individual phrases with optional position information.
 
-        Args:
-            text: Text content to process
-            text_url: URL to fetch text from
-            chunk_size: Optional chunk size for fixed-size chunking
-            response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
-            offsets: Set to True for WITH_OFFSETS format (boolean flag)
-            text_only: Set to True for TEXT_ONLY format (boolean flag)
+        # Args:
+        #     text: Text content to process
+        #     text_url: URL to fetch text from
+        #     chunk_size: Optional chunk size for fixed-size chunking
+        #     response_format: Response format - use ResponseFormat enum, "offsets", or "text_only"
+        #     offsets: Set to True for WITH_OFFSETS format (boolean flag)
+        #     text_only: Set to True for TEXT_ONLY format (boolean flag)
 
-        Yields:
-            StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
+        # Yields:
+        #     StreamingPhrasalResponse: Union of progress updates and phrase/chunk results
 
-        Raises:
-            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+        # Raises:
+        #     BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
-        Examples:
-            Extract phrases from text with position offsets:
+        # Examples:
+        #     Extract phrases from text with position offsets:
 
-            ```python
-            from bookwyrm import BookWyrmClient
-            from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult
+        #     ```python
+        #     from bookwyrm import BookWyrmClient
+        #     from bookwyrm.models import ResponseFormat, TextResult, TextSpanResult
 
-            text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language."
+        #     text = "Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language."
 
-            client = BookWyrmClient(api_key="your-api-key")
-            phrases = []
-            for response in client.process_text(
-                text=text,
-                offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
-            ):
-                if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
-                    phrases.append(response)
-                    print(f"Phrase: {response.text}")
-                    if isinstance(response, TextSpanResult):
-                        print(f"Position: {response.start_char}-{response.end_char}")
-            ```
+        #     client = BookWyrmClient(api_key="your-api-key")
+        #     phrases = []
+        #     for response in client.process_text(
+        #         text=text,
+        #         offsets=True,  # or response_format="with_offsets" or ResponseFormat.WITH_OFFSETS
+        #     ):
+        #         if isinstance(response, (TextResult, TextSpanResult)):  # Phrase result
+        #             phrases.append(response)
+        #             print(f"Phrase: {response.text}")
+        #             if isinstance(response, TextSpanResult):
+        #                 print(f"Position: {response.start_char}-{response.end_char}")
+        #     ```
 
-            Create fixed-size chunks:
+        #     Create fixed-size chunks:
 
-            ```python
-            from bookwyrm import BookWyrmClient
-            from bookwyrm.models import TextResult, TextSpanResult
+        #     ```python
+        #     from bookwyrm import BookWyrmClient
+        #     from bookwyrm.models import TextResult, TextSpanResult
 
-            client = BookWyrmClient(api_key="your-api-key")
-            chunks = []
-            for response in client.process_text(
-                text=long_text,
-                chunk_size=1000,  # ~1000 characters per chunk
-                offsets=True  # boolean flag for WITH_OFFSETS
-            ):
-                if isinstance(response, (TextResult, TextSpanResult)):
-                    chunks.append(response)
+        #     client = BookWyrmClient(api_key="your-api-key")
+        #     chunks = []
+        #     for response in client.process_text(
+        #         text=long_text,
+        #         chunk_size=1000,  # ~1000 characters per chunk
+        #         offsets=True  # boolean flag for WITH_OFFSETS
+        #     ):
+        #         if isinstance(response, (TextResult, TextSpanResult)):
+        #             chunks.append(response)
 
-            print(f"Created {len(chunks)} chunks")
-            ```
+        #     print(f"Created {len(chunks)} chunks")
+        #     ```
 
-            Process text from URL:
+        #     Process text from URL:
 
-            ```python
-            from bookwyrm import BookWyrmClient
-            from bookwyrm.models import TextResult, TextSpanResult
+        #     ```python
+        #     from bookwyrm import BookWyrmClient
+        #     from bookwyrm.models import TextResult, TextSpanResult
 
-            client = BookWyrmClient(api_key="your-api-key")
-            # Save to JSONL file
-            with open("alice_phrases.jsonl", "w") as f:
-                for response in client.process_text(
-                    text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
-                    chunk_size=2000,
-                    text_only=True  # boolean flag for TEXT_ONLY
-                ):
-                    if isinstance(response, (TextResult, TextSpanResult)):
-                        f.write(response.model_dump_json() + "\n")
-            ```
-        """
+        #     client = BookWyrmClient(api_key="your-api-key")
+        #     # Save to JSONL file
+        #     with open("alice_phrases.jsonl", "w") as f:
+        #         for response in client.process_text(
+        #             text_url="https://www.gutenberg.org/files/11/11-0.txt",  # Alice in Wonderland
+        #             chunk_size=2000,
+        #             text_only=True  # boolean flag for TEXT_ONLY
+        #         ):
+        #             if isinstance(response, (TextResult, TextSpanResult)):
+        #                 f.write(response.model_dump_json() + "\n")
+        #     ```
+        # """
         if text is None and text_url is None:
             raise ValueError("Either text or text_url is required")
 
