@@ -32,6 +32,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Examples: examples.md
+  - AI Integration: ai.md
   - CLI Reference: cli.md
   - API Reference:
     - api/index.md
