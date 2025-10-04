@@ -111,6 +111,7 @@ class BookWyrmClient:
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
+        timeout: Optional[float] = 30.0,
     ) -> None:
         """Initialize the BookWyrm client.
 
@@ -118,6 +119,7 @@ class BookWyrmClient:
             base_url: Base URL of the BookWyrm API. Defaults to "https://api.bookwyrm.ai:443"
             api_key: API key for authentication. If not provided, will attempt to read
                 from BOOKWYRM_API_KEY environment variable
+            timeout: Request timeout in seconds. Defaults to 30.0 seconds. Set to None for no timeout.
 
         Examples:
             ```python
@@ -127,15 +129,20 @@ class BookWyrmClient:
             # With explicit API key
             client = BookWyrmClient(api_key="your-api-key")
 
-            # With custom endpoint
+            # With custom endpoint and timeout
             client = BookWyrmClient(
                 base_url="https://localhost:8000",
-                api_key="dev-key"
+                api_key="dev-key",
+                timeout=60.0
             )
+
+            # With no timeout
+            client = BookWyrmClient(timeout=None)
             ```
         """
         self.base_url: str = base_url.rstrip("/")
         self.api_key: Optional[str] = api_key or os.getenv("BOOKWYRM_API_KEY")
+        self.timeout: Optional[float] = timeout
         self.session: requests.Session = requests.Session()
 
     def classify(
@@ -261,6 +268,7 @@ class BookWyrmClient:
                 f"{self.base_url}/classify",
                 files=files,
                 headers=headers,
+                timeout=self.timeout,
             )
 
             response.raise_for_status()
@@ -415,6 +423,7 @@ class BookWyrmClient:
                 json=request_data,
                 headers=headers,
                 stream=True,
+                timeout=self.timeout,
             )
 
             # Debug: Print response details if BOOKWYRM_DEBUG is set
@@ -637,6 +646,7 @@ class BookWyrmClient:
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 stream=True,
+                timeout=self.timeout,
             )
             response.raise_for_status()
 
@@ -766,6 +776,7 @@ class BookWyrmClient:
                     data=data,
                     headers=headers,
                     stream=True,
+                    timeout=self.timeout,
                 )
             elif request.pdf_url:
                 # Handle URL using JSON endpoint
@@ -781,6 +792,7 @@ class BookWyrmClient:
                     json=json_data,
                     headers=headers,
                     stream=True,
+                    timeout=self.timeout,
                 )
             else:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
@@ -907,6 +919,7 @@ class BookWyrmClient:
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 stream=True,
+                timeout=self.timeout,
             )
             response.raise_for_status()
 

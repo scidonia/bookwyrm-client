@@ -117,6 +117,7 @@ class AsyncBookWyrmClient:
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
+        timeout: Optional[float] = 30.0,
     ) -> None:
         """Initialize the async BookWyrm client.
 
@@ -124,6 +125,7 @@ class AsyncBookWyrmClient:
             base_url: Base URL of the BookWyrm API. Defaults to "https://api.bookwyrm.ai:443"
             api_key: API key for authentication. If not provided, will attempt to read
                 from BOOKWYRM_API_KEY environment variable
+            timeout: Request timeout in seconds. Defaults to 30.0 seconds. Set to None for no timeout.
 
         Examples:
             ```python
@@ -133,16 +135,21 @@ class AsyncBookWyrmClient:
             # With explicit API key
             client = AsyncBookWyrmClient(api_key="your-api-key")
 
-            # With custom endpoint
+            # With custom endpoint and timeout
             client = AsyncBookWyrmClient(
                 base_url="https://localhost:8000",
-                api_key="dev-key"
+                api_key="dev-key",
+                timeout=60.0
             )
+
+            # With no timeout
+            client = AsyncBookWyrmClient(timeout=None)
             ```
         """
         self.base_url: str = base_url.rstrip("/")
         self.api_key: Optional[str] = api_key or os.getenv("BOOKWYRM_API_KEY")
-        self.client: httpx.AsyncClient = httpx.AsyncClient()
+        self.timeout: Optional[float] = timeout
+        self.client: httpx.AsyncClient = httpx.AsyncClient(timeout=timeout)
 
     async def get_citations(
         self,
@@ -254,6 +261,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/cite",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
+                timeout=self.timeout,
             )
             response.raise_for_status()
             response_data: Dict[str, Any] = response.json()
@@ -370,6 +378,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/classify",
                 files=files,
                 headers=headers,
+                timeout=self.timeout,
             )
 
             response.raise_for_status()
@@ -535,6 +544,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/phrasal",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
+                timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
 
@@ -679,6 +689,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/cite/stream",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
+                timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
 
@@ -823,6 +834,7 @@ class AsyncBookWyrmClient:
                     files=files,
                     data=data,
                     headers=headers,
+                    timeout=self.timeout,
                 )
             elif request.pdf_url:
                 # Handle URL using JSON endpoint
@@ -837,6 +849,7 @@ class AsyncBookWyrmClient:
                     f"{self.base_url}/extract-structure-json",
                     json=json_data,
                     headers=headers,
+                    timeout=self.timeout,
                 )
             else:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
@@ -966,6 +979,7 @@ class AsyncBookWyrmClient:
                     files=files,
                     data=data,
                     headers=headers,
+                    timeout=self.timeout,
                 ) as response:
                     response.raise_for_status()
 
@@ -1009,6 +1023,7 @@ class AsyncBookWyrmClient:
                     f"{self.base_url}/extract-structure-stream-json",
                     json=json_data,
                     headers=headers,
+                    timeout=self.timeout,
                 ) as response:
                     response.raise_for_status()
 
@@ -1161,6 +1176,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/summarize",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
+                timeout=self.timeout,
             )
             response.raise_for_status()
             response_data: Dict[str, Any] = response.json()
@@ -1261,6 +1277,7 @@ class AsyncBookWyrmClient:
                 f"{self.base_url}/summarize",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
+                timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
 
