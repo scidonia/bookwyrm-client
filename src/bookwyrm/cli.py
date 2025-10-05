@@ -646,10 +646,10 @@ def summarize(
     
     - **Custom Prompts**: Use `--chunk-prompt` and `--summary-prompt` together to customize the summarization process. Both prompts are required when using custom prompts.
     
-    - **Thinking Power**: Use `--thinking-power` to control the AI model used for summarization:
-      - `fast`: Quick processing with openai/gpt-oss-20b (default)
-      - `smart`: Balanced performance with moonshotai/kimi-k2-instruct-0905
-      - `expert`: Highest quality with openai/gpt-oss-120b
+    - **Thinking Power**: Use `--thinking-power` to control the processing level for summarization:
+      - `fast`: Quick processing (default)
+      - `smart`: Balanced performance
+      - `expert`: Highest quality
     
     ## Examples
     
