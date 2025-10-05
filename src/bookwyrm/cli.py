@@ -786,7 +786,9 @@ def summarize(
         summary_of_summaries_prompt=summary_prompt,
     )
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+    # Handle timeout - convert 0 to None for no timeout
+    client_timeout = None if timeout == 0 else (timeout or 30.0)
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=client_timeout)
 
     try:
         console.print("[blue]Starting summarization...[/blue]")
@@ -981,6 +983,12 @@ def phrasal(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(
+            help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
+        ),
+    ] = None,
 ):
     """Stream text processing using phrasal analysis to extract phrases or chunks.
 
@@ -1022,6 +1030,9 @@ def phrasal(
 
     # Text-only format (no position data)
     bookwyrm phrasal -f text.txt --text-only --output simple_phrases.jsonl
+
+    # With custom timeout for large documents
+    bookwyrm phrasal -f large_document.txt --timeout 120 --output phrases.jsonl
 
     ```
 
@@ -1076,7 +1087,9 @@ def phrasal(
         text = input_text
         console.print(f"[blue]Processing provided text ({len(text)} characters)[/blue]")
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+    # Handle timeout - convert 0 to None for no timeout
+    client_timeout = None if timeout == 0 else (timeout or 30.0)
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=client_timeout)
 
     try:
         console.print("[blue]Starting phrasal processing...[/blue]")
@@ -1272,6 +1285,12 @@ def classify(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(
+            help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
+        ),
+    ] = None,
 ):
     """Classify files to determine their type and format.
 
@@ -1303,6 +1322,9 @@ def classify(
 
     # With filename hint
     bookwyrm classify --file data.txt --filename "research_data.csv" --output results.json
+
+    # With custom timeout for large files
+    bookwyrm classify --file large_dataset.bin --timeout 60 --output classification.json
     ```
 
     ## Output Format
@@ -1402,7 +1424,9 @@ def classify(
         content_encoding="base64",
     )
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+    # Handle timeout - convert 0 to None for no timeout
+    client_timeout = None if timeout == 0 else (timeout or 30.0)
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=client_timeout)
 
     try:
         console.print("[blue]Starting classification...[/blue]")
@@ -1531,6 +1555,12 @@ def extract_pdf(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(
+            help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
+        ),
+    ] = None,
 ):
     """Extract structured data from PDF files using OCR.
 
@@ -1573,6 +1603,9 @@ def extract_pdf(
     # Auto-save with generated filename (no --output needed)
     bookwyrm extract-pdf my_document.pdf --start-page 5 --num-pages 3
     # Saves to: my_document_pages_5-7_extracted.json
+
+    # With custom timeout for large PDFs
+    bookwyrm extract-pdf large_document.pdf --timeout 300 --output extracted.json
     ```
 
     ## Output Format
