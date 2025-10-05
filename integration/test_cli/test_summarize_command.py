@@ -519,24 +519,26 @@ def test_summarize_command_live_api_streaming(
 
 @pytest.mark.liveonly
 def test_summarize_command_live_api_with_debug(sample_phrases, api_key, api_url):
-    """Test summarize command against live API with debug information."""
+    """Test summarize command against live API with debug information via environment variable."""
     if not api_key:
         pytest.skip("No API key provided for live test")
 
     jsonl_file = create_test_jsonl_file(sample_phrases)
 
     try:
-        result = run_bookwyrm_command(
-            [
-                "summarize",
-                str(jsonl_file),
-                "--api-key",
-                api_key,
-                "--base-url",
-                api_url,
-                "--max-tokens",
-                "5000",
-            ]
+        # Set debug environment variable and run with subprocess directly
+        import os
+        env = os.environ.copy()
+        env["BOOKWYRM_DEBUG"] = "1"
+        env["BOOKWYRM_API_KEY"] = api_key
+        env["BOOKWYRM_API_URL"] = api_url
+        
+        result = subprocess.run(
+            ["python", "-m", "bookwyrm.cli", "summarize", str(jsonl_file), "--max-tokens", "5000"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env=env,
         )
 
         assert result.returncode == 0, f"Command failed: {result.stderr}"
