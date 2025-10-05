@@ -188,12 +188,12 @@ class SummarizeRequest(BaseModel):
     phrases: Optional[List[TextSpan]] = None
     max_tokens: int = 10000  # Default max tokens for chunking
     debug: bool = False  # Include intermediate summaries in response
-    # Pydantic model option for structured output (commented out)
-    # model_name: Optional[str] = None
-    # model_schema_json: Optional[str] = None
-    # Custom prompt option (commented out)
-    # chunk_prompt: Optional[str] = None
-    # summary_of_summaries_prompt: Optional[str] = None
+    # Pydantic model option for structured output
+    model_name: Optional[str] = None
+    model_schema_json: Optional[str] = None
+    # Custom prompt option
+    chunk_prompt: Optional[str] = None
+    summary_of_summaries_prompt: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_input_source(self):
@@ -213,25 +213,25 @@ class SummarizeRequest(BaseModel):
         if self.max_tokens < 1:
             raise ValueError(f"max_tokens must be at least 1 (got {self.max_tokens})")
 
-        # Structured output validation (commented out)
+        # Structured output validation
         # Check if both pydantic model and custom prompts are specified
-        # has_pydantic_model = bool(self.model_name or self.model_schema_json)
-        # has_custom_prompts = bool(self.chunk_prompt or self.summary_of_summaries_prompt)
+        has_pydantic_model = bool(self.model_name or self.model_schema_json)
+        has_custom_prompts = bool(self.chunk_prompt or self.summary_of_summaries_prompt)
 
-        # if has_pydantic_model and has_custom_prompts:
-        #     raise ValueError("Cannot specify both pydantic model options (model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive.")
+        if has_pydantic_model and has_custom_prompts:
+            raise ValueError("Cannot specify both pydantic model options (model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive.")
 
         # Validate pydantic model fields are complete
-        # if self.model_name and not self.model_schema_json:
-        #     raise ValueError("model_schema_json is required when model_name is provided")
-        # if self.model_schema_json and not self.model_name:
-        #     raise ValueError("model_name is required when model_schema_json is provided")
+        if self.model_name and not self.model_schema_json:
+            raise ValueError("model_schema_json is required when model_name is provided")
+        if self.model_schema_json and not self.model_name:
+            raise ValueError("model_name is required when model_schema_json is provided")
 
         # Validate custom prompts are complete
-        # if self.chunk_prompt and not self.summary_of_summaries_prompt:
-        #     raise ValueError("summary_of_summaries_prompt is required when chunk_prompt is provided")
-        # if self.summary_of_summaries_prompt and not self.chunk_prompt:
-        #     raise ValueError("chunk_prompt is required when summary_of_summaries_prompt is provided")
+        if self.chunk_prompt and not self.summary_of_summaries_prompt:
+            raise ValueError("summary_of_summaries_prompt is required when chunk_prompt is provided")
+        if self.summary_of_summaries_prompt and not self.chunk_prompt:
+            raise ValueError("chunk_prompt is required when summary_of_summaries_prompt is provided")
 
         return self
 

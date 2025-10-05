@@ -554,36 +554,36 @@ def summarize(
     include_debug: Annotated[
         bool, typer.Option("--include-debug", help="Include intermediate summaries")
     ] = False,
-    # Structured output options (commented out)
-    # model_class_file: Annotated[
-    #     Optional[Path],
-    #     typer.Option(
-    #         "--model-class-file",
-    #         help="Python file containing Pydantic model class for structured output",
-    #         exists=True,
-    #     ),
-    # ] = None,
-    # model_class_name: Annotated[
-    #     Optional[str],
-    #     typer.Option(
-    #         "--model-class-name",
-    #         help="Name of the Pydantic model class to use (required with --model-class-file)",
-    #     ),
-    # ] = None,
-    # chunk_prompt: Annotated[
-    #     Optional[str],
-    #     typer.Option(
-    #         "--chunk-prompt",
-    #         help="Custom prompt for chunk summarization (requires --summary-prompt)",
-    #     ),
-    # ] = None,
-    # summary_prompt: Annotated[
-    #     Optional[str],
-    #     typer.Option(
-    #         "--summary-prompt",
-    #         help="Custom prompt for summary of summaries (requires --chunk-prompt)",
-    #     ),
-    # ] = None,
+    # Structured output options
+    model_class_file: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--model-class-file",
+            help="Python file containing Pydantic model class for structured output",
+            exists=True,
+        ),
+    ] = None,
+    model_class_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--model-class-name",
+            help="Name of the Pydantic model class to use (required with --model-class-file)",
+        ),
+    ] = None,
+    chunk_prompt: Annotated[
+        Optional[str],
+        typer.Option(
+            "--chunk-prompt",
+            help="Custom prompt for chunk summarization (requires --summary-prompt)",
+        ),
+    ] = None,
+    summary_prompt: Annotated[
+        Optional[str],
+        typer.Option(
+            "--summary-prompt",
+            help="Custom prompt for summary of summaries (requires --chunk-prompt)",
+        ),
+    ] = None,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -612,11 +612,11 @@ def summarize(
     {"text": "phrase text", "start_char": 0, "end_char": 15}
     ```
     
-    ## Features (Some Temporarily Disabled)
+    ## Features
     
-    - **Structured Output** (temporarily disabled): Use `--model-class-file` and `--model-class-name` to generate structured summaries that conform to your Pydantic model schema. The output file is required when using structured output.
+    - **Structured Output**: Use `--model-class-file` and `--model-class-name` to generate structured summaries that conform to your Pydantic model schema. The output file is required when using structured output.
     
-    - **Custom Prompts** (temporarily disabled): Use `--chunk-prompt` and `--summary-prompt` together to customize the summarization process. Both prompts are required when using custom prompts.
+    - **Custom Prompts**: Use `--chunk-prompt` and `--summary-prompt` together to customize the summarization process. Both prompts are required when using custom prompts.
     
     ## Examples
     
@@ -631,20 +631,20 @@ def summarize(
     bookwyrm summarize large_text.jsonl --max-tokens 20000 --output summary.json
     ```
     
-    ### Temporarily Disabled Examples
+    ### Structured Output Examples
     
     ```bash
-    # Structured output with Pydantic model (temporarily disabled)
-    # bookwyrm summarize book.jsonl \
-    #   --model-class-file models/book_summary.py \
-    #   --model-class-name BookSummary \
-    #   --output structured_summary.json
+    # Structured output with Pydantic model
+    bookwyrm summarize book.jsonl \
+      --model-class-file models/book_summary.py \
+      --model-class-name BookSummary \
+      --output structured_summary.json
     
-    # Custom prompts (temporarily disabled)
-    # bookwyrm summarize scientific_text.jsonl \
-    #   --chunk-prompt "Extract key scientific concepts and findings" \
-    #   --summary-prompt "Create a comprehensive scientific overview" \
-    #   --output science_summary.json
+    # Custom prompts
+    bookwyrm summarize scientific_text.jsonl \
+      --chunk-prompt "Extract key scientific concepts and findings" \
+      --summary-prompt "Create a comprehensive scientific overview" \
+      --output science_summary.json
     ```
     
     ## Output Format
@@ -669,101 +669,101 @@ def summarize(
         )
         raise typer.Exit(1)
 
-    # Structured output validation (commented out)
+    # Structured output validation
     # Validate model class options
-    # if model_class_file and not model_class_name:
-    #     console.print(
-    #         "[red]Error: --model-class-name is required when --model-class-file is provided[/red]"
-    #     )
-    #     raise typer.Exit(1)
-    # if model_class_name and not model_class_file:
-    #     console.print(
-    #         "[red]Error: --model-class-file is required when --model-class-name is provided[/red]"
-    #     )
-    #     raise typer.Exit(1)
+    if model_class_file and not model_class_name:
+        console.print(
+            "[red]Error: --model-class-name is required when --model-class-file is provided[/red]"
+        )
+        raise typer.Exit(1)
+    if model_class_name and not model_class_file:
+        console.print(
+            "[red]Error: --model-class-file is required when --model-class-name is provided[/red]"
+        )
+        raise typer.Exit(1)
 
     # Validate custom prompt options
-    # if chunk_prompt and not summary_prompt:
-    #     console.print(
-    #         "[red]Error: --summary-prompt is required when --chunk-prompt is provided[/red]"
-    #     )
-    #     raise typer.Exit(1)
-    # if summary_prompt and not chunk_prompt:
-    #     console.print(
-    #         "[red]Error: --chunk-prompt is required when --summary-prompt is provided[/red]"
-    #     )
-    #     raise typer.Exit(1)
+    if chunk_prompt and not summary_prompt:
+        console.print(
+            "[red]Error: --summary-prompt is required when --chunk-prompt is provided[/red]"
+        )
+        raise typer.Exit(1)
+    if summary_prompt and not chunk_prompt:
+        console.print(
+            "[red]Error: --chunk-prompt is required when --summary-prompt is provided[/red]"
+        )
+        raise typer.Exit(1)
 
     # Validate mutually exclusive options
-    # if (model_class_file or model_class_name) and (chunk_prompt or summary_prompt):
-    #     console.print(
-    #         "[red]Error: Cannot specify both model class options and custom prompt options. These are mutually exclusive.[/red]"
-    #     )
-    #     raise typer.Exit(1)
+    if (model_class_file or model_class_name) and (chunk_prompt or summary_prompt):
+        console.print(
+            "[red]Error: Cannot specify both model class options and custom prompt options. These are mutually exclusive.[/red]"
+        )
+        raise typer.Exit(1)
 
     # Require output file when using structured output with Pydantic model
-    # if (model_class_file or model_class_name) and not output:
-    #     console.print(
-    #         "[red]Error: --output is required when using structured output with --model-class-file and --model-class-name[/red]"
-    #     )
-    #     console.print(
-    #         "[dim]Structured output generates JSON that should be saved to a file for proper access.[/dim]"
-    #     )
-    #     raise typer.Exit(1)
+    if (model_class_file or model_class_name) and not output:
+        console.print(
+            "[red]Error: --output is required when using structured output with --model-class-file and --model-class-name[/red]"
+        )
+        console.print(
+            "[dim]Structured output generates JSON that should be saved to a file for proper access.[/dim]"
+        )
+        raise typer.Exit(1)
 
     console.print(f"[blue]Loading JSONL file: {jsonl_file}[/blue]")
     content = load_jsonl_content(jsonl_file)
 
-    # Structured output handling (commented out)
+    # Structured output handling
     # Handle model class loading if specified
     model_name = None
     model_schema_json = None
-    # if model_class_file and model_class_name:
-    #     try:
-    #         console.print(f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]")
-    #
-    #         # Load the Python file as a module
-    #         import importlib.util
-    #         import sys
-    #
-    #         spec = importlib.util.spec_from_file_location("user_model", model_class_file)
-    #         if spec is None or spec.loader is None:
-    #             raise ImportError(f"Could not load module from {model_class_file}")
-    #
-    #         user_module = importlib.util.module_from_spec(spec)
-    #         sys.modules["user_model"] = user_module
-    #         spec.loader.exec_module(user_module)
-    #
-    #         # Get the model class
-    #         if not hasattr(user_module, model_class_name):
-    #             raise AttributeError(f"Class '{model_class_name}' not found in {model_class_file}")
-    #
-    #         model_class = getattr(user_module, model_class_name)
-    #
-    #         # Validate it's a Pydantic model
-    #         from pydantic import BaseModel
-    #         if not issubclass(model_class, BaseModel):
-    #             raise TypeError(f"Class '{model_class_name}' must be a Pydantic BaseModel")
-    #
-    #         # Get the schema
-    #         model_name = model_class_name
-    #         model_schema_json = json.dumps(model_class.model_json_schema())
-    #
-    #         console.print(f"[green]Successfully loaded model class '{model_class_name}'[/green]")
-    #
-    #     except Exception as e:
-    #         console.print(f"[red]Error loading model class: {e}[/red]")
-    #         raise typer.Exit(1)
+    if model_class_file and model_class_name:
+        try:
+            console.print(f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]")
+
+            # Load the Python file as a module
+            import importlib.util
+            import sys
+
+            spec = importlib.util.spec_from_file_location("user_model", model_class_file)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not load module from {model_class_file}")
+
+            user_module = importlib.util.module_from_spec(spec)
+            sys.modules["user_model"] = user_module
+            spec.loader.exec_module(user_module)
+
+            # Get the model class
+            if not hasattr(user_module, model_class_name):
+                raise AttributeError(f"Class '{model_class_name}' not found in {model_class_file}")
+
+            model_class = getattr(user_module, model_class_name)
+
+            # Validate it's a Pydantic model
+            from pydantic import BaseModel
+            if not issubclass(model_class, BaseModel):
+                raise TypeError(f"Class '{model_class_name}' must be a Pydantic BaseModel")
+
+            # Get the schema
+            model_name = model_class_name
+            model_schema_json = json.dumps(model_class.model_json_schema())
+
+            console.print(f"[green]Successfully loaded model class '{model_class_name}'[/green]")
+
+        except Exception as e:
+            console.print(f"[red]Error loading model class: {e}[/red]")
+            raise typer.Exit(1)
 
     request = SummarizeRequest(
         content=content,
         max_tokens=max_tokens,
         debug=include_debug,
-        # Structured output options (set to None)
-        # model_name=model_name,
-        # model_schema_json=model_schema_json,
-        # chunk_prompt=chunk_prompt,
-        # summary_of_summaries_prompt=summary_prompt,
+        # Structured output options
+        model_name=model_name,
+        model_schema_json=model_schema_json,
+        chunk_prompt=chunk_prompt,
+        summary_of_summaries_prompt=summary_prompt,
     )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
@@ -861,33 +861,33 @@ def summarize(
 
         console.print("\n[bold]Final Summary:[/bold]")
 
-        # Structured output display (commented out)
+        # Structured output display
         # If we used a structured model, try to parse and display the JSON nicely
-        # if model_name and model_schema_json:
-        #     try:
-        #         structured_data = json.loads(final_result.summary)
-        #         console.print("[dim]Structured output:[/dim]")
-        #         for key, value in structured_data.items():
-        #             if value is not None:
-        #                 console.print(f"[cyan]{key}:[/cyan] {value}")
-        #     except json.JSONDecodeError:
-        #         # Fallback to raw text if JSON parsing fails
-        #         console.print(final_result.summary)
-        # else:
-        console.print(final_result.summary)
+        if model_name and model_schema_json:
+            try:
+                structured_data = json.loads(final_result.summary)
+                console.print("[dim]Structured output:[/dim]")
+                for key, value in structured_data.items():
+                    if value is not None:
+                        console.print(f"[cyan]{key}:[/cyan] {value}")
+            except json.JSONDecodeError:
+                # Fallback to raw text if JSON parsing fails
+                console.print(final_result.summary)
+        else:
+            console.print(final_result.summary)
 
         # Save to output file if specified
         if output:
             try:
-                # Structured output parsing (commented out)
+                # Structured output parsing
                 # If we used a structured model, parse the JSON summary for better storage
                 summary_data = final_result.summary
-                # if model_name and model_schema_json:
-                #     try:
-                #         summary_data = json.loads(final_result.summary)
-                #     except json.JSONDecodeError:
-                #         # Keep as string if parsing fails
-                #         pass
+                if model_name and model_schema_json:
+                    try:
+                        summary_data = json.loads(final_result.summary)
+                    except json.JSONDecodeError:
+                        # Keep as string if parsing fails
+                        pass
 
                 output_data = {
                     "summary": summary_data,
@@ -896,7 +896,7 @@ def summarize(
                     "total_tokens": final_result.total_tokens,
                     "source_file": str(jsonl_file),
                     "max_tokens": max_tokens,
-                    # "model_used": model_name if model_name else None,
+                    "model_used": model_name if model_name else None,
                     "intermediate_summaries": (
                         final_result.intermediate_summaries if include_debug else None
                     ),
