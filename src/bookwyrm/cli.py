@@ -620,6 +620,13 @@ def summarize(
             help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
         ),
     ] = None,
+    thinking_power: Annotated[
+        Optional[str],
+        typer.Option(
+            "--thinking-power",
+            help="Thinking power level: 'fast' (default), 'smart', or 'expert'"
+        ),
+    ] = None,
 ):
     """Summarize text content from JSONL files.
     
