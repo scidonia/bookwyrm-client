@@ -455,7 +455,9 @@ def cite(
             max_tokens_per_chunk=max_tokens,
         )
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+    # Handle timeout - convert 0 to None for no timeout
+    client_timeout = None if timeout == 0 else (timeout or 30.0)
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=client_timeout)
 
     try:
         console.print(f"[blue]Streaming citations for: {question}[/blue]")
@@ -599,6 +601,12 @@ def summarize(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(
+            help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
+        ),
+    ] = None,
 ):
     """Summarize text content from JSONL files.
     
@@ -629,6 +637,12 @@ def summarize(
     
     # Larger chunks
     bookwyrm summarize large_text.jsonl --max-tokens 20000 --output summary.json
+    
+    # With custom timeout (5 minutes)
+    bookwyrm summarize large_document.jsonl --timeout 300 --output summary.json
+    
+    # No timeout (wait indefinitely)
+    bookwyrm summarize huge_document.jsonl --timeout 0 --output summary.json
     ```
     
     ### Structured Output Examples
