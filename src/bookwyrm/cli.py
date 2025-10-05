@@ -373,6 +373,12 @@ def cite(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(
+            help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
+        ),
+    ] = None,
 ):
     """Find citations for a question in text chunks.
 
