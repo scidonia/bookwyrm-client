@@ -81,6 +81,7 @@ async def test_stream_summarize_with_content_basic(async_client, sample_content)
     ):
         if isinstance(response, SummaryResponse):
             final_summary = response
+            print(final_summary)
             break
 
     # Verify response structure
