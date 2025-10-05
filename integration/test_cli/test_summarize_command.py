@@ -229,46 +229,6 @@ def test_summarize_command_debug(sample_phrases):
         jsonl_file.unlink()
 
 
-def test_summarize_command_streaming(sample_phrases):
-    """Test summarize command with --stream option (default behavior)."""
-    jsonl_file = create_test_jsonl_file(sample_phrases)
-
-    try:
-        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--stream"])
-
-        # Check command parsing
-        if result.returncode != 0:
-            assert (
-                "api" in result.stderr.lower()
-                or "key" in result.stderr.lower()
-                or "connection" in result.stderr.lower()
-                or "network" in result.stderr.lower()
-                or "timeout" in result.stderr.lower()
-            )
-
-    finally:
-        jsonl_file.unlink()
-
-
-def test_summarize_command_with_no_stream_option(sample_phrases):
-    """Test summarize command with --no-stream option."""
-    jsonl_file = create_test_jsonl_file(sample_phrases)
-
-    try:
-        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--no-stream"])
-
-        # Check command parsing
-        if result.returncode != 0:
-            assert (
-                "api" in result.stderr.lower()
-                or "key" in result.stderr.lower()
-                or "connection" in result.stderr.lower()
-                or "network" in result.stderr.lower()
-                or "timeout" in result.stderr.lower()
-            )
-
-    finally:
-        jsonl_file.unlink()
 
 
 def test_summarize_command_with_api_options(sample_phrases):
@@ -379,7 +339,6 @@ def test_summarize_command_with_complex_options(sample_scientific_phrases):
                 "--output",
                 str(output_path),
                 "--verbose",
-                "--no-stream",
             ]
         )
 
@@ -530,7 +489,6 @@ def test_summarize_command_live_api_streaming(
                 api_key,
                 "--base-url",
                 api_url,
-                "--stream",
                 "--verbose",
             ]
         )
@@ -586,47 +544,6 @@ def test_summarize_command_live_api_with_debug(sample_phrases, api_key, api_url)
         jsonl_file.unlink()
 
 
-@pytest.mark.liveonly
-def test_summarize_command_live_api_no_stream(
-    sample_scientific_phrases, api_key, api_url
-):
-    """Test summarize command against live API with --no-stream."""
-    if not api_key:
-        pytest.skip("No API key provided for live test")
-
-    jsonl_file = create_test_jsonl_file(sample_scientific_phrases)
-    output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-    output_path = Path(output_file.name)
-    output_file.close()
-
-    try:
-        result = run_bookwyrm_command(
-            [
-                "summarize",
-                str(jsonl_file),
-                "--no-stream",
-                "--api-key",
-                api_key,
-                "--base-url",
-                api_url,
-                "--output",
-                str(output_path),
-            ]
-        )
-
-        assert result.returncode == 0, f"Command failed: {result.stderr}"
-
-        # Check that output file was created
-        if output_path.exists():
-            with open(output_path, "r") as f:
-                output_data = json.load(f)
-            assert isinstance(output_data, dict)
-            assert "summary" in output_data
-
-    finally:
-        jsonl_file.unlink()
-        if output_path.exists():
-            output_path.unlink()
 
 
 @pytest.mark.liveonly
@@ -714,7 +631,6 @@ def test_summarize_command_live_api_comprehensive_options(
                 "--output",
                 str(output_path),
                 "--verbose",
-                "--stream",
             ]
         )
 
