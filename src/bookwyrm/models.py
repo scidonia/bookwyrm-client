@@ -194,6 +194,8 @@ class SummarizeRequest(BaseModel):
     # Custom prompt option
     chunk_prompt: Optional[str] = None
     summary_of_summaries_prompt: Optional[str] = None
+    # Thinking power option
+    thinking_power: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_input_source(self):

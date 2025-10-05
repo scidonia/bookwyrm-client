@@ -861,6 +861,7 @@ class BookWyrmClient:
         model_class: Optional[type] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
+        thinking_power: Optional[str] = None,
     ) -> Iterator[StreamingSummarizeResponse]:
         """Stream summarization progress and results with real-time updates.
 
@@ -931,6 +932,7 @@ class BookWyrmClient:
             model_schema_json=model_schema_json,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
+            thinking_power=thinking_power,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

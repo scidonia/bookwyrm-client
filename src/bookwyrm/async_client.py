@@ -1091,6 +1091,7 @@ class AsyncBookWyrmClient:
         model_class: Optional[type] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
+        thinking_power: Optional[str] = None,
     ) -> SummaryResponse:
         """Get a summary of the provided content using hierarchical summarization.
 
@@ -1189,6 +1190,7 @@ class AsyncBookWyrmClient:
             model_schema_json=model_schema_json,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
+            thinking_power=thinking_power,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -1223,6 +1225,7 @@ class AsyncBookWyrmClient:
         model_class: Optional[type] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
+        thinking_power: Optional[str] = None,
     ) -> AsyncIterator[StreamingSummarizeResponse]:
         """Stream summarization progress and results with real-time updates.
 
@@ -1312,6 +1315,7 @@ class AsyncBookWyrmClient:
             model_schema_json=model_schema_json,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
+            thinking_power=thinking_power,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

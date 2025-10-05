@@ -379,6 +379,13 @@ def cite(
             help="Request timeout in seconds (default: 30.0, set to 0 for no timeout)"
         ),
     ] = None,
+    thinking_power: Annotated[
+        Optional[str],
+        typer.Option(
+            "--thinking-power",
+            help="Thinking power level: 'fast' (default), 'smart', or 'expert'"
+        ),
+    ] = None,
 ):
     """Find citations for a question in text chunks.
 
@@ -632,6 +639,11 @@ def summarize(
     
     - **Custom Prompts**: Use `--chunk-prompt` and `--summary-prompt` together to customize the summarization process. Both prompts are required when using custom prompts.
     
+    - **Thinking Power**: Use `--thinking-power` to control the AI model used for summarization:
+      - `fast`: Quick processing with openai/gpt-oss-20b (default)
+      - `smart`: Balanced performance with moonshotai/kimi-k2-instruct-0905
+      - `expert`: Highest quality with openai/gpt-oss-120b
+    
     ## Examples
     
     ```bash
@@ -649,6 +661,11 @@ def summarize(
     
     # No timeout (wait indefinitely)
     bookwyrm summarize huge_document.jsonl --timeout 0 --output summary.json
+    
+    # With thinking power levels
+    bookwyrm summarize document.jsonl --thinking-power fast --output summary.json
+    bookwyrm summarize complex_doc.jsonl --thinking-power smart --output summary.json
+    bookwyrm summarize research_paper.jsonl --thinking-power expert --output summary.json
     ```
     
     ### Structured Output Examples
@@ -665,6 +682,13 @@ def summarize(
       --chunk-prompt "Extract key scientific concepts and findings" \
       --summary-prompt "Create a comprehensive scientific overview" \
       --output science_summary.json
+    
+    # Structured output with thinking power
+    bookwyrm summarize book.jsonl \
+      --model-class-file models/book_summary.py \
+      --model-class-name BookSummary \
+      --thinking-power expert \
+      --output structured_summary.json
     ```
     
     ## Output Format
@@ -784,6 +808,7 @@ def summarize(
         model_schema_json=model_schema_json,
         chunk_prompt=chunk_prompt,
         summary_of_summaries_prompt=summary_prompt,
+        thinking_power=thinking_power,
     )
 
     # Handle timeout - convert 0 to None for no timeout
