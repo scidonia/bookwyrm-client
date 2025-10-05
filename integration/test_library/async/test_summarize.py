@@ -76,13 +76,18 @@ async def test_stream_summarize_with_content_basic(async_client, sample_content)
     """Test streaming summarization using text content."""
     final_summary = None
 
-    async for response in async_client.stream_summarize(
+    stream = async_client.stream_summarize(
         content=sample_content, max_tokens=5000, debug=False
-    ):
-        if isinstance(response, SummaryResponse):
-            final_summary = response
-            print(final_summary)
-            break
+    )
+    try:
+        async for response in stream:
+            if isinstance(response, SummaryResponse):
+                final_summary = response
+                print(final_summary)
+                break
+    finally:
+        if hasattr(stream, "aclose"):
+            await stream.aclose()
 
     # Verify response structure
     assert final_summary is not None
