@@ -534,7 +534,7 @@ def cite(
                             f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                         )
                 elif isinstance(response, CitationErrorResponse):
-                    console.print(f"[red]Error: {response.error}[/red]")
+                    error_console.print(f"[red]Error: {response.error}[/red]")
 
         display_citations_table(citations)
 
@@ -886,11 +886,11 @@ def summarize(
                     console.print("[green]✓ Summarization complete![/green]")
 
                 elif isinstance(response, SummarizeErrorResponse):
-                    console.print(f"[red]Error: {response.error}[/red]")
+                    error_console.print(f"[red]Error: {response.error}[/red]")
                     sys.exit(1)
 
         if final_result is None:
-            console.print("[red]No summary received from server[/red]")
+            error_console.print("[red]No summary received from server[/red]")
             sys.exit(1)
 
         # Display results
@@ -959,15 +959,15 @@ def summarize(
                 output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
                 console.print(f"\n[green]Summary saved to: {output}[/green]")
             except Exception as e:
-                console.print(f"[red]Error saving to {output}: {e}[/red]")
+                error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
@@ -1218,7 +1218,7 @@ def phrasal(
                                 )
                                 f.flush()
                         except Exception as e:
-                            console.print(
+                            error_console.print(
                                 f"[red]Error writing to output file: {e}[/red]"
                             )
                 else:
@@ -1271,12 +1271,12 @@ def phrasal(
             console.print(f"[green]Results saved to {output}[/green]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
@@ -1529,12 +1529,12 @@ def classify(
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
@@ -1864,12 +1864,12 @@ def extract_pdf(
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
