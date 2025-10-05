@@ -1088,6 +1088,7 @@ class AsyncBookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
+        model_class: Optional[type] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> SummaryResponse:
@@ -1164,6 +1165,20 @@ class AsyncBookWyrmClient:
         if len(provided_sources) != 1:
             raise ValueError("Exactly one of content, url, or phrases must be provided")
 
+        # Handle model_class parameter
+        if model_class is not None:
+            if model_name is not None or model_schema_json is not None:
+                raise ValueError("Cannot specify both model_class and model_name/model_schema_json")
+            
+            # Validate it's a Pydantic model
+            from pydantic import BaseModel
+            if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+                raise ValueError("model_class must be a Pydantic BaseModel class")
+            
+            # Extract name and schema
+            model_name = model_class.__name__
+            model_schema_json = json.dumps(model_class.model_json_schema())
+
         request = SummarizeRequest(
             content=content,
             url=url,
@@ -1205,6 +1220,7 @@ class AsyncBookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
+        model_class: Optional[type] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> AsyncIterator[StreamingSummarizeResponse]:
@@ -1271,6 +1287,20 @@ class AsyncBookWyrmClient:
         provided_sources = [s for s in sources if s is not None]
         if len(provided_sources) != 1:
             raise ValueError("Exactly one of content, url, or phrases must be provided")
+
+        # Handle model_class parameter
+        if model_class is not None:
+            if model_name is not None or model_schema_json is not None:
+                raise ValueError("Cannot specify both model_class and model_name/model_schema_json")
+            
+            # Validate it's a Pydantic model
+            from pydantic import BaseModel
+            if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+                raise ValueError("model_class must be a Pydantic BaseModel class")
+            
+            # Extract name and schema
+            model_name = model_class.__name__
+            model_schema_json = json.dumps(model_class.model_json_schema())
 
         request = SummarizeRequest(
             content=content,
