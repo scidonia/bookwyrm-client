@@ -566,9 +566,6 @@ def summarize(
         int,
         typer.Option(help="Maximum tokens per chunk (max: 131,072, default: 10000)"),
     ] = 10000,
-    include_debug: Annotated[
-        bool, typer.Option("--include-debug", help="Include intermediate summaries")
-    ] = False,
     # Structured output options
     model_class_file: Annotated[
         Optional[Path],
@@ -806,10 +803,13 @@ def summarize(
             console.print(f"[red]Error loading model class: {e}[/red]")
             raise typer.Exit(1)
 
+    # Check if debug mode is enabled via environment variable
+    debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
+    
     request = SummarizeRequest(
         content=content,
         max_tokens=max_tokens,
-        debug=include_debug,
+        debug=debug_enabled,
         # Structured output options
         model_name=model_name,
         model_schema_json=model_schema_json,
@@ -894,7 +894,7 @@ def summarize(
             sys.exit(1)
 
         # Display results
-        if state.verbose or include_debug:
+        if state.verbose or debug_enabled:
             console.print(
                 f"[dim]Total tokens processed: {final_result.total_tokens}[/dim]"
             )
@@ -904,7 +904,7 @@ def summarize(
             console.print(f"[dim]Levels used: {final_result.levels_used}[/dim]")
 
         # Show intermediate summaries if debug mode
-        if include_debug and final_result.intermediate_summaries:
+        if debug_enabled and final_result.intermediate_summaries:
             console.print("\n[bold]Intermediate Summaries by Level:[/bold]")
             for level, summaries in enumerate(final_result.intermediate_summaries, 1):
                 console.print(
@@ -952,7 +952,7 @@ def summarize(
                     "max_tokens": max_tokens,
                     "model_used": model_name if model_name else None,
                     "intermediate_summaries": (
-                        final_result.intermediate_summaries if include_debug else None
+                        final_result.intermediate_summaries if debug_enabled else None
                     ),
                 }
 
