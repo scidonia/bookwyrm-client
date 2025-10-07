@@ -41,7 +41,7 @@ class CitationRequest(BaseModel):
     jsonl_url: Optional[str] = Field(
         None, description="URL to fetch JSONL content from"
     )
-    question: str = Field(..., description="The question to find citations for")
+    question: Union[str, List[str]] = Field(..., description="The question(s) to find citations for")
     start: Optional[int] = Field(0, description="Starting chunk index (0-based)")
     limit: Optional[int] = Field(
         None, description="Maximum number of chunks to process"
@@ -52,7 +52,7 @@ class CitationRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_input_source(self):
-        """Validate that exactly one input source is provided."""
+        """Validate that exactly one input source is provided and question is not empty."""
         sources = [self.chunks, self.jsonl_content, self.jsonl_url]
         provided_sources = [s for s in sources if s is not None]
 
@@ -61,8 +61,20 @@ class CitationRequest(BaseModel):
                 "Exactly one of 'chunks', 'jsonl_content', or 'jsonl_url' must be provided"
             )
 
-        if not self.question or not self.question.strip():
-            raise ValueError("question cannot be empty")
+        # Validate question(s)
+        if isinstance(self.question, str):
+            if not self.question or not self.question.strip():
+                raise ValueError("question cannot be empty")
+        elif isinstance(self.question, list):
+            if not self.question:
+                raise ValueError("question list cannot be empty")
+            if len(self.question) > 20:
+                raise ValueError("question list cannot contain more than 20 questions")
+            for i, q in enumerate(self.question):
+                if not q or not q.strip():
+                    raise ValueError(f"question at index {i} cannot be empty")
+        else:
+            raise ValueError("question must be a string or list of strings")
 
         if self.start is not None and self.start < 0:
             raise ValueError("start must be >= 0")
@@ -88,6 +100,9 @@ class Citation(BaseModel):
     )
     quality: int = Field(
         ..., description="Quality score (0-4): 0=unrelated, 4=perfectly answers"
+    )
+    question_index: Optional[int] = Field(
+        None, description="1-based index of the question this citation answers (only present for multi-question requests)"
     )
 
 

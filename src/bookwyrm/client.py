@@ -492,7 +492,7 @@ class BookWyrmClient:
         chunks: Optional[List[TextSpan]] = None,
         jsonl_content: Optional[str] = None,
         jsonl_url: Optional[str] = None,
-        question: str,
+        question: Union[str, List[str]],
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
@@ -507,7 +507,7 @@ class BookWyrmClient:
             chunks: List of text chunks to search
             jsonl_content: Raw JSONL content as string
             jsonl_url: URL to fetch JSONL content from
-            question: The question to find citations for
+            question: The question(s) to find citations for - can be a single string or list of strings
             start: Starting chunk index (0-based)
             limit: Maximum number of chunks to process
             max_tokens_per_chunk: Maximum tokens per chunk
@@ -520,7 +520,7 @@ class BookWyrmClient:
             BookWyrmAPIError: If the API request fails (network, authentication, server errors)
 
         Examples:
-            Basic streaming:
+            Basic streaming with single question:
 
             ```python
             from bookwyrm import BookWyrmClient
@@ -547,9 +547,42 @@ class BookWyrmClient:
                 elif isinstance(response, CitationSummaryResponse):  # Summary
                     print(f"Complete: {response.total_citations} citations found")
             ```
+
+            Multiple questions:
+
+            ```python
+            questions = [
+                "Why is the sky blue?",
+                "What causes plants to be green?",
+                "How do water molecules behave?"
+            ]
+
+            for response in client.stream_citations(
+                chunks=chunks,
+                question=questions
+            ):
+                if isinstance(response, CitationStreamResponse):
+                    citation = response.citation
+                    if citation.question_index:
+                        print(f"Question {citation.question_index}: {citation.text[:50]}...")
+                    else:
+                        print(f"Citation: {citation.text[:50]}...")
+            ```
         """
-        if not question or not question.strip():
-            raise ValueError("question cannot be empty")
+        # Validate question(s)
+        if isinstance(question, str):
+            if not question or not question.strip():
+                raise ValueError("question cannot be empty")
+        elif isinstance(question, list):
+            if not question:
+                raise ValueError("question list cannot be empty")
+            if len(question) > 20:
+                raise ValueError("question list cannot contain more than 20 questions")
+            for i, q in enumerate(question):
+                if not q or not q.strip():
+                    raise ValueError(f"question at index {i} cannot be empty")
+        else:
+            raise ValueError("question must be a string or list of strings")
 
         # Handle empty chunks list - return empty response immediately
         if chunks is not None and len(chunks) == 0:
