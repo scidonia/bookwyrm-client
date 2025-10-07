@@ -78,9 +78,9 @@ def test_cite_command_with_jsonl_file(sample_chunks):
     jsonl_file = create_test_jsonl_file(sample_chunks)
 
     try:
-        # Run cite command
+        # Run cite command with new interface
         result = run_bookwyrm_command(
-            ["cite", "What are the capitals mentioned?", str(jsonl_file)]
+            ["cite", "--question", "What are the capitals mentioned?", str(jsonl_file)]
         )
 
         # Check that command executed (may fail due to API key, but should parse args correctly)
@@ -110,7 +110,7 @@ def test_cite_command_with_file_option(sample_chunks):
 
     try:
         result = run_bookwyrm_command(
-            ["cite", "What cities are mentioned?", "--file", str(jsonl_file)]
+            ["cite", "--question", "What cities are mentioned?", "--file", str(jsonl_file)]
         )
 
         # Check command parsing (may fail on API call)
@@ -142,6 +142,7 @@ def test_cite_command_with_output_option(sample_chunks):
         result = run_bookwyrm_command(
             [
                 "cite",
+                "--question",
                 "What are the European capitals?",
                 str(jsonl_file),
                 "--output",
@@ -173,6 +174,7 @@ def test_cite_command_with_pagination_options(sample_chunks):
         result = run_bookwyrm_command(
             [
                 "cite",
+                "--question",
                 "What locations are mentioned?",
                 str(jsonl_file),
                 "--start",
@@ -202,7 +204,7 @@ def test_cite_command_with_verbose_option(sample_chunks):
 
     try:
         result = run_bookwyrm_command(
-            ["cite", "What countries are mentioned?", str(jsonl_file), "--verbose"]
+            ["cite", "--question", "What countries are mentioned?", str(jsonl_file), "--verbose"]
         )
 
         # Check command parsing
@@ -220,6 +222,132 @@ def test_cite_command_with_verbose_option(sample_chunks):
         jsonl_file.unlink()
 
 
+def test_cite_command_multiple_questions(sample_chunks):
+    """Test cite command with multiple questions using --question flags."""
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--question", "What are the capitals mentioned?",
+                "--question", "Which countries are referenced?",
+                str(jsonl_file)
+            ]
+        )
+
+        # Check command parsing (may fail on API call)
+        if result.returncode != 0:
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
+            )
+        else:
+            assert len(result.stdout) > 0
+
+    finally:
+        jsonl_file.unlink()
+
+
+def test_cite_command_with_questions_file(sample_chunks):
+    """Test cite command with --questions-file option."""
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+    
+    # Create questions file
+    questions_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    questions_file.write("What are the capitals mentioned?\n")
+    questions_file.write("Which countries are referenced?\n")
+    questions_file.write("What landmarks are described?\n")
+    questions_file.close()
+    questions_path = Path(questions_file.name)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--questions-file", str(questions_path),
+                str(jsonl_file)
+            ]
+        )
+
+        # Check command parsing (may fail on API call)
+        if result.returncode != 0:
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
+            )
+        else:
+            assert len(result.stdout) > 0
+
+    finally:
+        jsonl_file.unlink()
+        questions_path.unlink()
+
+
+def test_cite_command_with_long_flag(sample_chunks):
+    """Test cite command with --long flag for full citation text."""
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--question", "What cities are mentioned?",
+                str(jsonl_file),
+                "--long"
+            ]
+        )
+
+        # Check command parsing (may fail on API call)
+        if result.returncode != 0:
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
+            )
+        else:
+            assert len(result.stdout) > 0
+
+    finally:
+        jsonl_file.unlink()
+
+
+def test_cite_command_conflicting_question_sources():
+    """Test cite command with both --question and --questions-file (should fail)."""
+    questions_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    questions_file.write("What is mentioned?\n")
+    questions_file.close()
+    questions_path = Path(questions_file.name)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--question", "What is this?",
+                "--questions-file", str(questions_path),
+                "dummy.jsonl"
+            ]
+        )
+
+        # Should fail due to conflicting question sources
+        assert result.returncode != 0
+        assert "exactly one" in result.stderr.lower() or "question" in result.stderr.lower()
+
+    finally:
+        questions_path.unlink()
+
+
 def test_cite_command_with_url_option():
     """Test cite command with --url option."""
     # TODO: We need good urls first.
@@ -229,7 +357,7 @@ def test_cite_command_with_url_option():
 def test_cite_command_invalid_file():
     """Test cite command with non-existent file."""
     result = run_bookwyrm_command(
-        ["cite", "What is mentioned?", "/nonexistent/file.jsonl"]
+        ["cite", "--question", "What is mentioned?", "/nonexistent/file.jsonl"]
     )
 
     assert result.returncode != 0
@@ -255,6 +383,7 @@ def test_cite_command_live_api(sample_chunks, api_key, api_url):
         result = run_bookwyrm_command(
             [
                 "cite",
+                "--question",
                 "What are the capital cities mentioned in the text?",
                 str(jsonl_file),
                 "--api-key",
@@ -296,6 +425,7 @@ def test_cite_command_streaming_live(sample_chunks, api_key, api_url):
         result = run_bookwyrm_command(
             [
                 "cite",
+                "--question",
                 "What European cities are mentioned?",
                 str(jsonl_file),
                 "--api-key",
