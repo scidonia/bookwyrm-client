@@ -368,7 +368,7 @@ All commands support these options:
 bookwyrm phrasal --api-key YOUR_KEY --base-url https://api.bookwyrm.ai:443 --url "https://example.com/text.txt"
 
 # Enable verbose output (per command)
-bookwyrm cite --verbose "Question?" chunks.jsonl
+bookwyrm cite --verbose --question "Question?" chunks.jsonl
 
 # Use environment variables (recommended)
 export BOOKWYRM_API_URL="https://api.bookwyrm.ai:443"
