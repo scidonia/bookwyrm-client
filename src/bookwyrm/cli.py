@@ -158,7 +158,7 @@ def append_citation_to_jsonl(citation, output_path: Path):
         console.print(f"[red]Error appending citation: {e}[/red]")
 
 
-def display_citations_table(citations, long=False):
+def display_citations_table(citations, questions=None, long=False):
     """Display citations in a rich table."""
     if not citations:
         console.print("[yellow]No citations found.[/yellow]")
@@ -167,6 +167,12 @@ def display_citations_table(citations, long=False):
     table = Table(title="Found Citations")
     table.add_column("Quality", justify="center", style="cyan", no_wrap=True)
     table.add_column("Chunks", justify="center", style="magenta")
+    
+    # Add question column if we have multiple questions
+    has_multiple_questions = questions and len(questions) > 1
+    if has_multiple_questions:
+        table.add_column("Question", style="yellow")
+    
     table.add_column("Text", style="green")
     table.add_column("Reasoning", style="blue")
 
@@ -196,17 +202,25 @@ def display_citations_table(citations, long=False):
                 else citation.reasoning
             )
 
-        table.add_row(
-            quality_text,
-            chunk_range,
-            text_display,
-            reasoning_display,
-        )
+        # Prepare row data
+        row_data = [quality_text, chunk_range]
+        
+        # Add question info if multiple questions
+        if has_multiple_questions:
+            if citation.question_index and citation.question_index <= len(questions):
+                question_text = questions[citation.question_index - 1]
+                question_display = f"{citation.question_index}. {question_text[:50]}{'...' if len(question_text) > 50 else ''}"
+            else:
+                question_display = "N/A"
+            row_data.append(question_display)
+        
+        row_data.extend([text_display, reasoning_display])
+        table.add_row(*row_data)
 
     console.print(table)
 
 
-def display_verbose_citation(citation, long=False):
+def display_verbose_citation(citation, questions=None, long=False):
     """Display a single citation with full details."""
     quality_color = (
         "red"
@@ -221,7 +235,16 @@ def display_verbose_citation(citation, long=False):
     )
 
     panel_content = f"""[bold]Quality:[/bold] [{quality_color}]{citation.quality}/4[/{quality_color}]
-[bold]Chunks:[/bold] {chunk_range}
+[bold]Chunks:[/bold] {chunk_range}"""
+
+    # Add question info if we have multiple questions and a question index
+    if questions and len(questions) > 1 and citation.question_index:
+        if citation.question_index <= len(questions):
+            question_text = questions[citation.question_index - 1]
+            panel_content += f"""
+[bold]Question {citation.question_index}:[/bold] {question_text}"""
+
+    panel_content += f"""
 [bold]Text:[/bold] {citation.text}
 [bold]Reasoning:[/bold] {citation.reasoning}"""
 
@@ -336,12 +359,19 @@ def validate_api_key(api_key: Optional[str]) -> None:
 
 @app.command()
 def cite(
-    question: Annotated[str, typer.Argument(help="The question to find citations for")],
     jsonl_input: Annotated[
         Optional[str],
         typer.Argument(
             help="Path to JSONL file containing text chunks (optional if using --file or --url)"
         ),
+    ] = None,
+    question: Annotated[
+        Optional[List[str]],
+        typer.Option("--question", "-q", help="Question to find citations for (can be used multiple times)"),
+    ] = None,
+    questions_file: Annotated[
+        Optional[Path],
+        typer.Option("--questions-file", help="File containing questions, one per line", exists=True),
     ] = None,
     url: Annotated[
         Optional[str],
@@ -385,10 +415,11 @@ def cite(
         bool, typer.Option("--long", help="Show full citation text without truncation")
     ] = False,
 ):
-    """Find citations for a question in text chunks.
+    """Find citations for questions in text chunks.
 
     This command searches through text chunks to find relevant citations that answer
-    a specific question. It supports both local JSONL files and remote URLs.
+    questions. It supports both local JSONL files and remote URLs, and can handle
+    single or multiple questions.
 
     ## Input Format
 
@@ -397,29 +428,36 @@ def cite(
     {"text": "chunk text", "start_char": 0, "end_char": 10}
     ```
 
+    ## Question Input Methods
+
+    1. **Single question**: Use `--question "Your question here"`
+    2. **Multiple questions**: Use `--question` multiple times: `--question "Q1" --question "Q2"`
+    3. **Questions file**: Use `--questions-file questions.txt` with one question per line
+
     ## Examples
 
     ```bash
-    # Basic citation finding
-    bookwyrm cite "What is machine learning?" ml_chunks.jsonl
+    # Single question
+    bookwyrm cite --question "What is machine learning?" ml_chunks.jsonl
 
-    # With output file
-    bookwyrm cite "Climate change causes" data.jsonl -o citations.json
+    # Multiple questions
+    bookwyrm cite --question "What is AI?" --question "How does ML work?" data.jsonl
 
-    # Streaming with verbose output
-    bookwyrm cite "AI applications" chunks.jsonl --stream -v
+    # Questions from file
+    bookwyrm cite --questions-file questions.txt data.jsonl -o citations.json
 
-    # From URL
-    bookwyrm cite "Question here" --url https://example.com/chunks.jsonl
+    # From URL with multiple questions
+    bookwyrm cite --question "Q1" --question "Q2" --url https://example.com/chunks.jsonl
 
     # Limit processing
-    bookwyrm cite "Question" data.jsonl --start 10 --limit 50
+    bookwyrm cite --question "Question" data.jsonl --start 10 --limit 50
     ```
 
     ## Output Formats
 
     - **JSON (non-streaming)**: Array of citation objects
     - **JSONL (streaming)**: One citation per line as they're found
+    - For multiple questions, citations include question index and text
     """
 
     # Set global state
@@ -429,6 +467,33 @@ def cite(
 
     # Validate API key before proceeding
     validate_api_key(state.api_key)
+
+    # Validate and collect questions
+    questions = []
+    question_sources = [question, questions_file]
+    provided_question_sources = [s for s in question_sources if s is not None]
+
+    if len(provided_question_sources) != 1:
+        error_console.print(
+            "[red]Error: Exactly one of --question or --questions-file must be provided[/red]"
+        )
+        raise typer.Exit(1)
+
+    if question:
+        questions = question
+    elif questions_file:
+        try:
+            with open(questions_file, "r", encoding="utf-8") as f:
+                questions = [line.strip() for line in f if line.strip()]
+            if not questions:
+                error_console.print(
+                    "[red]Error: Questions file is empty or contains no valid questions[/red]"
+                )
+                raise typer.Exit(1)
+            console.print(f"[blue]Loaded {len(questions)} questions from {questions_file}[/blue]")
+        except Exception as e:
+            error_console.print(f"[red]Error reading questions file: {e}[/red]")
+            raise typer.Exit(1)
 
     # Validate input sources
     input_sources = [jsonl_input, url, file]
@@ -448,9 +513,12 @@ def cite(
         chunks = load_chunks_from_jsonl(file_path)
         console.print(f"[green]Loaded {len(chunks)} chunks[/green]")
 
+        # Determine final question format
+        final_question = questions[0] if len(questions) == 1 else questions
+        
         request = CitationRequest(
             chunks=chunks,
-            question=question,
+            question=final_question,
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
@@ -458,9 +526,13 @@ def cite(
     else:
         # Use URL
         console.print(f"[blue]Using JSONL from URL: {url}[/blue]")
+        
+        # Determine final question format
+        final_question = questions[0] if len(questions) == 1 else questions
+        
         request = CitationRequest(
             jsonl_url=url,
-            question=question,
+            question=final_question,
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
@@ -469,7 +541,14 @@ def cite(
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        console.print(f"[blue]Streaming citations for: {question}[/blue]")
+        # Display questions being processed
+        if len(questions) == 1:
+            console.print(f"[blue]Streaming citations for: {questions[0]}[/blue]")
+        else:
+            console.print(f"[blue]Streaming citations for {len(questions)} questions:[/blue]")
+            for i, q in enumerate(questions, 1):
+                console.print(f"[dim]  {i}. {q}[/dim]")
+        
         if url:
             console.print(f"[dim]Source: {url}[/dim]")
         if output:
@@ -503,10 +582,15 @@ def cite(
                 elif isinstance(response, CitationStreamResponse):
                     citations.append(response.citation)
                     if state.verbose:
-                        display_verbose_citation(response.citation, long=long)
+                        display_verbose_citation(response.citation, questions=questions, long=long)
                     else:
+                        quality_text = f"quality {response.citation.quality}/4"
+                        if len(questions) > 1 and response.citation.question_index:
+                            question_info = f" for Q{response.citation.question_index}"
+                        else:
+                            question_info = ""
                         console.print(
-                            f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
+                            f"[green]Found citation ({quality_text}){question_info}[/green]"
                         )
                     # Immediately append to output file if specified
                     if output:
@@ -532,7 +616,7 @@ def cite(
                 elif isinstance(response, CitationErrorResponse):
                     console.print(f"[red]Error: {response.error}[/red]")
 
-        display_citations_table(citations, long=long)
+        display_citations_table(citations, questions=questions, long=long)
 
         if output:
             console.print(f"[green]Citations streamed to {output}[/green]")
