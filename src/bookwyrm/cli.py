@@ -158,7 +158,7 @@ def append_citation_to_jsonl(citation, output_path: Path):
         console.print(f"[red]Error appending citation: {e}[/red]")
 
 
-def display_citations_table(citations):
+def display_citations_table(citations, long=False):
     """Display citations in a rich table."""
     if not citations:
         console.print("[yellow]No citations found.[/yellow]")
@@ -184,21 +184,29 @@ def display_citations_table(citations):
             else str(citation.start_chunk)
         )
 
-        table.add_row(
-            quality_text,
-            chunk_range,
-            citation.text[:100] + "..." if len(citation.text) > 100 else citation.text,
-            (
+        # Apply truncation only if not in long mode
+        if long:
+            text_display = citation.text
+            reasoning_display = citation.reasoning
+        else:
+            text_display = citation.text[:100] + "..." if len(citation.text) > 100 else citation.text
+            reasoning_display = (
                 citation.reasoning[:150] + "..."
                 if len(citation.reasoning) > 150
                 else citation.reasoning
-            ),
+            )
+
+        table.add_row(
+            quality_text,
+            chunk_range,
+            text_display,
+            reasoning_display,
         )
 
     console.print(table)
 
 
-def display_verbose_citation(citation):
+def display_verbose_citation(citation, long=False):
     """Display a single citation with full details."""
     quality_color = (
         "red"
@@ -373,6 +381,9 @@ def cite(
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed citation information")
     ] = False,
+    long: Annotated[
+        bool, typer.Option("--long", help="Show full citation text without truncation")
+    ] = False,
 ):
     """Find citations for a question in text chunks.
 
@@ -492,7 +503,7 @@ def cite(
                 elif isinstance(response, CitationStreamResponse):
                     citations.append(response.citation)
                     if state.verbose:
-                        display_verbose_citation(response.citation)
+                        display_verbose_citation(response.citation, long=long)
                     else:
                         console.print(
                             f"[green]Found citation (quality {response.citation.quality}/4)[/green]"
@@ -521,7 +532,7 @@ def cite(
                 elif isinstance(response, CitationErrorResponse):
                     console.print(f"[red]Error: {response.error}[/red]")
 
-        display_citations_table(citations)
+        display_citations_table(citations, long=long)
 
         if output:
             console.print(f"[green]Citations streamed to {output}[/green]")
