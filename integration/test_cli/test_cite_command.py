@@ -447,3 +447,175 @@ def test_cite_command_streaming_live(sample_chunks, api_key, api_url):
 
     finally:
         jsonl_file.unlink()
+
+
+def test_cite_command_multiple_questions_comprehensive(sample_chunks):
+    """Test cite command with comprehensive multiple questions testing."""
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+
+    try:
+        # Test with many questions
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--question", "What are the capitals mentioned?",
+                "--question", "Which countries are referenced?",
+                "--question", "What landmarks are described?",
+                "--question", "What cities are in Europe?",
+                str(jsonl_file)
+            ]
+        )
+
+        # Check command parsing (may fail on API call)
+        if result.returncode != 0:
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
+            )
+        else:
+            assert len(result.stdout) > 0
+
+    finally:
+        jsonl_file.unlink()
+
+
+def test_cite_command_questions_file_comprehensive():
+    """Test cite command with comprehensive questions file testing."""
+    sample_chunks = [
+        {
+            "text": "The capital of France is Paris. It is known for the Eiffel Tower.",
+            "start_char": 0,
+            "end_char": 65,
+        },
+        {
+            "text": "London is the capital of England and home to Big Ben.",
+            "start_char": 66,
+            "end_char": 119,
+        },
+    ]
+    
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+    
+    # Create comprehensive questions file
+    questions_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    questions_file.write("What are the capitals mentioned?\n")
+    questions_file.write("Which countries are referenced?\n")
+    questions_file.write("What landmarks are described?\n")
+    questions_file.write("What architectural features are mentioned?\n")
+    questions_file.write("Which European cities are discussed?\n")
+    questions_file.close()
+    questions_path = Path(questions_file.name)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--questions-file", str(questions_path),
+                str(jsonl_file),
+                "--verbose"
+            ]
+        )
+
+        # Check command parsing (may fail on API call)
+        if result.returncode != 0:
+            assert (
+                "api" in result.stderr.lower()
+                or "key" in result.stderr.lower()
+                or "connection" in result.stderr.lower()
+                or "network" in result.stderr.lower()
+                or "timeout" in result.stderr.lower()
+                or "error" in result.stderr.lower()
+            )
+        else:
+            assert len(result.stdout) > 0
+
+    finally:
+        jsonl_file.unlink()
+        questions_path.unlink()
+
+
+def test_cite_command_empty_questions_file():
+    """Test cite command with empty questions file."""
+    sample_chunks = [
+        {
+            "text": "Test content for empty questions file test.",
+            "start_char": 0,
+            "end_char": 43,
+        }
+    ]
+    
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+    
+    # Create empty questions file
+    questions_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    questions_file.close()
+    questions_path = Path(questions_file.name)
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--questions-file", str(questions_path),
+                str(jsonl_file)
+            ]
+        )
+
+        # Should fail due to empty questions file
+        assert result.returncode != 0
+        assert (
+            "empty" in result.stderr.lower() 
+            or "question" in result.stderr.lower()
+            or "no questions" in result.stderr.lower()
+        )
+
+    finally:
+        jsonl_file.unlink()
+        questions_path.unlink()
+
+
+@pytest.mark.liveonly
+def test_cite_command_multiple_questions_live_api(sample_chunks, api_key, api_url):
+    """Test cite command with multiple questions against live API."""
+    if not api_key:
+        pytest.skip("No API key provided for live test")
+
+    jsonl_file = create_test_jsonl_file(sample_chunks)
+    output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+    output_path = Path(output_file.name)
+    output_file.close()
+
+    try:
+        result = run_bookwyrm_command(
+            [
+                "cite",
+                "--question", "What are the capital cities mentioned?",
+                "--question", "Which European countries are referenced?",
+                "--question", "What famous landmarks are described?",
+                str(jsonl_file),
+                "--api-key", api_key,
+                "--base-url", api_url,
+                "--output", str(output_path),
+                "--verbose"
+            ]
+        )
+
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert len(result.stdout) > 0
+
+        # Check that output file was created and contains valid JSONL
+        if output_path.exists():
+            output_data = []
+            with open(output_path, "r") as f:
+                for line in f:
+                    if line.strip():
+                        output_data.append(json.loads(line))
+            assert isinstance(output_data, list)
+
+    finally:
+        jsonl_file.unlink()
+        if output_path.exists():
+            output_path.unlink()

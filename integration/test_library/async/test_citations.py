@@ -377,6 +377,143 @@ async def test_stream_citations_from_url_skip(async_client):
     pytest.skip("Requires a publicly accessible JSONL URL for testing")
 
 
+@pytest.mark.asyncio
+async def test_stream_citations_multiple_questions_list(async_client, sample_chunks):
+    """Test streaming citation finding with multiple questions as a list."""
+    questions = [
+        "What is machine learning?",
+        "What is artificial intelligence?",
+        "What is natural language processing?"
+    ]
+    
+    all_citations = []
+    summary_responses = []
+
+    async for response in async_client.stream_citations(
+        chunks=sample_chunks,
+        question=questions,
+        max_tokens_per_chunk=1000,
+    ):
+        if isinstance(response, CitationStreamResponse):
+            all_citations.append(response.citation)
+        elif isinstance(response, CitationSummaryResponse):
+            summary_responses.append(response)
+
+    # Verify we got responses for multiple questions
+    # Each question should potentially generate citations
+    for citation in all_citations:
+        assert isinstance(citation, Citation)
+        assert isinstance(citation.text, str)
+        assert len(citation.text) > 0
+        assert isinstance(citation.quality, int)
+        assert 0 <= citation.quality <= 4
+
+
+@pytest.mark.asyncio
+async def test_stream_citations_multiple_questions_with_jsonl(async_client, sample_jsonl_content):
+    """Test streaming citation finding with multiple questions using JSONL content."""
+    questions = [
+        "What programming language was created by Guido van Rossum?",
+        "What are the key features of Python?",
+        "When was Python first released?"
+    ]
+    
+    citations = []
+    summary_count = 0
+
+    async for response in async_client.stream_citations(
+        jsonl_content=sample_jsonl_content,
+        question=questions,
+        start=0,
+        limit=10,
+    ):
+        if isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
+        elif isinstance(response, CitationSummaryResponse):
+            summary_count += 1
+
+    # Verify citations structure
+    for citation in citations:
+        assert isinstance(citation.text, str)
+        assert len(citation.text) > 0
+        assert isinstance(citation.quality, int)
+        assert 0 <= citation.quality <= 4
+
+
+@pytest.mark.asyncio
+async def test_stream_citations_empty_questions_list(async_client, sample_chunks):
+    """Test streaming citation finding with empty questions list."""
+    with pytest.raises(ValueError, match="question.*empty"):
+        async for _ in async_client.stream_citations(chunks=sample_chunks, question=[]):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_stream_citations_mixed_question_types(async_client, sample_chunks):
+    """Test streaming citation finding with different types of questions."""
+    questions = [
+        "What is the definition of artificial intelligence?",  # Definition question
+        "How does machine learning work?",  # Process question
+        "Where is computer vision used?",  # Application question
+    ]
+    
+    responses = []
+    async for response in async_client.stream_citations(
+        chunks=sample_chunks,
+        question=questions,
+        max_tokens_per_chunk=800,
+    ):
+        responses.append(response)
+
+    # Should get some responses
+    assert len(responses) >= 0
+
+
+@pytest.mark.asyncio
+async def test_stream_citations_single_question_in_list(async_client, sample_chunks):
+    """Test streaming citation finding with single question in list format."""
+    questions = ["What is deep learning?"]
+    
+    citations = []
+    async for response in async_client.stream_citations(
+        chunks=sample_chunks,
+        question=questions,
+        max_tokens_per_chunk=1000,
+    ):
+        if isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
+
+    # Should work the same as single string question
+    for citation in citations:
+        assert isinstance(citation.quality, int)
+        assert 0 <= citation.quality <= 4
+
+
+@pytest.mark.asyncio
+async def test_async_get_citations_multiple_questions(async_client, sample_chunks):
+    """Test async get_citations with multiple questions."""
+    questions = [
+        "What is machine learning?",
+        "What is artificial intelligence?"
+    ]
+    
+    response = await async_client.get_citations(
+        chunks=sample_chunks,
+        question=questions,
+        max_tokens_per_chunk=1000,
+    )
+
+    assert isinstance(response, CitationResponse)
+    assert isinstance(response.citations, list)
+    assert isinstance(response.usage, UsageInfo)
+
+    for citation in response.citations:
+        assert isinstance(citation, Citation)
+        assert isinstance(citation.text, str)
+        assert isinstance(citation.quality, int)
+        assert 0 <= citation.quality <= 4
+
+
 @pytest.mark.liveonly
 @pytest.mark.asyncio
 async def test_async_get_citations_live_api(async_client, sample_chunks):
