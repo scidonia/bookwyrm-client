@@ -61,16 +61,23 @@ Extract structured content from PDF documents:
 
 ```python
 # Extract content from the same PDF file
+from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
+
 extracted_text = ""
 pages = []
 for response in client.stream_extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="research_paper.pdf"
 ):
-    if hasattr(response, 'page_data'):
+    if isinstance(response, PDFStreamMetadata):
+        print(f"Processing {response.total_pages} pages")
+    elif isinstance(response, PDFStreamPageResponse):
         pages.append(response.page_data)
         for text_block in response.page_data.text_blocks:
             extracted_text += text_block.text + "\n"
+        print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
+    elif isinstance(response, PDFStreamPageError):
+        print(f"Error on page {response.document_page}: {response.error}")
 
 print(f"Extracted {len(extracted_text)} characters from PDF")
 ```
@@ -171,14 +178,18 @@ Use streaming for real-time progress updates on any operation:
 
 ```python
 # Stream PDF extraction
+from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
+
 for response in client.stream_extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="document.pdf"
 ):
-    if hasattr(response, 'page_number'):
-        print(f"Processing page {response.page_number}")
-    elif hasattr(response, 'message'):
-        print(f"Progress: {response.message}")
+    if isinstance(response, PDFStreamMetadata):
+        print(f"Processing {response.total_pages} pages")
+    elif isinstance(response, PDFStreamPageResponse):
+        print(f"Processing page {response.document_page}")
+    elif isinstance(response, PDFStreamPageError):
+        print(f"Error on page {response.document_page}: {response.error}")
 
 # Stream text processing (always streaming)
 for response in client.stream_process_text(

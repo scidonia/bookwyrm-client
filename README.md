@@ -144,17 +144,21 @@ binary_response = client.classify(
 print(f"Binary file classified as: {binary_response.classification.content_type}")
 
 # Streaming PDF extraction with progress
+from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
+
 pages = []
 for stream_response in client.stream_extract_pdf(
     pdf_url="https://example.com/document.pdf",
     start_page=1,
     num_pages=5
 ):
-    if hasattr(stream_response, 'page_data'):
+    if isinstance(stream_response, PDFStreamMetadata):
+        print(f"Starting extraction of {stream_response.total_pages} pages")
+    elif isinstance(stream_response, PDFStreamPageResponse):
         pages.append(stream_response.page_data)
         print(f"Processed page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
-    elif hasattr(stream_response, 'total_pages'):
-        print(f"Starting extraction of {stream_response.total_pages} pages")
+    elif isinstance(stream_response, PDFStreamPageError):
+        print(f"Error on page {stream_response.document_page}: {stream_response.error}")
 
 print(f"Extracted {len(pages)} pages")
 print(f"Found {sum(len(page.text_blocks) for page in pages)} text elements")
@@ -170,7 +174,7 @@ for stream_response in client.stream_extract_pdf(
     start_page=10,
     num_pages=5
 ):
-    if hasattr(stream_response, 'page_data'):
+    if isinstance(stream_response, PDFStreamPageResponse):
         local_pages.append(stream_response.page_data)
 
 print(f"Extracted pages 10-14: {len(local_pages)} pages processed")
@@ -236,17 +240,21 @@ async def main():
         print(f"Confidence: {classification.classification.confidence:.2%}")
 
         # Streaming PDF extraction
+        from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
+        
         pages = []
         async for stream_response in client.stream_extract_pdf(
             pdf_url="https://example.com/document.pdf",
             start_page=1,
             num_pages=10
         ):
-            if hasattr(stream_response, 'page_data'):
+            if isinstance(stream_response, PDFStreamMetadata):
+                print(f"Processing {stream_response.total_pages} pages...")
+            elif isinstance(stream_response, PDFStreamPageResponse):
                 pages.append(stream_response.page_data)
                 print(f"Page {stream_response.document_page}: {len(stream_response.page_data.text_blocks)} elements")
-            elif hasattr(stream_response, 'total_pages'):
-                print(f"Processing {stream_response.total_pages} pages...")
+            elif isinstance(stream_response, PDFStreamPageError):
+                print(f"Error on page {stream_response.document_page}: {stream_response.error}")
 
 asyncio.run(main())
 ```
