@@ -72,6 +72,24 @@ class BookWyrmAPIError(BookWyrmClientError):
         self.status_code = status_code
 
 
+def _marshal_http_error(e: requests.HTTPError) -> BookWyrmAPIError:
+    """Convert requests.HTTPError to BookWyrmAPIError with response text."""
+    error_message = f"API request failed: {e}"
+    status_code = None
+    
+    if e.response is not None:
+        status_code = e.response.status_code
+        try:
+            error_text = e.response.text
+            if error_text and error_text.strip():
+                error_message += f" - {error_text.strip()}"
+        except Exception:
+            # If we can't read the response text, just use the original message
+            pass
+    
+    return BookWyrmAPIError(error_message, status_code)
+
+
 class BookWyrmClient:
     """Synchronous client for BookWyrm API.
 
@@ -275,7 +293,7 @@ class BookWyrmClient:
             response_data: Dict[str, Any] = response.json()
             return ClassifyResponse.model_validate(response_data)
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -482,7 +500,7 @@ class BookWyrmClient:
                         yield error_response
 
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -706,7 +724,7 @@ class BookWyrmClient:
                         continue
 
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -860,7 +878,7 @@ class BookWyrmClient:
                         continue
 
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
@@ -983,6 +1001,6 @@ class BookWyrmClient:
                         continue
 
         except requests.HTTPError as e:
-            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+            raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
