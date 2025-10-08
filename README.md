@@ -450,7 +450,7 @@ tox -e dev-local-cli-cite
 
 ### Clients
 
-- `BookWyrmClient`: Synchronous client with `get_citations()`, `stream_citations()`, `classify()`, `extract_pdf()`, `stream_extract_pdf()`, and other methods
+- `BookWyrmClient`: Synchronous client with `get_citations()`, `stream_citations()`, `classify()`, `stream_extract_pdf()`, and other methods
 - `AsyncBookWyrmClient`: Asynchronous client with async versions of the same methods
 
 ### Exceptions

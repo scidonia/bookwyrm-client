@@ -61,16 +61,16 @@ Extract structured content from PDF documents:
 
 ```python
 # Extract content from the same PDF file
-response = client.extract_pdf(
+extracted_text = ""
+pages = []
+for response in client.stream_extract_pdf(
     pdf_bytes=pdf_bytes,
     filename="research_paper.pdf"
-)
-
-# Get the extracted text by concatenating all text elements
-extracted_text = ""
-for page in response.pages:
-    for text_block in page.text_blocks:
-        extracted_text += text_block.text + "\n"
+):
+    if hasattr(response, 'page_data'):
+        pages.append(response.page_data)
+        for text_block in response.page_data.text_blocks:
+            extracted_text += text_block.text + "\n"
 
 print(f"Extracted {len(extracted_text)} characters from PDF")
 ```
