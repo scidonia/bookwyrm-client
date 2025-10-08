@@ -12,6 +12,12 @@ A Python client library for the BookWyrm API, providing citation finding, text s
 - **Streaming Support**: Real-time progress updates for long-running operations
 - **Async Support**: Full async/await support with `AsyncBookWyrmClient`
 
+## Installation
+
+```bash
+pip install bookwyrm
+```
+
 ## Quick Start
 
 ```python
@@ -34,12 +40,6 @@ for stream_response in client.stream_citations(
         citations.append(stream_response.citation)
     elif hasattr(stream_response, 'total_citations'):
         print(f"Found {stream_response.total_citations} citations")
-```
-
-## Installation
-
-```bash
-pip install bookwyrm
 ```
 
 ## Documentation
