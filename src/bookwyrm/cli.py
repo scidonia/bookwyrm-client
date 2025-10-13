@@ -552,7 +552,9 @@ def cite(
             max_tokens_per_chunk=max_tokens,
         )
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=timeout)
+    client = BookWyrmClient(
+        base_url=state.base_url, api_key=state.api_key, timeout=timeout
+    )
 
     try:
         # Display questions being processed
