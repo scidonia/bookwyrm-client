@@ -76,7 +76,7 @@ def _marshal_http_error(e: requests.HTTPError) -> BookWyrmAPIError:
     """Convert requests.HTTPError to BookWyrmAPIError with response text."""
     error_message = f"API request failed: {e}"
     status_code = None
-    
+
     if e.response is not None:
         status_code = e.response.status_code
         try:
@@ -86,7 +86,7 @@ def _marshal_http_error(e: requests.HTTPError) -> BookWyrmAPIError:
         except Exception:
             # If we can't read the response text, just use the original message
             pass
-    
+
     return BookWyrmAPIError(error_message, status_code)
 
 

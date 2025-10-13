@@ -41,7 +41,9 @@ class CitationRequest(BaseModel):
     jsonl_url: Optional[str] = Field(
         None, description="URL to fetch JSONL content from"
     )
-    question: Union[str, List[str]] = Field(..., description="The question(s) to find citations for")
+    question: Union[str, List[str]] = Field(
+        ..., description="The question(s) to find citations for"
+    )
     start: Optional[int] = Field(0, description="Starting chunk index (0-based)")
     limit: Optional[int] = Field(
         None, description="Maximum number of chunks to process"
@@ -102,7 +104,8 @@ class Citation(BaseModel):
         ..., description="Quality score (0-4): 0=unrelated, 4=perfectly answers"
     )
     question_index: Optional[int] = Field(
-        None, description="1-based index of the question this citation answers (only present for multi-question requests)"
+        None,
+        description="1-based index of the question this citation answers (only present for multi-question requests)",
     )
 
 

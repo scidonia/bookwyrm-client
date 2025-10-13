@@ -167,12 +167,12 @@ def display_citations_table(citations, questions=None, long=False):
     table = Table(title="Found Citations")
     table.add_column("Quality", justify="center", style="cyan", no_wrap=True)
     table.add_column("Chunks", justify="center", style="magenta")
-    
+
     # Add question column if we have multiple questions
     has_multiple_questions = questions and len(questions) > 1
     if has_multiple_questions:
         table.add_column("Question", style="yellow")
-    
+
     table.add_column("Text", style="green")
     table.add_column("Reasoning", style="blue")
 
@@ -195,7 +195,11 @@ def display_citations_table(citations, questions=None, long=False):
             text_display = citation.text
             reasoning_display = citation.reasoning
         else:
-            text_display = citation.text[:100] + "..." if len(citation.text) > 100 else citation.text
+            text_display = (
+                citation.text[:100] + "..."
+                if len(citation.text) > 100
+                else citation.text
+            )
             reasoning_display = (
                 citation.reasoning[:150] + "..."
                 if len(citation.reasoning) > 150
@@ -204,7 +208,7 @@ def display_citations_table(citations, questions=None, long=False):
 
         # Prepare row data
         row_data = [quality_text, chunk_range]
-        
+
         # Add question info if multiple questions
         if has_multiple_questions:
             if citation.question_index and citation.question_index <= len(questions):
@@ -213,7 +217,7 @@ def display_citations_table(citations, questions=None, long=False):
             else:
                 question_display = "N/A"
             row_data.append(question_display)
-        
+
         row_data.extend([text_display, reasoning_display])
         table.add_row(*row_data)
 
@@ -367,11 +371,19 @@ def cite(
     ] = None,
     question: Annotated[
         Optional[List[str]],
-        typer.Option("--question", "-q", help="Question to find citations for (can be used multiple times)"),
+        typer.Option(
+            "--question",
+            "-q",
+            help="Question to find citations for (can be used multiple times)",
+        ),
     ] = None,
     questions_file: Annotated[
         Optional[Path],
-        typer.Option("--questions-file", help="File containing questions, one per line", exists=True),
+        typer.Option(
+            "--questions-file",
+            help="File containing questions, one per line",
+            exists=True,
+        ),
     ] = None,
     url: Annotated[
         Optional[str],
@@ -490,7 +502,9 @@ def cite(
                     "[red]Error: Questions file is empty or contains no valid questions[/red]"
                 )
                 raise typer.Exit(1)
-            console.print(f"[blue]Loaded {len(questions)} questions from {questions_file}[/blue]")
+            console.print(
+                f"[blue]Loaded {len(questions)} questions from {questions_file}[/blue]"
+            )
         except Exception as e:
             error_console.print(f"[red]Error reading questions file: {e}[/red]")
             raise typer.Exit(1)
@@ -515,7 +529,7 @@ def cite(
 
         # Determine final question format
         final_question = questions[0] if len(questions) == 1 else questions
-        
+
         request = CitationRequest(
             chunks=chunks,
             question=final_question,
@@ -526,10 +540,10 @@ def cite(
     else:
         # Use URL
         console.print(f"[blue]Using JSONL from URL: {url}[/blue]")
-        
+
         # Determine final question format
         final_question = questions[0] if len(questions) == 1 else questions
-        
+
         request = CitationRequest(
             jsonl_url=url,
             question=final_question,
@@ -545,10 +559,12 @@ def cite(
         if len(questions) == 1:
             console.print(f"[blue]Streaming citations for: {questions[0]}[/blue]")
         else:
-            console.print(f"[blue]Streaming citations for {len(questions)} questions:[/blue]")
+            console.print(
+                f"[blue]Streaming citations for {len(questions)} questions:[/blue]"
+            )
             for i, q in enumerate(questions, 1):
                 console.print(f"[dim]  {i}. {q}[/dim]")
-        
+
         if url:
             console.print(f"[dim]Source: {url}[/dim]")
         if output:
@@ -582,7 +598,9 @@ def cite(
                 elif isinstance(response, CitationStreamResponse):
                     citations.append(response.citation)
                     if state.verbose:
-                        display_verbose_citation(response.citation, questions=questions, long=long)
+                        display_verbose_citation(
+                            response.citation, questions=questions, long=long
+                        )
                     else:
                         quality_text = f"quality {response.citation.quality}/4"
                         if len(questions) > 1 and response.citation.question_index:
@@ -1350,7 +1368,7 @@ def classify(
 ):
     """Classify files to determine their type and format.
 
-    This command analyzes files, URLs, or stdin content to determine their format type, 
+    This command analyzes files, URLs, or stdin content to determine their format type,
     content type, MIME type, and other classification details.
 
     ## Classification Includes
@@ -1454,16 +1472,18 @@ def classify(
         console.print("[blue]Reading content from stdin...[/blue]")
         try:
             import base64
-            
+
             stdin_content = sys.stdin.read()
             if not stdin_content.strip():
                 error_console.print("[red]Error: No content provided via stdin[/red]")
                 raise typer.Exit(1)
-                
+
             # Encode stdin content as base64
-            content = base64.b64encode(stdin_content.encode('utf-8')).decode("ascii")
-            console.print(f"[blue]Read {len(stdin_content)} characters from stdin[/blue]")
-            
+            content = base64.b64encode(stdin_content.encode("utf-8")).decode("ascii")
+            console.print(
+                f"[blue]Read {len(stdin_content)} characters from stdin[/blue]"
+            )
+
             # Use filename hint or default
             effective_filename = filename or "stdin_content"
         except Exception as e:

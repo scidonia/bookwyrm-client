@@ -656,6 +656,7 @@ class AsyncBookWyrmClient:
         # Handle empty chunks list - return empty response immediately
         if chunks is not None and len(chunks) == 0:
             from .models import UsageInfo
+
             yield CitationSummaryResponse(
                 total_citations=0,
                 chunks_processed=0,
