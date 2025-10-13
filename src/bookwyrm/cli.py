@@ -552,7 +552,7 @@ def cite(
             max_tokens_per_chunk=max_tokens,
         )
 
-    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
+    client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key, timeout=timeout)
 
     try:
         # Display questions being processed
@@ -1615,6 +1615,10 @@ def extract_pdf(
         str,
         typer.Option(help="Language code for OCR processing (default: en)"),
     ] = "en",
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(help="Request timeout in seconds (default: no timeout)"),
+    ] = None,
     base_url: Annotated[
         Optional[str],
         typer.Option(
