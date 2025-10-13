@@ -509,6 +509,7 @@ class PDFExtractRequest(BaseModel):
     filename: Optional[str] = None  # Optional filename hint
     start_page: Optional[int] = None  # 1-based page number to start from
     num_pages: Optional[int] = None  # Number of pages to process from start_page
+    lang: str = "en"  # Language code for OCR processing
 
     @model_validator(mode="after")
     def validate_input_source(self):

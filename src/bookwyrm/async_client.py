@@ -729,6 +729,7 @@ class AsyncBookWyrmClient:
         filename: Optional[str] = None,
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
+        lang: str = "en",
     ) -> PDFExtractResponse:
         """Extract structured data from a PDF file using OCR asynchronously.
 
@@ -743,6 +744,8 @@ class AsyncBookWyrmClient:
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
+            lang: Language code for OCR processing (default: "en")
+            lang: Language code for OCR processing (default: "en")
 
         Returns:
             PDF extraction response with structured page data, text elements, and metadata
@@ -800,6 +803,7 @@ class AsyncBookWyrmClient:
             filename=filename,
             start_page=start_page,
             num_pages=num_pages,
+            lang=lang,
         )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -828,6 +832,8 @@ class AsyncBookWyrmClient:
                     data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     data["num_pages"] = request.num_pages
+                if request.lang:
+                    data["lang"] = request.lang
 
                 response: httpx.Response = await self.client.post(
                     f"{self.base_url}/extract-structure",
@@ -844,6 +850,8 @@ class AsyncBookWyrmClient:
                     json_data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     json_data["num_pages"] = request.num_pages
+                if request.lang:
+                    json_data["lang"] = request.lang
 
                 response = await self.client.post(
                     f"{self.base_url}/extract-structure-json",
@@ -871,6 +879,7 @@ class AsyncBookWyrmClient:
         filename: Optional[str] = None,
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
+        lang: str = "en",
     ) -> AsyncIterator[StreamingPDFResponse]:
         """Stream PDF extraction with real-time progress updates asynchronously.
 
@@ -944,6 +953,7 @@ class AsyncBookWyrmClient:
             filename=filename,
             start_page=start_page,
             num_pages=num_pages,
+            lang=lang,
         )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -972,6 +982,8 @@ class AsyncBookWyrmClient:
                     data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     data["num_pages"] = request.num_pages
+                if request.lang:
+                    data["lang"] = request.lang
 
                 async with self.client.stream(
                     "POST",
@@ -1017,6 +1029,8 @@ class AsyncBookWyrmClient:
                     json_data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     json_data["num_pages"] = request.num_pages
+                if request.lang:
+                    json_data["lang"] = request.lang
 
                 async with self.client.stream(
                     "POST",

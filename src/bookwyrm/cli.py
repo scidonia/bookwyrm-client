@@ -1591,6 +1591,10 @@ def extract_pdf(
         Optional[int],
         typer.Option(help="Number of pages to process from start_page"),
     ] = None,
+    lang: Annotated[
+        str,
+        typer.Option(help="Language code for OCR processing (default: en)"),
+    ] = "en",
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1618,6 +1622,7 @@ def extract_pdf(
     - **OCR-based text extraction** with confidence scores
     - **Bounding box coordinates** for each text element
     - **Page range selection** (start_page + num_pages)
+    - **Language support** for OCR processing (default: English)
     - **Streaming progress updates**
     - **Support for both local files and URLs**
 
@@ -1639,8 +1644,8 @@ def extract_pdf(
     # Extract from URL
     bookwyrm extract-pdf --url https://example.com/document.pdf --output extracted.json
 
-    # Non-streaming mode
-    bookwyrm extract-pdf doc.pdf --no-stream --output extracted.json
+    # Extract with specific language
+    bookwyrm extract-pdf document.pdf --lang fr --output extracted.json
 
     # Verbose output
     bookwyrm extract-pdf document.pdf -v --output extracted.json
@@ -1696,6 +1701,7 @@ def extract_pdf(
                 filename=actual_file.name,
                 start_page=start_page,
                 num_pages=num_pages,
+                lang=lang,
             )
         except Exception as e:
             error_console.print(f"[red]Error reading PDF file: {e}[/red]")
@@ -1704,7 +1710,7 @@ def extract_pdf(
         # Use URL
         console.print(f"[blue]Using PDF from URL: {url}[/blue]")
         request = PDFExtractRequest(
-            pdf_url=url, start_page=start_page, num_pages=num_pages
+            pdf_url=url, start_page=start_page, num_pages=num_pages, lang=lang
         )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)

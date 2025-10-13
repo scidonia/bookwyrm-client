@@ -737,6 +737,7 @@ class BookWyrmClient:
         filename: Optional[str] = None,
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
+        lang: str = "en",
     ) -> Iterator[StreamingPDFResponse]:
         """Stream PDF extraction with real-time progress updates.
 
@@ -751,6 +752,7 @@ class BookWyrmClient:
             filename: Optional filename hint
             start_page: 1-based page number to start from
             num_pages: Number of pages to process from start_page
+            lang: Language code for OCR processing (default: "en")
 
         Yields:
             StreamingPDFResponse: Union of metadata, page responses, page errors, completion, or general errors
@@ -792,6 +794,7 @@ class BookWyrmClient:
             filename=filename,
             start_page=start_page,
             num_pages=num_pages,
+            lang=lang,
         )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -820,6 +823,8 @@ class BookWyrmClient:
                     data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     data["num_pages"] = request.num_pages
+                if request.lang:
+                    data["lang"] = request.lang
 
                 response = self.session.post(
                     f"{self.base_url}/extract-structure-stream",
@@ -837,6 +842,8 @@ class BookWyrmClient:
                     json_data["start_page"] = request.start_page
                 if request.num_pages is not None:
                     json_data["num_pages"] = request.num_pages
+                if request.lang:
+                    json_data["lang"] = request.lang
 
                 response = self.session.post(
                     f"{self.base_url}/extract-structure-stream-json",
