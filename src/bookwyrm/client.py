@@ -129,7 +129,7 @@ class BookWyrmClient:
         self,
         base_url: str = "https://api.bookwyrm.ai:443",
         api_key: Optional[str] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: Optional[float] = None,
     ) -> None:
         """Initialize the BookWyrm client.
 
@@ -137,7 +137,7 @@ class BookWyrmClient:
             base_url: Base URL of the BookWyrm API. Defaults to "https://api.bookwyrm.ai:443"
             api_key: API key for authentication. If not provided, will attempt to read
                 from BOOKWYRM_API_KEY environment variable
-            timeout: Request timeout in seconds. Defaults to 30.0 seconds. Set to None for no timeout.
+            timeout: Request timeout in seconds. Defaults to None (no timeout). Set to a float for specific timeout.
 
         Examples:
             ```python
@@ -154,8 +154,8 @@ class BookWyrmClient:
                 timeout=60.0
             )
 
-            # With no timeout
-            client = BookWyrmClient(timeout=None)
+            # With infinite timeout (default)
+            client = BookWyrmClient()
             ```
         """
         self.base_url: str = base_url.rstrip("/")
