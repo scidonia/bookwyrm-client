@@ -426,6 +426,10 @@ def cite(
     long: Annotated[
         bool, typer.Option("--long", help="Show full citation text without truncation")
     ] = False,
+    timeout: Annotated[
+        Optional[float],
+        typer.Option(help="Request timeout in seconds (default: no timeout)"),
+    ] = None,
 ):
     """Find citations for questions in text chunks.
 
