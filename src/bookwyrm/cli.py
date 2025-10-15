@@ -638,7 +638,7 @@ def cite(
                             f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                         )
                 elif isinstance(response, CitationErrorResponse):
-                    console.print(f"[red]Error: {response.error}[/red]")
+                    error_console.print(f"[red]Error: {response.error}[/red]")
 
         display_citations_table(citations, questions=questions, long=long)
 
@@ -1149,7 +1149,7 @@ def phrasal(
     provided_sources = [s for s in input_sources if s is not None]
 
     if len(provided_sources) != 1:
-        console.print(
+        error_console.print(
             "[red]Error: Exactly one of text argument, --url, or --file must be provided[/red]"
         )
         raise typer.Exit(1)
@@ -1268,7 +1268,7 @@ def phrasal(
                                 )
                                 f.flush()
                         except Exception as e:
-                            console.print(
+                            error_console.print(
                                 f"[red]Error writing to output file: {e}[/red]"
                             )
                 else:
@@ -1321,12 +1321,12 @@ def phrasal(
             console.print(f"[green]Results saved to {output}[/green]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
@@ -1435,7 +1435,7 @@ def classify(
             # Use the actual filename if no hint provided
             effective_filename = filename or file.name
         except Exception as e:
-            console.print(f"[red]Error reading file {file}: {e}[/red]")
+            error_console.print(f"[red]Error reading file {file}: {e}[/red]")
             raise typer.Exit(1)
     elif url:
         # Handle URL - we'll fetch it and send as multipart
@@ -1567,15 +1567,15 @@ def classify(
                     f"\n[green]Classification results saved to: {output}[/green]"
                 )
             except Exception as e:
-                console.print(f"[red]Error saving to {output}: {e}[/red]")
+                error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
@@ -1801,7 +1801,7 @@ def extract_pdf(
                         completed=response.current_page,
                         description=f"Error on page {response.document_page}",
                     )
-                    console.print(
+                    error_console.print(
                         f"[red]Error on page {response.document_page}: {response.error}[/red]"
                     )
                 elif isinstance(response, PDFStreamComplete):
@@ -1812,7 +1812,7 @@ def extract_pdf(
                     )
                     console.print("[green]✓ PDF extraction complete![/green]")
                 elif isinstance(response, PDFStreamError):
-                    console.print(f"[red]Extraction error: {response.error}[/red]")
+                    error_console.print(f"[red]Extraction error: {response.error}[/red]")
                     raise typer.Exit(1)
 
         # Display summary
@@ -1906,12 +1906,12 @@ def extract_pdf(
                 console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        console.print(f"[red]API Error: {e}[/red]")
+        error_console.print(f"[red]API Error: {e}[/red]")
         if e.status_code:
-            console.print(f"[red]Status Code: {e.status_code}[/red]")
+            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
         raise typer.Exit(1)
     finally:
         client.close()
