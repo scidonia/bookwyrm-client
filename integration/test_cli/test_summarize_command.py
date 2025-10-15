@@ -209,11 +209,11 @@ def test_summarize_command_with_max_tokens_option(sample_phrases):
 
 
 def test_summarize_command_debug(sample_phrases):
-    """Test summarize command with --debug option."""
+    """Test summarize command with --include-debug option."""
     jsonl_file = create_test_jsonl_file(sample_phrases)
 
     try:
-        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--debug"])
+        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--include-debug"])
 
         # Check command parsing
         if result.returncode != 0:
@@ -375,7 +375,7 @@ def test_summarize_command_with_complex_options(sample_scientific_phrases):
                 str(jsonl_file),
                 "--max-tokens",
                 "8000",
-                "--debug",
+                "--include-debug",
                 "--output",
                 str(output_path),
                 "--verbose",
@@ -564,7 +564,7 @@ def test_summarize_command_live_api_with_debug(sample_phrases, api_key, api_url)
                 api_key,
                 "--base-url",
                 api_url,
-                "--debug",
+                "--include-debug",
                 "--max-tokens",
                 "5000",
             ]
@@ -664,7 +664,7 @@ def test_summarize_command_live_api_large_content(
                 api_url,
                 "--max-tokens",
                 "3000",  # Smaller chunks to test hierarchical summarization
-                "--debug",
+                "--include-debug",
             ]
         )
 
@@ -707,7 +707,7 @@ def test_summarize_command_live_api_comprehensive_options(
                 api_url,
                 "--max-tokens",
                 "6000",
-                "--debug",
+                "--include-debug",
                 "--output",
                 str(output_path),
                 "--verbose",
