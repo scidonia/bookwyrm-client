@@ -914,6 +914,10 @@ class BookWyrmClient:
         phrases: Optional[List[TextSpan]] = None,
         max_tokens: int = 10000,
         debug: bool = False,
+        model_name: Optional[str] = None,
+        model_schema_json: Optional[str] = None,
+        chunk_prompt: Optional[str] = None,
+        summary_of_summaries_prompt: Optional[str] = None,
     ) -> Iterator[StreamingSummarizeResponse]:
         """Stream summarization progress and results with real-time updates.
 
@@ -966,6 +970,10 @@ class BookWyrmClient:
             phrases=phrases,
             max_tokens=max_tokens,
             debug=debug,
+            model_name=model_name,
+            model_schema_json=model_schema_json,
+            chunk_prompt=chunk_prompt,
+            summary_of_summaries_prompt=summary_of_summaries_prompt,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
