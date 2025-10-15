@@ -1301,9 +1301,11 @@ class AsyncBookWyrmClient:
                 response.raise_for_status()
 
                 async for line in response.aiter_lines():
-                    if line and line.strip():
+                    if line and line.strip() and line.startswith("data: "):
                         try:
-                            data: Dict[str, Any] = json.loads(line)
+                            data: Dict[str, Any] = json.loads(
+                                line[6:]  # Remove "data: " prefix
+                            )
                             response_type: Optional[str] = data.get("type")
 
                             match response_type:
