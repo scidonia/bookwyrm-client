@@ -1314,12 +1314,16 @@ class AsyncBookWyrmClient:
                                 case "structural_error":
                                     yield StructuralErrorMessage.model_validate(data)
                                 case _:
-                                    # For unknown response types, try to parse as SummaryResponse if it has summary field
-                                    if "summary" in data:
+                                    # Handle responses without type field or unknown types
+                                    # Try to determine response type from content
+                                    if "summary" in data and "levels_used" in data:
                                         yield SummaryResponse.model_validate(data)
-                                    else:
-                                        # Unknown response type, skip
-                                        continue
+                                    elif "error" in data:
+                                        yield SummarizeErrorResponse.model_validate(data)
+                                    elif "message" in data and "current_level" in data:
+                                        yield SummarizeProgressUpdate.model_validate(data)
+                                    # Skip unknown response types
+                                    continue
                         except json.JSONDecodeError:
                             # Skip malformed JSON lines
                             continue
