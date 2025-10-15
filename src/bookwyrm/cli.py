@@ -1903,7 +1903,7 @@ def extract_pdf(
                 output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
                 console.print(f"\n[green]Extraction results saved to: {output}[/green]")
             except Exception as e:
-                console.print(f"[red]Error saving to {output}: {e}[/red]")
+                error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
         error_console.print(f"[red]API Error: {e}[/red]")
