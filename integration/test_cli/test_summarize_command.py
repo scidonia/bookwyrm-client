@@ -230,11 +230,11 @@ def test_summarize_command_debug(sample_phrases):
 
 
 def test_summarize_command_streaming(sample_phrases):
-    """Test summarize command with --stream option (default behavior)."""
+    """Test summarize command (always streaming by default)."""
     jsonl_file = create_test_jsonl_file(sample_phrases)
 
     try:
-        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--stream"])
+        result = run_bookwyrm_command(["summarize", str(jsonl_file)])
 
         # Check command parsing
         if result.returncode != 0:
@@ -250,12 +250,12 @@ def test_summarize_command_streaming(sample_phrases):
         jsonl_file.unlink()
 
 
-def test_summarize_command_with_no_stream_option(sample_phrases):
-    """Test summarize command with --no-stream option."""
+def test_summarize_command_without_streaming_options(sample_phrases):
+    """Test summarize command without any streaming options (always streams by default)."""
     jsonl_file = create_test_jsonl_file(sample_phrases)
 
     try:
-        result = run_bookwyrm_command(["summarize", str(jsonl_file), "--no-stream"])
+        result = run_bookwyrm_command(["summarize", str(jsonl_file)])
 
         # Check command parsing
         if result.returncode != 0:
@@ -379,7 +379,6 @@ def test_summarize_command_with_complex_options(sample_scientific_phrases):
                 "--output",
                 str(output_path),
                 "--verbose",
-                "--no-stream",
             ]
         )
 
@@ -530,7 +529,6 @@ def test_summarize_command_live_api_streaming(
                 api_key,
                 "--base-url",
                 api_url,
-                "--stream",
                 "--verbose",
             ]
         )
