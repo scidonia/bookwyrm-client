@@ -588,7 +588,7 @@ def test_summarize_command_live_api_with_debug(sample_phrases, api_key, api_url)
 def test_summarize_command_live_api_no_stream(
     sample_scientific_phrases, api_key, api_url
 ):
-    """Test summarize command against live API with --no-stream."""
+    """Test summarize command against live API (always streams by default)."""
     if not api_key:
         pytest.skip("No API key provided for live test")
 
@@ -602,7 +602,6 @@ def test_summarize_command_live_api_no_stream(
             [
                 "summarize",
                 str(jsonl_file),
-                "--no-stream",
                 "--api-key",
                 api_key,
                 "--base-url",
@@ -712,7 +711,6 @@ def test_summarize_command_live_api_comprehensive_options(
                 "--output",
                 str(output_path),
                 "--verbose",
-                "--stream",
             ]
         )
 
