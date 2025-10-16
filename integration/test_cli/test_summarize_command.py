@@ -39,7 +39,7 @@ def run_bookwyrm_command(
         capture_output=True,
         text=True,
         input=input_data,
-        timeout=120,  # Summarization can take longer
+        timeout=300,  # Summarization can take up to 5 minutes
     )
     return result
 

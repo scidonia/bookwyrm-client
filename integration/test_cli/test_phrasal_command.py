@@ -29,7 +29,7 @@ def run_bookwyrm_command(
         capture_output=True,
         text=True,
         input=input_data,
-        timeout=60,  # Phrasal processing can take longer
+        timeout=300,  # Phrasal processing can take up to 5 minutes
     )
     return result
 
