@@ -250,35 +250,6 @@ def test_phrasal_command_with_text_only_flag(sample_text_content):
         test_file.unlink()
 
 
-def test_phrasal_command_with_spacy_model(sample_text_content):
-    """Test phrasal command with --spacy-model option."""
-    test_file = create_test_file(sample_text_content, ".txt")
-
-    try:
-        result = run_bookwyrm_command(
-            [
-                "phrasal",
-                "--file",
-                str(test_file),
-                "--spacy-model",
-                "en_core_web_sm",
-                "--text-only",
-            ]
-        )
-
-        # Check command parsing
-        if result.returncode != 0:
-            assert (
-                "api" in result.stderr.lower()
-                or "key" in result.stderr.lower()
-                or "connection" in result.stderr.lower()
-                or "network" in result.stderr.lower()
-                or "timeout" in result.stderr.lower()
-            )
-
-    finally:
-        test_file.unlink()
-
 
 def test_phrasal_command_with_url_option():
     """Test phrasal command with --url option."""
@@ -462,8 +433,6 @@ def test_phrasal_command_with_complex_options(sample_scientific_text):
                 "--offsets",
                 "--output",
                 str(output_path),
-                "--spacy-model",
-                "en_core_web_sm",
                 "--verbose",
             ]
         )
