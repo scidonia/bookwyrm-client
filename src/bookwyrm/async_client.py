@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import sys
 from typing import AsyncIterator, Optional, Union, Dict, Any, List, Literal
 import httpx
 from pathlib import Path
@@ -55,6 +56,23 @@ UA = f"bookwyrm-client/{__version__} (python/{platform.python_version()}; {platf
 DEFAULT_HEADERS = {
     "User-Agent": UA,
 }
+
+
+def _check_deprecation_headers(response: httpx.Response) -> None:
+    """Check for deprecation headers and write warnings to stderr."""
+    deprecation = response.headers.get("Deprecation")
+    warning = response.headers.get("Warning")
+    
+    if deprecation and deprecation != "false":
+        if warning and warning.startswith("299 bookwyrm"):
+            # Extract the warning message from the 299 warning format
+            # Format: '299 bookwyrm "message"'
+            try:
+                warning_msg = warning.split('"', 1)[1].rsplit('"', 1)[0]
+                print(f"WARNING: {warning_msg}", file=sys.stderr)
+            except (IndexError, ValueError):
+                # Fallback if parsing fails
+                print(f"WARNING: Client version deprecation detected", file=sys.stderr)
 
 
 class AsyncBookWyrmClient:
@@ -264,6 +282,7 @@ class AsyncBookWyrmClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
+            _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return CitationResponse.model_validate(response_data)
         except httpx.HTTPStatusError as e:
@@ -382,6 +401,7 @@ class AsyncBookWyrmClient:
             )
 
             response.raise_for_status()
+            _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return ClassifyResponse.model_validate(response_data)
         except httpx.HTTPStatusError as e:
@@ -547,6 +567,7 @@ class AsyncBookWyrmClient:
                 timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
+                _check_deprecation_headers(response)
 
                 async for line in response.aiter_lines():
                     if line and line.strip():
@@ -693,6 +714,7 @@ class AsyncBookWyrmClient:
                 timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
+                _check_deprecation_headers(response)
 
                 async for line in response.aiter_lines():
                     if line and line.strip() and line.startswith("data: "):
@@ -866,6 +888,7 @@ class AsyncBookWyrmClient:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
 
             response.raise_for_status()
+            _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return PDFExtractResponse.model_validate(response_data)
         except httpx.HTTPStatusError as e:
@@ -997,6 +1020,7 @@ class AsyncBookWyrmClient:
                     timeout=self.timeout,
                 ) as response:
                     response.raise_for_status()
+                    _check_deprecation_headers(response)
 
                     async for line in response.aiter_lines():
                         if line and line.strip():
@@ -1043,6 +1067,7 @@ class AsyncBookWyrmClient:
                     timeout=self.timeout,
                 ) as response:
                     response.raise_for_status()
+                    _check_deprecation_headers(response)
 
                     async for line in response.aiter_lines():
                         if line.strip():
@@ -1196,6 +1221,7 @@ class AsyncBookWyrmClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
+            _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return SummaryResponse.model_validate(response_data)
         except httpx.HTTPStatusError as e:
@@ -1297,6 +1323,7 @@ class AsyncBookWyrmClient:
                 timeout=self.timeout,
             ) as response:
                 response.raise_for_status()
+                _check_deprecation_headers(response)
 
                 async for line in response.aiter_lines():
                     if line and line.strip() and line.startswith("data: "):

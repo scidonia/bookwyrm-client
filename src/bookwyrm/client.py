@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import sys
 from typing import List, Iterator, Optional, Union, Dict, Any, Literal
 import requests
 from pathlib import Path
@@ -88,6 +89,23 @@ def _marshal_http_error(e: requests.HTTPError) -> BookWyrmAPIError:
             pass
 
     return BookWyrmAPIError(error_message, status_code)
+
+
+def _check_deprecation_headers(response: requests.Response) -> None:
+    """Check for deprecation headers and write warnings to stderr."""
+    deprecation = response.headers.get("Deprecation")
+    warning = response.headers.get("Warning")
+    
+    if deprecation and deprecation != "false":
+        if warning and warning.startswith("299 bookwyrm"):
+            # Extract the warning message from the 299 warning format
+            # Format: '299 bookwyrm "message"'
+            try:
+                warning_msg = warning.split('"', 1)[1].rsplit('"', 1)[0]
+                print(f"WARNING: {warning_msg}", file=sys.stderr)
+            except (IndexError, ValueError):
+                # Fallback if parsing fails
+                print(f"WARNING: Client version deprecation detected", file=sys.stderr)
 
 
 class BookWyrmClient:
@@ -290,6 +308,7 @@ class BookWyrmClient:
             )
 
             response.raise_for_status()
+            _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return ClassifyResponse.model_validate(response_data)
         except requests.HTTPError as e:
@@ -450,6 +469,7 @@ class BookWyrmClient:
                 print(f"DEBUG: Response headers: {dict(response.headers)}")
 
             response.raise_for_status()
+            _check_deprecation_headers(response)
 
             line_count = 0
             for line in response.iter_lines(decode_unicode=True):
@@ -700,6 +720,7 @@ class BookWyrmClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
+            _check_deprecation_headers(response)
 
             for line in response.iter_lines(decode_unicode=True):
                 if line and line.strip():
@@ -856,6 +877,7 @@ class BookWyrmClient:
                 raise BookWyrmAPIError("Either pdf_url or pdf_content must be provided")
 
             response.raise_for_status()
+            _check_deprecation_headers(response)
 
             for line in response.iter_lines(decode_unicode=True):
                 if line and line.strip():
@@ -988,6 +1010,7 @@ class BookWyrmClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
+            _check_deprecation_headers(response)
 
             for line in response.iter_lines(decode_unicode=True):
                 if line and line.strip() and line.startswith("data: "):
