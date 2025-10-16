@@ -1061,6 +1061,9 @@ def phrasal(
     text_only: Annotated[
         bool, typer.Option("--text-only", help="Return text only without position data")
     ] = False,
+    offsets: Annotated[
+        bool, typer.Option("--offsets", help="Return text with position offsets (default behavior)")
+    ] = False,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -1138,9 +1141,15 @@ def phrasal(
     state.api_key = get_api_key(api_key)
     state.verbose = verbose
 
-    # Set format based on text_only flag
+    # Set format based on flags
+    if text_only and offsets:
+        error_console.print("[red]Error: Cannot specify both --text-only and --offsets[/red]")
+        raise typer.Exit(1)
+    
     if text_only:
         format = "text_only"
+    elif offsets:
+        format = "with_offsets"
     else:
         format = "with_offsets"  # Default
 
@@ -1203,6 +1212,8 @@ def phrasal(
                 text_url=url,
                 chunk_size=chunk_size,
                 response_format=response_format,
+                offsets=offsets,
+                text_only=text_only,
             ):
                 # Show ALL responses in debug mode FIRST
                 debug_enabled = os.getenv("BOOKWYRM_DEBUG") == "1"
