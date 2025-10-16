@@ -52,7 +52,7 @@ from .client import BookWyrmClientError, BookWyrmAPIError
 
 # User-Agent and client version headers
 UA = f"bookwyrm-client/{__version__} (python/{platform.python_version()}; {platform.system()})"
-BOOKWYRM_CLIENT_DATE = "2025-01-16"
+BOOKWYRM_CLIENT_DATE = "2025-10-16"
 
 DEFAULT_HEADERS = {
     "User-Agent": UA,
