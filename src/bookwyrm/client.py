@@ -458,7 +458,7 @@ class BookWyrmClient:
                 print(f"DEBUG: Request JSON data: {json.dumps(request_data, indent=2)}")
 
             response: requests.Response = self.session.post(
-                f"{self.base_url}/phrasal",
+                f"{self.base_url}/phrasal/sse",
                 json=request_data,
                 headers=headers,
                 stream=True,
@@ -492,34 +492,42 @@ class BookWyrmClient:
                     raw_line_response.line_length = len(line) if line else 0
                     yield raw_line_response
 
+                # Parse SSE format: "event: <event_type>" and "data: <json_data>"
                 if line and line.strip():
-                    try:
-                        data: Dict[str, Any] = json.loads(line)
-                        response_type: Optional[str] = data.get("type")
+                    if line.startswith("event: "):
+                        # Store the event type for the next data line
+                        current_event = line[7:].strip()
+                        continue
+                    elif line.startswith("data: "):
+                        try:
+                            data: Dict[str, Any] = json.loads(line[6:])  # Remove "data: " prefix
+                            
+                            # Use the event type from the previous line, or fall back to data.type
+                            event_type = locals().get('current_event') or data.get("type")
+                            
+                            match event_type:
+                                case "progress":
+                                    yield PhraseProgressUpdate.model_validate(data)
+                                case "text":
+                                    yield TextResult.model_validate(data)
+                                case "text_span":
+                                    yield TextSpanResult.model_validate(data)
+                                case _:
+                                    # Unknown response type - create a generic response object for debugging
+                                    from types import SimpleNamespace
 
-                        match response_type:
-                            case "progress":
-                                yield PhraseProgressUpdate.model_validate(data)
-                            case "text":
-                                yield TextResult.model_validate(data)
-                            case "text_span":
-                                yield TextSpanResult.model_validate(data)
-                            case _:
-                                # Unknown response type - create a generic response object for debugging
-                                from types import SimpleNamespace
+                                    unknown_response = SimpleNamespace(**data)
+                                    unknown_response.type = event_type
+                                    yield unknown_response
+                        except json.JSONDecodeError as e:
+                            # Create a debug object for malformed JSON
+                            from types import SimpleNamespace
 
-                                unknown_response = SimpleNamespace(**data)
-                                unknown_response.type = response_type
-                                yield unknown_response
-                    except json.JSONDecodeError as e:
-                        # Create a debug object for malformed JSON
-                        from types import SimpleNamespace
-
-                        error_response = SimpleNamespace()
-                        error_response.type = "json_decode_error"
-                        error_response.raw_line = line
-                        error_response.error = str(e)
-                        yield error_response
+                            error_response = SimpleNamespace()
+                            error_response.type = "json_decode_error"
+                            error_response.raw_line = line
+                            error_response.error = str(e)
+                            yield error_response
 
         except requests.HTTPError as e:
             raise _marshal_http_error(e)
