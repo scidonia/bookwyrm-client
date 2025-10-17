@@ -737,7 +737,16 @@ class AsyncBookWyrmClient:
                             
                             match event_type:
                                 case "progress":
-                                    yield CitationProgressUpdate.model_validate(data)
+                                    # SSE endpoint sends ProgressUpdate, convert to CitationProgressUpdate
+                                    progress_data = {
+                                        "type": "progress",
+                                        "chunks_processed": data.get("chunks_processed", 0),
+                                        "total_chunks": data.get("total_chunks", 0),
+                                        "citations_found": data.get("citations_found", 0),
+                                        "current_chunk_range": data.get("message", "Processing..."),  # Use message as range
+                                        "message": data.get("message", "Processing..."),
+                                    }
+                                    yield CitationProgressUpdate.model_validate(progress_data)
                                 case "citation":
                                     yield CitationStreamResponse.model_validate(data)
                                 case "citation_span":
