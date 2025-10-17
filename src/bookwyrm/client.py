@@ -1014,7 +1014,7 @@ class BookWyrmClient:
 
         try:
             response: requests.Response = self.session.post(
-                f"{self.base_url}/summarize",
+                f"{self.base_url}/summarize/sse",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 stream=True,
@@ -1023,18 +1023,20 @@ class BookWyrmClient:
             response.raise_for_status()
             _check_deprecation_headers(response)
 
-            for line in response.iter_lines(decode_unicode=True):
-                if line and line.strip() and line.startswith("data: "):
+            # Use SSEClient for proper SSE parsing
+            client = SSEClient(response)
+            for event in client.events():
+                if event.data and event.data.strip():
                     try:
-                        data: Dict[str, Any] = json.loads(
-                            line[6:]
-                        )  # Remove "data: " prefix
-                        response_type: Optional[str] = data.get("type")
-
-                        match response_type:
+                        data: Dict[str, Any] = json.loads(event.data)
+                        
+                        # Use the event type, or fall back to data.type
+                        event_type = event.event or data.get("type")
+                        
+                        match event_type:
                             case "progress":
                                 yield SummarizeProgressUpdate.model_validate(data)
-                            case "summary":
+                            case "data":
                                 yield SummaryResponse.model_validate(data)
                             case "error":
                                 yield SummarizeErrorResponse.model_validate(data)

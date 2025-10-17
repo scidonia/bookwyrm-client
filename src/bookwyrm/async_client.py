@@ -1184,28 +1184,31 @@ class AsyncBookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            async with self.client.stream(
+            async with aconnect_sse(
+                self.client,
                 "POST",
-                f"{self.base_url}/summarize",
+                f"{self.base_url}/summarize/sse",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 timeout=self.timeout,
-            ) as response:
+            ) as event_source:
+                # Check response status and headers
+                response = event_source.response
                 response.raise_for_status()
                 _check_deprecation_headers(response)
 
-                async for line in response.aiter_lines():
-                    if line and line.strip() and line.startswith("data: "):
+                async for sse in event_source.aiter_sse():
+                    if sse.data and sse.data.strip():
                         try:
-                            data: Dict[str, Any] = json.loads(
-                                line[6:]  # Remove "data: " prefix
-                            )
-                            response_type: Optional[str] = data.get("type")
-
-                            match response_type:
+                            data: Dict[str, Any] = json.loads(sse.data)
+                            
+                            # Use the event type, or fall back to data.type
+                            event_type = sse.event or data.get("type")
+                            
+                            match event_type:
                                 case "progress":
                                     yield SummarizeProgressUpdate.model_validate(data)
-                                case "summary":
+                                case "data":
                                     yield SummaryResponse.model_validate(data)
                                 case "error":
                                     yield SummarizeErrorResponse.model_validate(data)
@@ -1214,15 +1217,7 @@ class AsyncBookWyrmClient:
                                 case "structural_error":
                                     yield StructuralErrorMessage.model_validate(data)
                                 case _:
-                                    # Handle responses without type field or unknown types
-                                    # Try to determine response type from content
-                                    if "summary" in data and "levels_used" in data:
-                                        yield SummaryResponse.model_validate(data)
-                                    elif "error" in data:
-                                        yield SummarizeErrorResponse.model_validate(data)
-                                    elif "message" in data and "current_level" in data:
-                                        yield SummarizeProgressUpdate.model_validate(data)
-                                    # Skip unknown response types
+                                    # Unknown response type, skip
                                     continue
                         except json.JSONDecodeError:
                             # Skip malformed JSON lines
