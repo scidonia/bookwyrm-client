@@ -1037,7 +1037,17 @@ class BookWyrmClient:
                             case "progress":
                                 yield SummarizeProgressUpdate.model_validate(data)
                             case "data":
-                                yield SummaryResponse.model_validate(data)
+                                # SSE endpoint sends DataResult, but we need to convert to SummaryResponse
+                                # Create a SummaryResponse from the data fields
+                                summary_data = {
+                                    "type": "summary",  # Set the expected type
+                                    "summary": data.get("summary", ""),
+                                    "subsummary_count": data.get("subsummary_count", 0),
+                                    "levels_used": data.get("levels_used", 0),
+                                    "total_tokens": data.get("total_tokens", 0),
+                                    "intermediate_summaries": data.get("intermediate_summaries"),
+                                }
+                                yield SummaryResponse.model_validate(summary_data)
                             case "error":
                                 yield SummarizeErrorResponse.model_validate(data)
                             case "rate_limit":
