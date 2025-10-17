@@ -476,7 +476,8 @@ class BookWyrmClient:
 
             # Use SSEClient for proper SSE parsing
             event_count = 0
-            for event in SSEClient(response):
+            client = SSEClient(response)
+            for event in client.events():
                 event_count += 1
 
                 # Debug: Print every event received if BOOKWYRM_DEBUG is set
