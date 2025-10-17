@@ -843,7 +843,6 @@ def summarize(
 
             # Load the Python file as a module
             import importlib.util
-            import sys
 
             spec = importlib.util.spec_from_file_location("user_model", model_class_file)
             if spec is None or spec.loader is None:
