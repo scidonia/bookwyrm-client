@@ -714,29 +714,39 @@ class AsyncBookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            async with self.client.stream(
+            async with aconnect_sse(
+                self.client,
                 "POST",
-                f"{self.base_url}/cite/stream",
+                f"{self.base_url}/cite/sse",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 timeout=self.timeout,
-            ) as response:
+            ) as event_source:
+                # Check response status and headers
+                response = event_source.response
                 response.raise_for_status()
                 _check_deprecation_headers(response)
 
-                async for line in response.aiter_lines():
-                    if line and line.strip() and line.startswith("data: "):
+                async for sse in event_source.aiter_sse():
+                    if sse.data and sse.data.strip():
                         try:
-                            data: Dict[str, Any] = json.loads(
-                                line[6:]  # Remove "data: " prefix
-                            )
-                            response_type: Optional[str] = data.get("type")
-
-                            match response_type:
+                            data: Dict[str, Any] = json.loads(sse.data)
+                            
+                            # Use the event type, or fall back to data.type
+                            event_type = sse.event or data.get("type")
+                            
+                            match event_type:
                                 case "progress":
                                     yield CitationProgressUpdate.model_validate(data)
                                 case "citation":
                                     yield CitationStreamResponse.model_validate(data)
+                                case "citation_span":
+                                    # Handle citation_span events as regular citations
+                                    citation_data = {
+                                        "type": "citation",
+                                        "citation": data.get("citation")
+                                    }
+                                    yield CitationStreamResponse.model_validate(citation_data)
                                 case "summary":
                                     yield CitationSummaryResponse.model_validate(data)
                                 case "error":

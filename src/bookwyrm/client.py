@@ -720,7 +720,7 @@ class BookWyrmClient:
 
         try:
             response: requests.Response = self.session.post(
-                f"{self.base_url}/cite/stream",
+                f"{self.base_url}/cite/sse",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 stream=True,
@@ -729,17 +729,28 @@ class BookWyrmClient:
             response.raise_for_status()
             _check_deprecation_headers(response)
 
-            for line in response.iter_lines(decode_unicode=True):
-                if line and line.strip():
+            # Use SSEClient for proper SSE parsing
+            client = SSEClient(response)
+            for event in client.events():
+                if event.data and event.data.strip():
                     try:
-                        data: Dict[str, Any] = json.loads(line)
-                        response_type: Optional[str] = data.get("type")
-
-                        match response_type:
+                        data: Dict[str, Any] = json.loads(event.data)
+                        
+                        # Use the event type, or fall back to data.type
+                        event_type = event.event or data.get("type")
+                        
+                        match event_type:
                             case "progress":
                                 yield CitationProgressUpdate.model_validate(data)
                             case "citation":
                                 yield CitationStreamResponse.model_validate(data)
+                            case "citation_span":
+                                # Handle citation_span events as regular citations
+                                citation_data = {
+                                    "type": "citation",
+                                    "citation": data.get("citation")
+                                }
+                                yield CitationStreamResponse.model_validate(citation_data)
                             case "summary":
                                 yield CitationSummaryResponse.model_validate(data)
                             case "error":
