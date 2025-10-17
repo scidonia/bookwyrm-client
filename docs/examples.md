@@ -204,7 +204,7 @@ for stream_response in client.stream_citations(
 
 ```python
 from typing import BinaryIO
-from bookwyrm.models import PDFExtractResponse, PDFPage, PDFTextElement
+from bookwyrm.models import PDFPage, PDFTextElement
 
 # Load PDF file using raw bytes (recommended)
 with open("document.pdf", "rb") as f:

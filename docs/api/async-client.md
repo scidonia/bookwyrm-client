@@ -8,7 +8,6 @@ members:
 \- stream_summarize
 \- stream_process_text
 \- classify
-\- extract_pdf
 \- stream_extract_pdf
 \- close
 \- __aenter__

@@ -8,7 +8,7 @@
 |------|--------|-------|--------|----------|
 | Text → Chunks | `stream_process_text()` | Raw text/URL | `TextSpanResult[]` | Document preprocessing |
 | Question → Citations | `stream_citations()` | Chunks + question | `Citation[]` | RAG, Q&A systems |
-| PDF → Structure | `extract_pdf()` | PDF bytes/URL | `PDFPage[]` | Document parsing |
+| PDF → Structure | `stream_extract_pdf()` | PDF bytes/URL | `PDFPage[]` | Document parsing |
 | File → Type | `classify()` | File bytes | `FileClassification` | Content routing |
 | Content → Summary | `stream_summarize()` | Text/phrases | Summary text | Document analysis |
 
@@ -19,9 +19,8 @@
 from bookwyrm import AsyncBookWyrmClient, BookWyrmClient, BookWyrmAPIError
 from bookwyrm.models import (
     TextSpan, Citation, CitationResponse,
-    PDFExtractResponse, ClassifyResponse, 
-    SummaryResponse, TextResult, TextSpanResult,
-    ResponseFormat, PhraseProgressUpdate
+    ClassifyResponse, SummaryResponse, TextResult, TextSpanResult,
+    ResponseFormat, PhraseProgressUpdate, PDFPage
 )
 from typing import List, Optional, AsyncIterator, Union
 import asyncio
@@ -167,12 +166,14 @@ async with AsyncBookWyrmClient() as client:
         if isinstance(response, TextSpanResult): chunks.append(response)
 ```
 
-### PDF Analysis (3 lines)
+### PDF Analysis (4 lines)
 
 ```python
+pages = []
 async with AsyncBookWyrmClient() as client:
-    response = await client.extract_pdf(pdf_bytes=pdf_data)
-    text_elements = [elem for page in response.pages for elem in page.text_blocks]
+    async for response in client.stream_extract_pdf(pdf_bytes=pdf_data):
+        if hasattr(response, 'page_data'): pages.append(response.page_data)
+text_elements = [elem for page in pages for elem in page.text_blocks]
 ```
 
 ## Performance Optimization for AI Systems
@@ -246,7 +247,7 @@ members_order: source
 show_bases: true
 inherited_members: true
 
-::: bookwyrm.models.PDFExtractResponse
+::: bookwyrm.models.PDFPage
 options:
 show_root_heading: true
 members_order: source
