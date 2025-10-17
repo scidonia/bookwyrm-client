@@ -7,6 +7,7 @@ import sys
 from typing import List, Iterator, Optional, Union, Dict, Any, Literal
 import requests
 from pathlib import Path
+from sseclient import SSEClient
 
 try:
     from importlib.metadata import version
@@ -473,61 +474,56 @@ class BookWyrmClient:
             response.raise_for_status()
             _check_deprecation_headers(response)
 
-            line_count = 0
-            for line in response.iter_lines(decode_unicode=True):
-                line_count += 1
+            # Use SSEClient for proper SSE parsing
+            event_count = 0
+            for event in SSEClient(response.iter_lines(decode_unicode=True)):
+                event_count += 1
 
-                # Debug: Print every line received if BOOKWYRM_DEBUG is set
+                # Debug: Print every event received if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
-                    print(f"DEBUG: Line {line_count}: {repr(line)}")
+                    print(f"DEBUG: Event {event_count} - type: {event.event}, data: {repr(event.data)}")
 
-                # Always yield raw line info for debugging if BOOKWYRM_DEBUG is set
+                # Always yield raw event info for debugging if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
                     from types import SimpleNamespace
 
-                    raw_line_response = SimpleNamespace()
-                    raw_line_response.type = "raw_line_debug"
-                    raw_line_response.raw_line = line
-                    raw_line_response.line_stripped = line.strip() if line else ""
-                    raw_line_response.line_length = len(line) if line else 0
-                    yield raw_line_response
+                    raw_event_response = SimpleNamespace()
+                    raw_event_response.type = "raw_event_debug"
+                    raw_event_response.event_type = event.event
+                    raw_event_response.event_data = event.data
+                    raw_event_response.event_id = event.id
+                    yield raw_event_response
 
-                # Parse SSE format: "event: <event_type>" and "data: <json_data>"
-                if line and line.strip():
-                    if line.startswith("event: "):
-                        # Store the event type for the next data line
-                        current_event = line[7:].strip()
-                        continue
-                    elif line.startswith("data: "):
-                        try:
-                            data: Dict[str, Any] = json.loads(line[6:])  # Remove "data: " prefix
-                            
-                            # Use the event type from the previous line, or fall back to data.type
-                            event_type = locals().get('current_event') or data.get("type")
-                            
-                            match event_type:
-                                case "progress":
-                                    yield PhraseProgressUpdate.model_validate(data)
-                                case "text":
-                                    yield TextResult.model_validate(data)
-                                case "text_span":
-                                    yield TextSpanResult.model_validate(data)
-                                case _:
-                                    # Unknown response type - create a generic response object for debugging
-                                    from types import SimpleNamespace
+                if event.data and event.data.strip():
+                    try:
+                        data: Dict[str, Any] = json.loads(event.data)
+                        
+                        # Use the event type, or fall back to data.type
+                        event_type = event.event or data.get("type")
+                        
+                        match event_type:
+                            case "progress":
+                                yield PhraseProgressUpdate.model_validate(data)
+                            case "text":
+                                yield TextResult.model_validate(data)
+                            case "text_span":
+                                yield TextSpanResult.model_validate(data)
+                            case _:
+                                # Unknown response type - create a generic response object for debugging
+                                from types import SimpleNamespace
 
-                                    unknown_response = SimpleNamespace(**data)
-                                    unknown_response.type = event_type
-                                    yield unknown_response
-                        except json.JSONDecodeError as e:
-                            # Create a debug object for malformed JSON
-                            from types import SimpleNamespace
+                                unknown_response = SimpleNamespace(**data)
+                                unknown_response.type = event_type
+                                yield unknown_response
+                    except json.JSONDecodeError as e:
+                        # Create a debug object for malformed JSON
+                        from types import SimpleNamespace
 
-                            error_response = SimpleNamespace()
-                            error_response.type = "json_decode_error"
-                            error_response.raw_line = line
-                            error_response.error = str(e)
-                            yield error_response
+                        error_response = SimpleNamespace()
+                        error_response.type = "json_decode_error"
+                        error_response.raw_data = event.data
+                        error_response.error = str(e)
+                        yield error_response
 
         except requests.HTTPError as e:
             raise _marshal_http_error(e)

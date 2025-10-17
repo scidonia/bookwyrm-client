@@ -7,6 +7,7 @@ import sys
 from typing import AsyncIterator, Optional, Union, Dict, Any, List, Literal
 import httpx
 from pathlib import Path
+from httpx_sse import aconnect_sse
 
 try:
     from importlib.metadata import version
@@ -561,44 +562,40 @@ class AsyncBookWyrmClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
-            async with self.client.stream(
+            async with aconnect_sse(
+                self.client,
                 "POST",
                 f"{self.base_url}/phrasal/sse",
                 json=request.model_dump(exclude_none=True),
                 headers=headers,
                 timeout=self.timeout,
-            ) as response:
+            ) as event_source:
+                # Check response status and headers
+                response = event_source.response
                 response.raise_for_status()
                 _check_deprecation_headers(response)
 
-                current_event = None
-                async for line in response.aiter_lines():
-                    if line and line.strip():
-                        # Parse SSE format: "event: <event_type>" and "data: <json_data>"
-                        if line.startswith("event: "):
-                            # Store the event type for the next data line
-                            current_event = line[7:].strip()
+                async for sse in event_source.aiter_sse():
+                    if sse.data and sse.data.strip():
+                        try:
+                            data: Dict[str, Any] = json.loads(sse.data)
+                            
+                            # Use the event type, or fall back to data.type
+                            event_type = sse.event or data.get("type")
+                            
+                            match event_type:
+                                case "progress":
+                                    yield PhraseProgressUpdate.model_validate(data)
+                                case "text":
+                                    yield TextResult.model_validate(data)
+                                case "text_span":
+                                    yield TextSpanResult.model_validate(data)
+                                case _:
+                                    # Unknown response type, skip
+                                    continue
+                        except json.JSONDecodeError:
+                            # Skip malformed JSON lines
                             continue
-                        elif line.startswith("data: "):
-                            try:
-                                data: Dict[str, Any] = json.loads(line[6:])  # Remove "data: " prefix
-                                
-                                # Use the event type from the previous line, or fall back to data.type
-                                event_type = current_event or data.get("type")
-                                
-                                match event_type:
-                                    case "progress":
-                                        yield PhraseProgressUpdate.model_validate(data)
-                                    case "text":
-                                        yield TextResult.model_validate(data)
-                                    case "text_span":
-                                        yield TextSpanResult.model_validate(data)
-                                    case _:
-                                        # Unknown response type, skip
-                                        continue
-                            except json.JSONDecodeError:
-                                # Skip malformed JSON lines
-                                continue
 
         except httpx.HTTPStatusError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
