@@ -50,6 +50,10 @@ from bookwyrm.models import (
     TextSpanResult,
     ClassifyRequest,
     ClassifyResponse,
+    StreamingClassifyResponse,
+    ClassifyProgressUpdate,
+    ClassifyStreamResponse,
+    ClassifyErrorResponse,
     PDFExtractRequest,
     PDFExtractResponse,
     StreamingPDFResponse,
@@ -1513,10 +1517,31 @@ def classify(
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
 
     try:
-        console.print("[blue]Starting classification...[/blue]")
+        console.print("[blue]Starting classification with streaming...[/blue]")
 
-        with console.status("[bold green]Analyzing..."):
-            response = client.classify(**request.model_dump(exclude_none=True))
+        classification_result = None
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Analyzing file...", total=None)
+
+            for response in client.stream_classify(**request.model_dump(exclude_none=True)):
+                if isinstance(response, ClassifyProgressUpdate):  # Progress update
+                    progress.update(task, description=response.message)
+                    if state.verbose:
+                        console.print(f"[dim]Progress: {response.message}[/dim]")
+                elif isinstance(response, ClassifyStreamResponse):  # Classification result
+                    classification_result = response
+                    progress.update(task, description="Classification complete!")
+                elif isinstance(response, ClassifyErrorResponse):  # Error
+                    error_console.print(f"[red]Classification error: {response.message}[/red]")
+                    raise typer.Exit(1)
+
+        if not classification_result:
+            error_console.print("[red]No classification result received[/red]")
+            raise typer.Exit(1)
 
         console.print("[green]✓ Classification complete![/green]")
 
@@ -1525,36 +1550,36 @@ def classify(
         table.add_column("Property", style="cyan", no_wrap=True)
         table.add_column("Value", style="green")
 
-        table.add_row("Format Type", response.classification.format_type)
-        table.add_row("Content Type", response.classification.content_type)
-        table.add_row("MIME Type", response.classification.mime_type)
-        table.add_row("Confidence", f"{response.classification.confidence:.2%}")
-        table.add_row("File Size", f"{response.file_size:,} bytes")
+        table.add_row("Format Type", classification_result.classification.format_type)
+        table.add_row("Content Type", classification_result.classification.content_type)
+        table.add_row("MIME Type", classification_result.classification.mime_type)
+        table.add_row("Confidence", f"{classification_result.classification.confidence:.2%}")
+        table.add_row("File Size", f"{classification_result.file_size:,} bytes")
 
-        if response.sample_preview:
+        if classification_result.sample_preview:
             preview = (
-                response.sample_preview[:100] + "..."
-                if len(response.sample_preview) > 100
-                else response.sample_preview
+                classification_result.sample_preview[:100] + "..."
+                if len(classification_result.sample_preview) > 100
+                else classification_result.sample_preview
             )
             table.add_row("Sample Preview", preview)
 
         console.print(table)
 
         # Display classification methods if available
-        if response.classification.classification_methods:
+        if classification_result.classification.classification_methods:
             console.print(
-                f"\n[dim]Classification methods used: {', '.join(response.classification.classification_methods)}[/dim]"
+                f"\n[dim]Classification methods used: {', '.join(classification_result.classification.classification_methods)}[/dim]"
             )
 
         # Display additional details if available
-        if response.classification.details:
+        if classification_result.classification.details:
             console.print("\n[bold]Additional Details:[/bold]")
             details_table = Table()
             details_table.add_column("Key", style="cyan")
             details_table.add_column("Value", style="yellow")
 
-            for key, value in response.classification.details.items():
+            for key, value in classification_result.classification.details.items():
                 details_table.add_row(key, str(value))
 
             console.print(details_table)
@@ -1563,9 +1588,9 @@ def classify(
         if output:
             try:
                 output_data = {
-                    "classification": response.classification.model_dump(),
-                    "file_size": response.file_size,
-                    "sample_preview": response.sample_preview,
+                    "classification": classification_result.classification.model_dump(),
+                    "file_size": classification_result.file_size,
+                    "sample_preview": classification_result.sample_preview,
                     "source": {
                         "file": str(file) if file else None,
                         "url": url,
