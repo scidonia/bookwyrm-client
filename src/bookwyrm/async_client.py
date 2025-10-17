@@ -869,24 +869,30 @@ class AsyncBookWyrmClient:
                 if request.lang:
                     data["lang"] = request.lang
 
-                async with self.client.stream(
+                # Use multipart form data with SSE
+                async with aconnect_sse(
+                    self.client,
                     "POST",
-                    f"{self.base_url}/extract-structure-stream",
+                    f"{self.base_url}/extract-structure/sse",
                     files=files,
                     data=data,
                     headers=headers,
                     timeout=self.timeout,
-                ) as response:
+                ) as event_source:
+                    # Check response status and headers
+                    response = event_source.response
                     response.raise_for_status()
                     _check_deprecation_headers(response)
 
-                    async for line in response.aiter_lines():
-                        if line and line.strip():
+                    async for sse in event_source.aiter_sse():
+                        if sse.data and sse.data.strip():
                             try:
-                                data: Dict[str, Any] = json.loads(line)
-                                response_type: Optional[str] = data.get("type")
-
-                                match response_type:
+                                data: Dict[str, Any] = json.loads(sse.data)
+                                
+                                # Use the event type, or fall back to data.type
+                                event_type = sse.event or data.get("type")
+                                
+                                match event_type:
                                     case "metadata":
                                         yield PDFStreamMetadata.model_validate(data)
                                     case "page":
@@ -907,7 +913,7 @@ class AsyncBookWyrmClient:
                                 # Skip malformed JSON lines
                                 continue
             elif request.pdf_url:
-                # Handle URL using JSON endpoint
+                # Handle URL using JSON endpoint with SSE
                 headers["Content-Type"] = "application/json"
                 json_data = {"pdf_url": request.pdf_url}
                 if request.start_page is not None:
@@ -917,23 +923,28 @@ class AsyncBookWyrmClient:
                 if request.lang:
                     json_data["lang"] = request.lang
 
-                async with self.client.stream(
+                async with aconnect_sse(
+                    self.client,
                     "POST",
-                    f"{self.base_url}/extract-structure-stream-json",
+                    f"{self.base_url}/extract-structure-json/sse",
                     json=json_data,
                     headers=headers,
                     timeout=self.timeout,
-                ) as response:
+                ) as event_source:
+                    # Check response status and headers
+                    response = event_source.response
                     response.raise_for_status()
                     _check_deprecation_headers(response)
 
-                    async for line in response.aiter_lines():
-                        if line.strip():
+                    async for sse in event_source.aiter_sse():
+                        if sse.data and sse.data.strip():
                             try:
-                                data = json.loads(line)
-                                response_type = data.get("type")
-
-                                match response_type:
+                                data: Dict[str, Any] = json.loads(sse.data)
+                                
+                                # Use the event type, or fall back to data.type
+                                event_type = sse.event or data.get("type")
+                                
+                                match event_type:
                                     case "metadata":
                                         yield PDFStreamMetadata.model_validate(data)
                                     case "page":

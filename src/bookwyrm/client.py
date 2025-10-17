@@ -855,7 +855,7 @@ class BookWyrmClient:
                     data["lang"] = request.lang
 
                 response = self.session.post(
-                    f"{self.base_url}/extract-structure-stream",
+                    f"{self.base_url}/extract-structure/sse",
                     files=files,
                     data=data,
                     headers=headers,
@@ -874,7 +874,7 @@ class BookWyrmClient:
                     json_data["lang"] = request.lang
 
                 response = self.session.post(
-                    f"{self.base_url}/extract-structure-stream-json",
+                    f"{self.base_url}/extract-structure-json/sse",
                     json=json_data,
                     headers=headers,
                     stream=True,
@@ -886,13 +886,17 @@ class BookWyrmClient:
             response.raise_for_status()
             _check_deprecation_headers(response)
 
-            for line in response.iter_lines(decode_unicode=True):
-                if line and line.strip():
+            # Use SSEClient for proper SSE parsing
+            client = SSEClient(response)
+            for event in client.events():
+                if event.data and event.data.strip():
                     try:
-                        data: Dict[str, Any] = json.loads(line)
-                        response_type: Optional[str] = data.get("type")
-
-                        match response_type:
+                        data: Dict[str, Any] = json.loads(event.data)
+                        
+                        # Use the event type, or fall back to data.type
+                        event_type = event.event or data.get("type")
+                        
+                        match event_type:
                             case "metadata":
                                 yield PDFStreamMetadata.model_validate(data)
                             case "page":
