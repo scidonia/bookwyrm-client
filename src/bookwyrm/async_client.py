@@ -38,6 +38,10 @@ from .models import (
     ResponseFormat,
     ClassifyRequest,
     ClassifyResponse,
+    StreamingClassifyResponse,
+    ClassifyProgressUpdate,
+    ClassifyStreamResponse,
+    ClassifyErrorResponse,
     PDFExtractRequest,
     PDFExtractResponse,
     StreamingPDFResponse,
@@ -407,6 +411,173 @@ class AsyncBookWyrmClient:
             _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return ClassifyResponse.model_validate(response_data)
+        except httpx.HTTPStatusError as e:
+            raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
+        except httpx.RequestError as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    async def stream_classify(
+        self,
+        *,
+        content: Optional[str] = None,
+        content_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
+        content_encoding: str = "raw",
+    ) -> AsyncIterator[StreamingClassifyResponse]:
+        """Stream file classification with real-time progress updates asynchronously.
+
+        This async method provides real-time streaming of file classification progress, allowing you to
+        process classification results as they become available. Useful for large files or when
+        you want to show progress to users during classification.
+
+        Args:
+            content: File content as string (raw text or base64-encoded)
+            content_bytes: Raw file bytes
+            filename: Optional filename hint for classification
+            content_encoding: Content encoding format ("raw" for plain text, "base64" for encoded)
+
+        Yields:
+            StreamingClassifyResponse: Union of progress updates, classification results, or error messages
+
+        Raises:
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+
+        Examples:
+            Basic async streaming classification:
+
+            ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import ClassifyProgressUpdate, ClassifyStreamResponse, ClassifyErrorResponse
+
+            async def classify_file_stream():
+                # Read file as binary
+                with open("document.pdf", "rb") as f:
+                    file_bytes = f.read()
+
+                async with AsyncBookWyrmClient(api_key="your-api-key") as client:
+                    classification_result = None
+                    async for response in client.stream_classify(
+                        content_bytes=file_bytes,
+                        filename="document.pdf"
+                    ):
+                        if isinstance(response, ClassifyProgressUpdate):  # Progress update
+                            print(f"Progress: {response.message}")
+                        elif isinstance(response, ClassifyStreamResponse):  # Classification result
+                            classification_result = response
+                            print(f"Format: {response.classification.format_type}")
+                            print(f"Confidence: {response.classification.confidence:.2%}")
+                        elif isinstance(response, ClassifyErrorResponse):  # Error
+                            print(f"Error: {response.message}")
+
+            asyncio.run(classify_file_stream())
+            ```
+
+            Concurrent classification of multiple files:
+
+            ```python
+            import asyncio
+            from bookwyrm import AsyncBookWyrmClient
+            from bookwyrm.models import ClassifyStreamResponse
+
+            async def classify_multiple_files():
+                files = ["doc1.pdf", "script.py", "data.json"]
+
+                async def classify_single(filename):
+                    file_path = Path(filename)
+                    results = []
+                    async with AsyncBookWyrmClient() as client:
+                        async for response in client.stream_classify(
+                            content_bytes=file_path.read_bytes(),
+                            filename=file_path.name
+                        ):
+                            if isinstance(response, ClassifyStreamResponse):
+                                results.append((filename, response))
+                    return results
+
+                all_results = await asyncio.gather(*[
+                    classify_single(f) for f in files
+                ])
+
+                for file_results in all_results:
+                    for filename, response in file_results:
+                        print(f"{filename}: {response.classification.content_type}")
+
+            asyncio.run(classify_multiple_files())
+            ```
+        """
+        if content is None and content_bytes is None:
+            raise ValueError("Either content or content_bytes is required")
+
+        request = ClassifyRequest(
+            content=content,
+            content_bytes=content_bytes,
+            filename=filename,
+            content_encoding=content_encoding,
+        )
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            # Handle marshalling at API level - convert to base64 for SSE endpoint
+            if request.content_bytes is not None:
+                import base64
+                content_base64 = base64.b64encode(request.content_bytes).decode('ascii')
+            elif request.content is not None:
+                if request.content_encoding == "base64":
+                    # Content is already base64 encoded
+                    content_base64 = request.content
+                else:
+                    # Handle raw text content
+                    import base64
+                    content_base64 = base64.b64encode(request.content.encode("utf-8")).decode('ascii')
+            else:
+                raise BookWyrmAPIError(
+                    "Either content or content_bytes must be provided"
+                )
+
+            # Prepare JSON request for SSE endpoint
+            json_data = {
+                "content_base64": content_base64,
+                "filename": request.filename,
+            }
+
+            async with aconnect_sse(
+                self.client,
+                "POST",
+                f"{self.base_url}/classify/sse",
+                json=json_data,
+                headers=headers,
+                timeout=self.timeout,
+            ) as event_source:
+                # Check response status and headers
+                response = event_source.response
+                response.raise_for_status()
+                _check_deprecation_headers(response)
+
+                async for sse in event_source.aiter_sse():
+                    if sse.data and sse.data.strip():
+                        try:
+                            data: Dict[str, Any] = json.loads(sse.data)
+                            
+                            # Use the event type, or fall back to data.type
+                            event_type = sse.event or data.get("type")
+                            
+                            match event_type:
+                                case "progress":
+                                    yield ClassifyProgressUpdate.model_validate(data)
+                                case "classification":
+                                    yield ClassifyStreamResponse.model_validate(data)
+                                case "error":
+                                    yield ClassifyErrorResponse.model_validate(data)
+                                case _:
+                                    # Unknown response type, skip
+                                    continue
+                        except json.JSONDecodeError:
+                            # Skip malformed JSON lines
+                            continue
+
         except httpx.HTTPStatusError as e:
             raise BookWyrmAPIError(f"API request failed: {e}", e.response.status_code)
         except httpx.RequestError as e:

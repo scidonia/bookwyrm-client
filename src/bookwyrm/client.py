@@ -39,6 +39,10 @@ from .models import (
     ContentEncoding,
     ClassifyRequest,
     ClassifyResponse,
+    StreamingClassifyResponse,
+    ClassifyProgressUpdate,
+    ClassifyStreamResponse,
+    ClassifyErrorResponse,
     PDFExtractRequest,
     PDFExtractResponse,
     StreamingPDFResponse,
@@ -314,6 +318,164 @@ class BookWyrmClient:
             _check_deprecation_headers(response)
             response_data: Dict[str, Any] = response.json()
             return ClassifyResponse.model_validate(response_data)
+        except requests.HTTPError as e:
+            raise _marshal_http_error(e)
+        except requests.RequestException as e:
+            raise BookWyrmAPIError(f"Request failed: {e}")
+
+    def stream_classify(
+        self,
+        *,
+        content: Optional[str] = None,
+        content_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
+        content_encoding: ContentEncoding = ContentEncoding.RAW,
+    ) -> Iterator[StreamingClassifyResponse]:
+        """Stream file classification with real-time progress updates.
+
+        This method provides real-time streaming of file classification progress, allowing you to
+        process classification results as they become available. Useful for large files or when
+        you want to show progress to users during classification.
+
+        Args:
+            content: Text or encoded file content
+            content_bytes: Raw file bytes
+            filename: Optional filename hint for classification
+            content_encoding: Content encoding format (ContentEncoding enum)
+
+        Yields:
+            StreamingClassifyResponse: Union of progress updates, classification results, or error messages
+
+        Raises:
+            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
+
+        Examples:
+            Basic streaming classification:
+
+            ```python
+            from bookwyrm import BookWyrmClient
+            from bookwyrm.models import ClassifyProgressUpdate, ClassifyStreamResponse, ClassifyErrorResponse
+
+            # Read file as binary
+            with open("document.pdf", "rb") as f:
+                file_bytes = f.read()
+
+            client = BookWyrmClient(api_key="your-api-key")
+            classification_result = None
+            for response in client.stream_classify(
+                content_bytes=file_bytes,
+                filename="document.pdf"
+            ):
+                if isinstance(response, ClassifyProgressUpdate):  # Progress update
+                    print(f"Progress: {response.message}")
+                elif isinstance(response, ClassifyStreamResponse):  # Classification result
+                    classification_result = response
+                    print(f"Format: {response.classification.format_type}")
+                    print(f"Content Type: {response.classification.content_type}")
+                    print(f"Confidence: {response.classification.confidence:.2%}")
+                elif isinstance(response, ClassifyErrorResponse):  # Error
+                    print(f"Error: {response.message}")
+            ```
+
+            Stream classify with base64 content:
+
+            ```python
+            import base64
+
+            with open("image.png", "rb") as f:
+                raw_bytes = f.read()
+
+            base64_content = base64.b64encode(raw_bytes).decode('ascii')
+
+            for response in client.stream_classify(
+                content=base64_content,
+                filename="image.png",
+                content_encoding=ContentEncoding.BASE64
+            ):
+                if isinstance(response, ClassifyStreamResponse):
+                    print(f"Detected as: {response.classification.content_type}")
+            ```
+        """
+        if content is None and content_bytes is None:
+            raise ValueError("Either content or content_bytes is required")
+
+        request = ClassifyRequest(
+            content=content,
+            content_bytes=content_bytes,
+            filename=filename,
+            content_encoding=content_encoding,
+        )
+        headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            # Handle marshalling at API level - convert to base64 for SSE endpoint
+            if request.content_bytes is not None:
+                import base64
+                content_base64 = base64.b64encode(request.content_bytes).decode('ascii')
+            elif request.content is not None:
+                if request.content_encoding == ContentEncoding.BASE64:
+                    # Content is already base64 encoded
+                    content_base64 = request.content
+                elif request.content_encoding == ContentEncoding.UTF8:
+                    # Encode UTF-8 text to base64
+                    import base64
+                    content_base64 = base64.b64encode(request.content.encode("utf-8")).decode('ascii')
+                elif request.content_encoding == ContentEncoding.RAW:
+                    # Treat as raw bytes and encode to base64
+                    import base64
+                    content_base64 = base64.b64encode(request.content.encode("latin-1")).decode('ascii')
+                else:
+                    raise BookWyrmAPIError(
+                        f"Unsupported content encoding: {request.content_encoding}"
+                    )
+            else:
+                raise BookWyrmAPIError(
+                    "Either content or content_bytes must be provided"
+                )
+
+            # Prepare JSON request for SSE endpoint
+            json_data = {
+                "content_base64": content_base64,
+                "filename": request.filename,
+            }
+
+            response: requests.Response = self.session.post(
+                f"{self.base_url}/classify/sse",
+                json=json_data,
+                headers=headers,
+                stream=True,
+                timeout=self.timeout,
+            )
+
+            response.raise_for_status()
+            _check_deprecation_headers(response)
+
+            # Use SSEClient for proper SSE parsing
+            client = SSEClient(response)
+            for event in client.events():
+                if event.data and event.data.strip():
+                    try:
+                        data: Dict[str, Any] = json.loads(event.data)
+                        
+                        # Use the event type, or fall back to data.type
+                        event_type = event.event or data.get("type")
+                        
+                        match event_type:
+                            case "progress":
+                                yield ClassifyProgressUpdate.model_validate(data)
+                            case "classification":
+                                yield ClassifyStreamResponse.model_validate(data)
+                            case "error":
+                                yield ClassifyErrorResponse.model_validate(data)
+                            case _:
+                                # Unknown response type, skip
+                                continue
+                    except json.JSONDecodeError:
+                        # Skip malformed JSON lines
+                        continue
+
         except requests.HTTPError as e:
             raise _marshal_http_error(e)
         except requests.RequestException as e:

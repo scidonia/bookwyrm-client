@@ -666,3 +666,48 @@ StreamingPDFResponse = Union[
     PDFStreamComplete,
     PDFStreamError,
 ]
+
+
+class ClassifyProgressUpdate(BaseModel):
+    """Progress update during file classification.
+
+    Sent during streaming classification to show processing progress.
+    """
+
+    type: Literal["progress"] = Field("progress", description="Message type identifier")
+    bytes_processed: int = Field(..., description="Number of bytes processed")
+    chunks_processed: int = Field(..., description="Number of chunks processed")
+    message: str = Field(..., description="Human-readable progress message")
+
+
+class ClassifyStreamResponse(BaseModel):
+    """Classification result for streaming classification.
+
+    Sent when classification is complete during streaming requests.
+    """
+
+    type: Literal["classification"] = Field("classification", description="Message type identifier")
+    classification: FileClassification = Field(..., description="The file classification results")
+    file_size: int = Field(..., description="Size of the file in bytes")
+    sample_preview: Optional[str] = Field(
+        None, description="First few characters if text-based file"
+    )
+
+
+class ClassifyErrorResponse(BaseModel):
+    """Error during classification processing.
+
+    Sent when an error occurs during streaming classification requests.
+    """
+
+    type: Literal["error"] = Field("error", description="Message type identifier")
+    error_type: str = Field(..., description="Type of error that occurred")
+    message: str = Field(..., description="Error message describing what went wrong")
+    recoverable: bool = Field(True, description="Whether the error is recoverable")
+
+
+StreamingClassifyResponse = Union[
+    ClassifyProgressUpdate,
+    ClassifyStreamResponse,
+    ClassifyErrorResponse,
+]
