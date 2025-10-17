@@ -761,7 +761,20 @@ class BookWyrmClient:
                                 }
                                 yield CitationStreamResponse.model_validate(citation_data)
                             case "summary":
-                                yield CitationSummaryResponse.model_validate(data)
+                                # SSE endpoint sends SummaryResult, convert to CitationSummaryResponse
+                                summary_data = {
+                                    "type": "summary",
+                                    "total_citations": data.get("total_citations", 0),
+                                    "chunks_processed": data.get("chunks_processed", 0),
+                                    "token_chunks_processed": data.get("token_chunks_processed", 0),
+                                    "start_offset": 0,  # SSE endpoint doesn't provide this, default to 0
+                                    "usage": data.get("usage", {
+                                        "tokens_processed": 0,
+                                        "chunks_processed": 0,
+                                        "remaining_credits": 0.0
+                                    }),
+                                }
+                                yield CitationSummaryResponse.model_validate(summary_data)
                             case "error":
                                 yield CitationErrorResponse.model_validate(data)
                             case _:
