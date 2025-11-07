@@ -24,7 +24,54 @@ bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --ou
 
 This creates a JSON file containing the structured text, bounding boxes, and layout information for the specified pages.
 
-## 3. Phrasal Text Processing
+## 3. PDF to Text Conversion with Character Mapping
+
+Convert the extracted PDF data to raw text with character position mapping:
+
+```bash
+# Convert PDF extraction to raw text with character mapping
+bookwyrm pdf-to-text data/heinrich_pages_1-4.json --verbose
+```
+
+This creates two files:
+- `data/heinrich_pages_1-4_raw.txt` - Raw text with all PDF text elements joined by newlines
+- `data/heinrich_pages_1-4_mapping.json` - Character mapping that links each character position to its bounding box coordinates and page number
+
+You can also specify custom output filenames:
+
+```bash
+# Convert with custom output filenames
+bookwyrm pdf-to-text data/heinrich_pages_1-4.json \
+  --output data/heinrich_text.txt \
+  --mapping data/heinrich_char_map.json \
+  --verbose
+```
+
+## 4. Querying Character Positions
+
+Query specific character ranges to get their bounding box coordinates:
+
+```bash
+# Query characters 100-200 to see their positions and bounding boxes
+bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 100 200 --verbose
+```
+
+This shows you:
+- Which pages contain the specified character range
+- Bounding box coordinates for each character
+- OCR confidence scores
+- Sample text from the range
+
+Save the query results to a file:
+
+```bash
+# Save bounding box query results to JSON
+bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 500 750 \
+  --output data/character_positions.json \
+  --verbose
+```
+
+## 5. Phrasal Text Processing
 
 Now let's process a text file to extract meaningful phrases and text spans:
 
@@ -35,7 +82,7 @@ bookwyrm phrasal --file data/country-of-the-blind.txt --output data/country-of-t
 
 This generates a JSONL file with text chunks and their positional information, suitable for further analysis.
 
-## 4. Text Summarization
+## 6. Text Summarization
 
 Let's create a summary from the phrasal data we just generated:
 
@@ -46,7 +93,7 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl --output data/country
 
 This produces a structured summary with key insights from the text.
 
-## 5. Citation Finding
+## 7. Citation Finding
 
 Finally, let's find specific citations related to life-threatening situations in the story:
 
@@ -56,6 +103,24 @@ bookwyrm cite data/country-of-the-blind-phrases.jsonl --question "Where does the
 ```
 
 This searches through the text chunks to find relevant passages that answer the specific question about dangerous situations.
+
+## Complete PDF Processing Workflow
+
+Here's a complete workflow for processing a PDF from extraction to position queries:
+
+```bash
+# Step 1: Extract PDF structure
+bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_extracted.json
+
+# Step 2: Convert to raw text with character mapping
+bookwyrm pdf-to-text data/heinrich_extracted.json --verbose
+
+# Step 3: Query specific character ranges
+bookwyrm pdf-query-range data/heinrich_extracted_mapping.json 0 100 --verbose
+
+# Step 4: Query a larger range and save results
+bookwyrm pdf-query-range data/heinrich_extracted_mapping.json 1000 2000 --output data/positions_1000-2000.json
+```
 
 ## Additional Options
 
@@ -90,9 +155,22 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl --debug --max-tokens 
 ## Expected Output Files
 
 After running these commands, you should have:
-- `data/heinrich_pages_1-4.json` - Structured PDF data
+- `data/heinrich_pages_1-4.json` - Structured PDF data with bounding boxes
+- `data/heinrich_pages_1-4_raw.txt` - Raw text extracted from PDF
+- `data/heinrich_pages_1-4_mapping.json` - Character position to bounding box mapping
+- `data/character_positions.json` - Query results for specific character ranges
 - `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis
 - `data/country-of-the-blind-summary.json` - Text summary
 - `data/protagonist-dangers.json` - Citation results
 
-These files demonstrate the full pipeline from raw documents to structured insights using the BookWyrm API.
+These files demonstrate the full pipeline from raw documents to structured insights using the BookWyrm API, including the ability to map text positions back to their original locations in PDF documents.
+
+## Use Cases for Character Mapping
+
+The character mapping functionality enables several powerful use cases:
+
+1. **Citation Highlighting**: Find citations in text, then highlight the exact regions in the original PDF
+2. **Search Result Visualization**: Show users exactly where search results appear in the document
+3. **Annotation Systems**: Allow users to annotate text and map annotations back to PDF coordinates
+4. **Quality Analysis**: Analyze OCR confidence scores for specific text regions
+5. **Layout Analysis**: Understand how text flows across pages and identify reading order
