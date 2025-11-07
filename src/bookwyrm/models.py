@@ -2,7 +2,7 @@
 
 import base64
 from pydantic import BaseModel, Field, model_validator
-from typing import List, Optional, Union, Literal
+from typing import List, Optional, Union, Literal, Dict
 from enum import Enum
 
 
