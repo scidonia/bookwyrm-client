@@ -19,7 +19,7 @@ Next, let's extract structured data from specific pages of the PDF:
 
 ```bash
 # Extract structured JSON data from pages 1-4 of the Heinrich palaces PDF
-bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_pages_1-4.json
+bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_palaces_pages_1-4.json
 ```
 
 This creates a JSON file containing the structured text, bounding boxes, and layout information for the specified pages.
@@ -30,7 +30,7 @@ Convert the extracted PDF data to raw text with character position mapping:
 
 ```bash
 # Convert PDF extraction to raw text with character mapping
-bookwyrm pdf-to-text data/heinrich_pages_1-4.json --verbose
+bookwyrm pdf-to-text data/heinrich_palaces_pages_1-4.json --verbose
 ```
 
 This creates two files:
@@ -52,8 +52,8 @@ bookwyrm pdf-to-text data/heinrich_pages_1-4.json \
 Query specific character ranges to get their bounding box coordinates:
 
 ```bash
-# Query characters 100-200 to see their positions and bounding boxes
-bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 100 200 --verbose
+# Query characters 11948-13000 to see their positions and bounding boxes
+bookwyrm pdf-query-range data/Heinrich_palaces_pages_1-4_mapping.json 11948 13000 --verbose
 ```
 
 This shows you:
@@ -66,7 +66,7 @@ Save the query results to a file:
 
 ```bash
 # Save bounding box query results to JSON
-bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 500 750 \
+bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 11948 13000 \
   --output data/character_positions.json \
   --verbose
 ```
@@ -77,7 +77,7 @@ Now let's process a text file to extract meaningful phrases and text spans:
 
 ```bash
 # Create phrasal analysis of "The Country of the Blind" text
-bookwyrm phrasal --file data/country-of-the-blind.txt --output data/country-of-the-blind-phrases.jsonl --chunk-size 1000
+bookwyrm phrasal --file data/country-of-the-blind.txt --output data/country-of-the-blind-phrases.jsonl
 ```
 
 This generates a JSONL file with text chunks and their positional information, suitable for further analysis.
