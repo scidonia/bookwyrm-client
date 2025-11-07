@@ -2000,6 +2000,208 @@ def extract_pdf(
 
 
 @app.command()
+def pdf_query_range(
+    mapping_file: Annotated[
+        Path, typer.Argument(help="Character mapping JSON file from pdf-to-text command", exists=True)
+    ],
+    start_char: Annotated[
+        int, typer.Argument(help="Starting character index (inclusive)")
+    ],
+    end_char: Annotated[
+        int, typer.Argument(help="Ending character index (exclusive)")
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option("-o", "--output", help="Output file for bounding box results (JSON format)"),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
+):
+    """Query character ranges from PDF text mapping to get bounding boxes.
+
+    This command takes a character mapping JSON file (created by pdf-to-text) and returns
+    the bounding boxes for a specified character range, grouped by page.
+
+    ## Examples
+
+    ```bash
+    # Query characters 100-200 from mapping file
+    bookwyrm pdf-query-range data/heinrich_pages_1-4_mapping.json 100 200
+
+    # Save results to JSON file
+    bookwyrm pdf-query-range mapping.json 500 750 -o bounding_boxes.json
+
+    # Verbose output with detailed information
+    bookwyrm pdf-query-range mapping.json 0 100 -v
+    ```
+
+    ## Output Format
+
+    Returns bounding boxes grouped by page number, with character positions and coordinates
+    """
+
+    try:
+        # Load the character mapping JSON
+        console.print(f"[blue]Loading character mapping from {mapping_file}...[/blue]")
+        with open(mapping_file, "r", encoding="utf-8") as f:
+            mapping_data = json.load(f)
+
+        # Validate and create PDFTextMapping object
+        try:
+            pdf_mapping = PDFTextMapping.model_validate(mapping_data)
+        except Exception as e:
+            error_console.print(f"[red]Error: Invalid mapping file format: {e}[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[green]Loaded mapping with {pdf_mapping.total_characters:,} characters across {pdf_mapping.total_pages} pages[/green]")
+
+        # Validate character range
+        if start_char < 0:
+            error_console.print(f"[red]Error: start_char must be >= 0 (got {start_char})[/red]")
+            raise typer.Exit(1)
+        
+        if end_char <= start_char:
+            error_console.print(f"[red]Error: end_char must be > start_char (got {end_char} <= {start_char})[/red]")
+            raise typer.Exit(1)
+
+        if start_char >= pdf_mapping.total_characters:
+            error_console.print(f"[red]Error: start_char {start_char} is beyond text length {pdf_mapping.total_characters}[/red]")
+            raise typer.Exit(1)
+
+        # Adjust end_char if it exceeds text length
+        original_end_char = end_char
+        if end_char > pdf_mapping.total_characters:
+            end_char = pdf_mapping.total_characters
+            console.print(f"[yellow]Warning: end_char {original_end_char} adjusted to text length {end_char}[/yellow]")
+
+        console.print(f"[blue]Querying character range {start_char}-{end_char} ({end_char - start_char} characters)[/blue]")
+
+        # Get bounding boxes for the range
+        bounding_boxes = pdf_mapping.get_bounding_boxes_for_range(start_char, end_char)
+        pages_in_range = pdf_mapping.get_pages_for_range(start_char, end_char)
+
+        if not bounding_boxes:
+            console.print("[yellow]No bounding boxes found for the specified range[/yellow]")
+            return
+
+        # Display summary
+        total_boxes = sum(len(page_boxes) for page_boxes in bounding_boxes.values())
+        console.print(f"[green]Found {total_boxes:,} character mappings across {len(pages_in_range)} pages[/green]")
+
+        if verbose:
+            # Show sample text from the range
+            sample_text = pdf_mapping.raw_text[start_char:min(start_char + 200, end_char)]
+            console.print(f"\n[bold]Sample text from range:[/bold]")
+            console.print(f"[dim]{repr(sample_text)}[/dim]")
+
+        # Display results in a table
+        console.print(f"\n[bold]Pages containing characters {start_char}-{end_char}:[/bold]")
+        pages_table = Table()
+        pages_table.add_column("Page", justify="right", style="cyan")
+        pages_table.add_column("Characters", justify="right", style="green")
+        pages_table.add_column("Char Range", style="magenta")
+        pages_table.add_column("Avg Confidence", justify="right", style="yellow")
+
+        for page_num in sorted(bounding_boxes.keys()):
+            page_boxes = bounding_boxes[page_num]
+            char_indices = [box['char_index'] for box in page_boxes]
+            min_char = min(char_indices)
+            max_char = max(char_indices)
+            avg_confidence = sum(box['confidence'] for box in page_boxes) / len(page_boxes)
+            
+            pages_table.add_row(
+                str(page_num),
+                str(len(page_boxes)),
+                f"{min_char}-{max_char}",
+                f"{avg_confidence:.2f}"
+            )
+
+        console.print(pages_table)
+
+        if verbose:
+            # Show detailed bounding box information for first few characters
+            console.print(f"\n[bold]Detailed bounding boxes (first 10 characters):[/bold]")
+            detail_table = Table()
+            detail_table.add_column("Char Index", justify="right", style="cyan")
+            detail_table.add_column("Character", style="green")
+            detail_table.add_column("Page", justify="center", style="magenta")
+            detail_table.add_column("Coordinates", style="yellow")
+            detail_table.add_column("Confidence", justify="right", style="blue")
+
+            char_count = 0
+            for page_num in sorted(bounding_boxes.keys()):
+                for box in bounding_boxes[page_num]:
+                    if char_count >= 10:
+                        break
+                    
+                    char_index = box['char_index']
+                    char_display = repr(pdf_mapping.raw_text[char_index]) if char_index < len(pdf_mapping.raw_text) else "EOF"
+                    coords = f"({box['x1']:.1f},{box['y1']:.1f})-({box['x2']:.1f},{box['y2']:.1f})"
+                    
+                    detail_table.add_row(
+                        str(char_index),
+                        char_display,
+                        str(page_num),
+                        coords,
+                        f"{box['confidence']:.2f}"
+                    )
+                    char_count += 1
+                
+                if char_count >= 10:
+                    break
+
+            if total_boxes > 10:
+                detail_table.add_row("...", "...", "...", "...", "...")
+
+            console.print(detail_table)
+
+        # Prepare output data
+        output_data = {
+            "query": {
+                "start_char": start_char,
+                "end_char": end_char,
+                "character_count": end_char - start_char,
+                "source_file": str(mapping_file)
+            },
+            "results": {
+                "total_characters": total_boxes,
+                "pages_spanned": len(pages_in_range),
+                "pages": pages_in_range,
+                "bounding_boxes_by_page": bounding_boxes
+            },
+            "metadata": {
+                "source_mapping": {
+                    "total_characters": pdf_mapping.total_characters,
+                    "total_pages": pdf_mapping.total_pages,
+                    "source_file": pdf_mapping.source_file
+                }
+            }
+        }
+
+        # Save to output file if specified
+        if output:
+            console.print(f"[blue]Saving results to {output}...[/blue]")
+            output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+            console.print(f"[green]Results saved to {output}[/green]")
+        else:
+            # Display JSON output to console if no output file specified
+            if not verbose:  # Only show if not already showing verbose tables
+                console.print(f"\n[bold]Bounding boxes by page:[/bold]")
+                console.print(json.dumps(bounding_boxes, indent=2))
+
+    except FileNotFoundError:
+        error_console.print(f"[red]Error: File not found: {mapping_file}[/red]")
+        raise typer.Exit(1)
+    except json.JSONDecodeError as e:
+        error_console.print(f"[red]Error: Invalid JSON format: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
 def pdf_to_text(
     json_file: Annotated[
         Path, typer.Argument(help="JSON file from extract-pdf command", exists=True)
