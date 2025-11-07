@@ -735,3 +735,73 @@ class PDFTextMapping(BaseModel):
     total_pages: int = Field(..., description="Total number of pages processed")
     total_characters: int = Field(..., description="Total number of characters in raw text")
     source_file: Optional[str] = Field(None, description="Source PDF extraction JSON file")
+    
+    def get_bounding_boxes_for_range(self, start_char: int, end_char: int) -> Dict[int, List[Dict[str, Union[int, float]]]]:
+        """Get bounding boxes for a character range, grouped by page.
+        
+        Args:
+            start_char: Starting character index (inclusive)
+            end_char: Ending character index (exclusive)
+            
+        Returns:
+            Dictionary mapping page numbers to lists of bounding box info.
+            Each bounding box dict contains: char_index, x1, y1, x2, y2, confidence, original_text_element_index
+            
+        Examples:
+            ```python
+            # Get bounding boxes for characters 100-200
+            boxes = mapping.get_bounding_boxes_for_range(100, 200)
+            
+            # boxes = {
+            #     1: [{'char_index': 100, 'x1': 50.0, 'y1': 100.0, ...}, ...],
+            #     2: [{'char_index': 180, 'x1': 25.0, 'y1': 50.0, ...}, ...]
+            # }
+            
+            for page_num, page_boxes in boxes.items():
+                print(f"Page {page_num}: {len(page_boxes)} characters")
+            ```
+        """
+        if start_char < 0:
+            start_char = 0
+        if end_char > len(self.character_mappings):
+            end_char = len(self.character_mappings)
+        if start_char >= end_char:
+            return {}
+            
+        result: Dict[int, List[Dict[str, Union[int, float]]]] = {}
+        
+        for mapping in self.character_mappings[start_char:end_char]:
+            page_num = mapping.page_number
+            if page_num not in result:
+                result[page_num] = []
+                
+            result[page_num].append({
+                'char_index': mapping.char_index,
+                'x1': mapping.x1,
+                'y1': mapping.y1, 
+                'x2': mapping.x2,
+                'y2': mapping.y2,
+                'confidence': mapping.confidence,
+                'original_text_element_index': mapping.original_text_element_index
+            })
+        
+        return result
+    
+    def get_pages_for_range(self, start_char: int, end_char: int) -> List[int]:
+        """Get list of page numbers that contain characters in the given range.
+        
+        Args:
+            start_char: Starting character index (inclusive)
+            end_char: Ending character index (exclusive)
+            
+        Returns:
+            Sorted list of page numbers containing characters in the range
+            
+        Examples:
+            ```python
+            pages = mapping.get_pages_for_range(100, 200)
+            # pages = [1, 2, 3]  # Characters 100-200 span pages 1, 2, and 3
+            ```
+        """
+        boxes_by_page = self.get_bounding_boxes_for_range(start_char, end_char)
+        return sorted(boxes_by_page.keys())
