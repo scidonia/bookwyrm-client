@@ -712,3 +712,26 @@ StreamingClassifyResponse = Union[
     ClassifyStreamResponse,
     ClassifyErrorResponse,
 ]
+
+
+class CharacterMapping(BaseModel):
+    """Mapping from character position in raw text to bounding box coordinates."""
+    
+    char_index: int = Field(..., description="Character index in the raw text")
+    page_number: int = Field(..., description="PDF page number (1-based)")
+    x1: float = Field(..., description="Left edge x-coordinate")
+    y1: float = Field(..., description="Top edge y-coordinate")
+    x2: float = Field(..., description="Right edge x-coordinate")
+    y2: float = Field(..., description="Bottom edge y-coordinate")
+    confidence: float = Field(..., description="OCR confidence score (0.0-1.0)")
+    original_text_element_index: int = Field(..., description="Index of the original text element on the page")
+
+
+class PDFTextMapping(BaseModel):
+    """Complete mapping from PDF extraction to raw text with character positions."""
+    
+    raw_text: str = Field(..., description="The complete raw text with newlines")
+    character_mappings: List[CharacterMapping] = Field(..., description="Character position to bounding box mappings")
+    total_pages: int = Field(..., description="Total number of pages processed")
+    total_characters: int = Field(..., description="Total number of characters in raw text")
+    source_file: Optional[str] = Field(None, description="Source PDF extraction JSON file")

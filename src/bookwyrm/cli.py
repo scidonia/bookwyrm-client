@@ -62,6 +62,8 @@ from bookwyrm.models import (
     PDFStreamPageError,
     PDFStreamComplete,
     PDFStreamError,
+    CharacterMapping,
+    PDFTextMapping,
 )
 
 console = Console()
@@ -1995,6 +1997,195 @@ def extract_pdf(
         raise typer.Exit(1)
     finally:
         client.close()
+
+
+@app.command()
+def pdf_to_text(
+    json_file: Annotated[
+        Path, typer.Argument(help="JSON file from extract-pdf command", exists=True)
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option("-o", "--output", help="Output file for raw text (default: input_name_raw.txt)"),
+    ] = None,
+    mapping_output: Annotated[
+        Optional[Path],
+        typer.Option("--mapping", help="Output file for character mapping JSON (default: input_name_mapping.json)"),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("-v", "--verbose", help="Show detailed information")
+    ] = False,
+):
+    """Convert PDF extraction JSON to raw text with character position mapping.
+
+    This command takes the JSON output from the extract-pdf command and converts it to:
+    1. Raw text file with all text elements joined by newlines
+    2. Character mapping JSON that maps each character position to its bounding box coordinates
+
+    The mapping accounts for inserted newlines by assigning them the bounding box of the
+    preceding character.
+
+    ## Examples
+
+    ```bash
+    # Convert PDF extraction to raw text
+    bookwyrm pdf-to-text data/heinrich_pages_1-4.json
+
+    # Specify output files
+    bookwyrm pdf-to-text data/extracted.json -o raw_text.txt --mapping char_map.json
+
+    # Verbose output
+    bookwyrm pdf-to-text data/extracted.json -v
+    ```
+
+    ## Output Files
+
+    - Raw text file: All text elements joined with newlines
+    - Mapping JSON: Character index to bounding box coordinate mapping
+    """
+
+    try:
+        # Load the PDF extraction JSON
+        console.print(f"[blue]Loading PDF extraction data from {json_file}...[/blue]")
+        with open(json_file, "r", encoding="utf-8") as f:
+            extraction_data = json.load(f)
+
+        # Validate the structure
+        if "pages" not in extraction_data:
+            error_console.print("[red]Error: Invalid JSON format - missing 'pages' key[/red]")
+            raise typer.Exit(1)
+
+        pages = extraction_data["pages"]
+        if not pages:
+            error_console.print("[red]Error: No pages found in extraction data[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[green]Loaded {len(pages)} pages from extraction data[/green]")
+
+        # Process pages to create raw text and mappings
+        raw_text_parts = []
+        character_mappings = []
+        current_char_index = 0
+
+        for page in pages:
+            page_number = page.get("page_number", 1)
+            text_blocks = page.get("text_blocks", [])
+
+            if verbose:
+                console.print(f"[dim]Processing page {page_number} with {len(text_blocks)} text blocks[/dim]")
+
+            for element_index, text_block in enumerate(text_blocks):
+                text = text_block.get("text", "")
+                coordinates = text_block.get("coordinates", {})
+                confidence = text_block.get("confidence", 0.0)
+
+                # Add character mappings for each character in the text
+                for char_offset, char in enumerate(text):
+                    mapping = CharacterMapping(
+                        char_index=current_char_index,
+                        page_number=page_number,
+                        x1=coordinates.get("x1", 0.0),
+                        y1=coordinates.get("y1", 0.0),
+                        x2=coordinates.get("x2", 0.0),
+                        y2=coordinates.get("y2", 0.0),
+                        confidence=confidence,
+                        original_text_element_index=element_index
+                    )
+                    character_mappings.append(mapping)
+                    current_char_index += 1
+
+                # Add the text to raw text parts
+                raw_text_parts.append(text)
+
+                # Add newline mapping (using the bounding box of the last character)
+                if text:  # Only add newline if there was text
+                    newline_mapping = CharacterMapping(
+                        char_index=current_char_index,
+                        page_number=page_number,
+                        x1=coordinates.get("x1", 0.0),
+                        y1=coordinates.get("y1", 0.0),
+                        x2=coordinates.get("x2", 0.0),
+                        y2=coordinates.get("y2", 0.0),
+                        confidence=confidence,
+                        original_text_element_index=element_index
+                    )
+                    character_mappings.append(newline_mapping)
+                    current_char_index += 1
+
+        # Join all text with newlines
+        raw_text = "\n".join(raw_text_parts)
+
+        # Create the mapping object
+        pdf_mapping = PDFTextMapping(
+            raw_text=raw_text,
+            character_mappings=character_mappings,
+            total_pages=len(pages),
+            total_characters=len(raw_text),
+            source_file=str(json_file)
+        )
+
+        # Generate output filenames if not provided
+        if not output:
+            output = json_file.with_suffix("").with_suffix("_raw.txt")
+        if not mapping_output:
+            mapping_output = json_file.with_suffix("").with_suffix("_mapping.json")
+
+        # Save raw text
+        console.print(f"[blue]Saving raw text to {output}...[/blue]")
+        output.write_text(raw_text, encoding="utf-8")
+
+        # Save mapping JSON
+        console.print(f"[blue]Saving character mapping to {mapping_output}...[/blue]")
+        mapping_json = pdf_mapping.model_dump_json(indent=2)
+        mapping_output.write_text(mapping_json, encoding="utf-8")
+
+        # Display summary
+        console.print(f"[green]✓ Conversion complete![/green]")
+        console.print(f"[green]Raw text: {len(raw_text):,} characters[/green]")
+        console.print(f"[green]Character mappings: {len(character_mappings):,} entries[/green]")
+        console.print(f"[green]Pages processed: {len(pages)}[/green]")
+
+        if verbose:
+            # Show sample of raw text
+            console.print("\n[bold]Sample raw text (first 200 characters):[/bold]")
+            sample_text = raw_text[:200] + "..." if len(raw_text) > 200 else raw_text
+            console.print(f"[dim]{sample_text}[/dim]")
+
+            # Show sample mappings
+            console.print("\n[bold]Sample character mappings (first 5):[/bold]")
+            table = Table()
+            table.add_column("Char Index", justify="right", style="cyan")
+            table.add_column("Character", style="green")
+            table.add_column("Page", justify="center", style="magenta")
+            table.add_column("Coordinates", style="yellow")
+            table.add_column("Confidence", justify="right", style="blue")
+
+            for i, mapping in enumerate(character_mappings[:5]):
+                char_display = repr(raw_text[mapping.char_index]) if mapping.char_index < len(raw_text) else "EOF"
+                coords = f"({mapping.x1:.1f},{mapping.y1:.1f})-({mapping.x2:.1f},{mapping.y2:.1f})"
+                table.add_row(
+                    str(mapping.char_index),
+                    char_display,
+                    str(mapping.page_number),
+                    coords,
+                    f"{mapping.confidence:.2f}"
+                )
+
+            console.print(table)
+
+        console.print(f"\n[green]Files saved:[/green]")
+        console.print(f"  Raw text: {output}")
+        console.print(f"  Mapping:  {mapping_output}")
+
+    except FileNotFoundError:
+        error_console.print(f"[red]Error: File not found: {json_file}[/red]")
+        raise typer.Exit(1)
+    except json.JSONDecodeError as e:
+        error_console.print(f"[red]Error: Invalid JSON format: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        error_console.print(f"[red]Unexpected error: {e}[/red]")
+        raise typer.Exit(1)
 
 
 def main():
