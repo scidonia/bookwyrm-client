@@ -2328,9 +2328,13 @@ def pdf_to_text(
 
         # Generate output filenames if not provided
         if not output:
-            output = json_file.with_suffix("").with_suffix("_raw.txt")
+            # Remove .json extension and add _raw.txt
+            base_name = json_file.stem  # Gets filename without .json
+            output = json_file.parent / f"{base_name}_raw.txt"
         if not mapping_output:
-            mapping_output = json_file.with_suffix("").with_suffix("_mapping.json")
+            # Remove .json extension and add _mapping.json
+            base_name = json_file.stem  # Gets filename without .json
+            mapping_output = json_file.parent / f"{base_name}_mapping.json"
 
         # Save raw text
         console.print(f"[blue]Saving raw text to {output}...[/blue]")
