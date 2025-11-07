@@ -650,9 +650,18 @@ def cite(
             console.print(f"[green]Citations streamed to {output}[/green]")
 
     except BookWyrmAPIError as e:
-        error_console.print(f"[red]API Error: {e}[/red]")
-        if e.status_code:
-            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
+        if e.status_code == 401:
+            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print("[yellow]To fix this issue:[/yellow]")
+            error_console.print("  1. Set your API key as an environment variable:")
+            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print("  2. Or use the --api-key option:")
+            error_console.print("     [cyan]bookwyrm classify --api-key your-api-key-here --file data/Heinrich_palaces.pdf[/cyan]")
+            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+        else:
+            error_console.print(f"[red]API Error: {e}[/red]")
+            if e.status_code:
+                error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         error_console.print(f"[red]Unexpected error: {e}[/red]")
@@ -1026,9 +1035,18 @@ def summarize(
                 error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        error_console.print(f"[red]API Error: {e}[/red]")
-        if e.status_code:
-            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
+        if e.status_code == 401:
+            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print("[yellow]To fix this issue:[/yellow]")
+            error_console.print("  1. Set your API key as an environment variable:")
+            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print("  2. Or use the --api-key option:")
+            error_console.print("     [cyan]bookwyrm cite --api-key your-api-key-here [other-options][/cyan]")
+            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+        else:
+            error_console.print(f"[red]API Error: {e}[/red]")
+            if e.status_code:
+                error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         error_console.print(f"[red]Unexpected error: {e}[/red]")
@@ -1335,9 +1353,18 @@ def phrasal(
             console.print(f"[green]Results saved to {output}[/green]")
 
     except BookWyrmAPIError as e:
-        error_console.print(f"[red]API Error: {e}[/red]")
-        if e.status_code:
-            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
+        if e.status_code == 401:
+            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print("[yellow]To fix this issue:[/yellow]")
+            error_console.print("  1. Set your API key as an environment variable:")
+            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print("  2. Or use the --api-key option:")
+            error_console.print("     [cyan]bookwyrm phrasal --api-key your-api-key-here [other-options][/cyan]")
+            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+        else:
+            error_console.print(f"[red]API Error: {e}[/red]")
+            if e.status_code:
+                error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         error_console.print(f"[red]Unexpected error: {e}[/red]")
@@ -1605,9 +1632,18 @@ def classify(
                 error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        error_console.print(f"[red]API Error: {e}[/red]")
-        if e.status_code:
-            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
+        if e.status_code == 401:
+            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print("[yellow]To fix this issue:[/yellow]")
+            error_console.print("  1. Set your API key as an environment variable:")
+            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print("  2. Or use the --api-key option:")
+            error_console.print("     [cyan]bookwyrm classify --api-key your-api-key-here [other-options][/cyan]")
+            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+        else:
+            error_console.print(f"[red]API Error: {e}[/red]")
+            if e.status_code:
+                error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         error_console.print(f"[red]Unexpected error: {e}[/red]")
@@ -1941,9 +1977,18 @@ def extract_pdf(
                 error_console.print(f"[red]Error saving to {output}: {e}[/red]")
 
     except BookWyrmAPIError as e:
-        error_console.print(f"[red]API Error: {e}[/red]")
-        if e.status_code:
-            error_console.print(f"[red]Status Code: {e.status_code}[/red]")
+        if e.status_code == 401:
+            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print("[yellow]To fix this issue:[/yellow]")
+            error_console.print("  1. Set your API key as an environment variable:")
+            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print("  2. Or use the --api-key option:")
+            error_console.print("     [cyan]bookwyrm extract-pdf --api-key your-api-key-here [other-options][/cyan]")
+            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+        else:
+            error_console.print(f"[red]API Error: {e}[/red]")
+            if e.status_code:
+                error_console.print(f"[red]Status Code: {e.status_code}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         error_console.print(f"[red]Unexpected error: {e}[/red]")
