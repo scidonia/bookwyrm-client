@@ -4,10 +4,11 @@ import json
 import os
 import platform
 import sys
-from typing import AsyncIterator, Optional, Union, Dict, Any, List, Literal
+from typing import AsyncIterator, Optional, Union, Dict, Any, List, Literal, Type
 import httpx
 from pathlib import Path
 from httpx_sse import aconnect_sse
+from pydantic import BaseModel
 
 try:
     from importlib.metadata import version
@@ -1201,6 +1202,11 @@ class AsyncBookWyrmClient:
         max_tokens: int = 10000,
         model_strength: str = "swift",
         debug: bool = False,
+        model_name: Optional[str] = None,
+        model_schema_json: Optional[str] = None,
+        model: Optional[Type[BaseModel]] = None,
+        chunk_prompt: Optional[str] = None,
+        summary_of_summaries_prompt: Optional[str] = None,
     ) -> SummaryResponse:
         """Get a summary of the provided content using hierarchical summarization.
 
@@ -1282,6 +1288,11 @@ class AsyncBookWyrmClient:
             max_tokens=max_tokens,
             model_strength=model_strength,
             debug=debug,
+            model_name=model_name,
+            model_schema_json=model_schema_json,
+            model=model,
+            chunk_prompt=chunk_prompt,
+            summary_of_summaries_prompt=summary_of_summaries_prompt,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
@@ -1313,6 +1324,11 @@ class AsyncBookWyrmClient:
         max_tokens: int = 10000,
         model_strength: str = "swift",
         debug: bool = False,
+        model_name: Optional[str] = None,
+        model_schema_json: Optional[str] = None,
+        model: Optional[Type[BaseModel]] = None,
+        chunk_prompt: Optional[str] = None,
+        summary_of_summaries_prompt: Optional[str] = None,
     ) -> AsyncIterator[StreamingSummarizeResponse]:
         """Stream summarization progress and results with real-time updates.
 
@@ -1385,6 +1401,11 @@ class AsyncBookWyrmClient:
             max_tokens=max_tokens,
             model_strength=model_strength,
             debug=debug,
+            model_name=model_name,
+            model_schema_json=model_schema_json,
+            model=model,
+            chunk_prompt=chunk_prompt,
+            summary_of_summaries_prompt=summary_of_summaries_prompt,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

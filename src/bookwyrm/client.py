@@ -4,10 +4,11 @@ import json
 import os
 import platform
 import sys
-from typing import List, Iterator, Optional, Union, Dict, Any, Literal
+from typing import List, Iterator, Optional, Union, Dict, Any, Literal, Type
 import requests
 from pathlib import Path
 from sseclient import SSEClient
+from pydantic import BaseModel
 
 try:
     from importlib.metadata import version
@@ -1145,6 +1146,7 @@ class BookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
+        model: Optional[Type[BaseModel]] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> Iterator[StreamingSummarizeResponse]:
@@ -1202,6 +1204,7 @@ class BookWyrmClient:
             debug=debug,
             model_name=model_name,
             model_schema_json=model_schema_json,
+            model=model,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
         )
