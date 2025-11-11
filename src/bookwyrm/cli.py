@@ -690,7 +690,7 @@ def summarize(
         ModelStrength,
         typer.Option(
             "--model-strength",
-            help="Model strength level: swift (fast), smart (intelligent), clever (advanced), wise (high-quality)",
+            help="Model strength level: swift (fast), smart (intelligent), clever (advanced), wise (high-quality), brainiac (maximum sophistication)",
         ),
     ] = ModelStrength.SWIFT,
     include_debug: Annotated[
@@ -769,8 +769,8 @@ def summarize(
     # High-quality summarization
     bookwyrm summarize book_phrases.jsonl --model-strength wise --output summary.json
     
-    # High-quality analysis
-    bookwyrm summarize complex_text.jsonl --model-strength wise --output summary.json
+    # Maximum sophistication
+    bookwyrm summarize complex_text.jsonl --model-strength brainiac --output summary.json
     
     # With debug information
     bookwyrm summarize data.jsonl --include-debug --output detailed_summary.json
@@ -799,7 +799,7 @@ def summarize(
     - **smart**: Intelligent analysis with good quality
     - **clever**: Advanced reasoning capabilities
     - **wise**: High-quality analysis for important content
-    <!-- - **brainiac**: Maximum sophistication for complex tasks (temporarily disabled) -->
+    - **brainiac**: Maximum sophistication for complex tasks
     
     ## Output Format
     

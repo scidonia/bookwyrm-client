@@ -12,7 +12,7 @@ class ModelStrength(str, Enum):
     SMART = "smart"         # Intelligent analysis
     CLEVER = "clever"       # Advanced reasoning
     WISE = "wise"           # High-quality analysis
-    # BRAINIAC = "brainiac"   # Maximum sophistication - temporarily disabled
+    BRAINIAC = "brainiac"   # Maximum sophistication
 
 
 class Text(BaseModel):

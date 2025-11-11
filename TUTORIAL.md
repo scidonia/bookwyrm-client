@@ -19,7 +19,7 @@ Next, let's extract structured data from specific pages of the PDF:
 
 ```bash
 # Extract structured JSON data from pages 1-4 of the Heinrich palaces PDF
-bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_palaces_pages_1-4.json
+bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_pages_1-4.json
 ```
 
 This creates a JSON file containing the structured text, bounding boxes, and layout information for the specified pages.
