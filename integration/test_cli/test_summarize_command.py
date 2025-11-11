@@ -99,6 +99,33 @@ def sample_scientific_phrases():
 
 
 @pytest.fixture
+def sample_scientific_phrases():
+    """Sample scientific text phrases for testing."""
+    return [
+        {
+            "text": "Photosynthesis is a process used by plants to convert light energy into chemical energy.",
+            "start_char": 0,
+            "end_char": 87,
+        },
+        {
+            "text": "This chemical energy is stored in carbohydrate molecules, such as sugars and starches.",
+            "start_char": 88,
+            "end_char": 174,
+        },
+        {
+            "text": "The general equation for photosynthesis is: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2.",
+            "start_char": 175,
+            "end_char": 264,
+        },
+        {
+            "text": "Photosynthesis occurs in two main stages: light-dependent and light-independent reactions.",
+            "start_char": 265,
+            "end_char": 355,
+        },
+    ]
+
+
+@pytest.fixture
 def sample_long_content():
     """Sample long content for testing chunking."""
     return """Artificial intelligence (AI) is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals. Leading AI textbooks define the field as the study of "intelligent agents": any device that perceives its environment and takes actions that maximize its chance of successfully achieving its goals.
