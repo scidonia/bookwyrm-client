@@ -1204,7 +1204,7 @@ class AsyncBookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
-        model: Optional[Type[BaseModel]] = None,
+        summary_class: Optional[Type[BaseModel]] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> SummaryResponse:
@@ -1290,7 +1290,7 @@ class AsyncBookWyrmClient:
             debug=debug,
             model_name=model_name,
             model_schema_json=model_schema_json,
-            model=model,
+            summary_class=summary_class,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
         )
@@ -1326,7 +1326,7 @@ class AsyncBookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
-        model: Optional[Type[BaseModel]] = None,
+        summary_class: Optional[Type[BaseModel]] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> AsyncIterator[StreamingSummarizeResponse]:
@@ -1403,7 +1403,7 @@ class AsyncBookWyrmClient:
             debug=debug,
             model_name=model_name,
             model_schema_json=model_schema_json,
-            model=model,
+            summary_class=summary_class,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
         )

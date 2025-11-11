@@ -1146,7 +1146,7 @@ class BookWyrmClient:
         debug: bool = False,
         model_name: Optional[str] = None,
         model_schema_json: Optional[str] = None,
-        model: Optional[Type[BaseModel]] = None,
+        summary_class: Optional[Type[BaseModel]] = None,
         chunk_prompt: Optional[str] = None,
         summary_of_summaries_prompt: Optional[str] = None,
     ) -> Iterator[StreamingSummarizeResponse]:
@@ -1204,7 +1204,7 @@ class BookWyrmClient:
             debug=debug,
             model_name=model_name,
             model_schema_json=model_schema_json,
-            model=model,
+            summary_class=summary_class,
             chunk_prompt=chunk_prompt,
             summary_of_summaries_prompt=summary_of_summaries_prompt,
         )

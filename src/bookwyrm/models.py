@@ -220,7 +220,7 @@ class SummarizeRequest(BaseModel):
     # Pydantic model option for structured output
     model_name: Optional[str] = None
     model_schema_json: Optional[str] = None
-    model: Optional[Type[BaseModel]] = None  # Direct Pydantic class
+    summary_class: Optional[Type[BaseModel]] = None  # Direct Pydantic class
     # Custom prompt option
     chunk_prompt: Optional[str] = None
     summary_of_summaries_prompt: Optional[str] = None
@@ -244,21 +244,21 @@ class SummarizeRequest(BaseModel):
             raise ValueError(f"max_tokens must be at least 1 (got {self.max_tokens})")
 
         # Handle direct Pydantic model conversion
-        if self.model is not None:
+        if self.summary_class is not None:
             if self.model_name or self.model_schema_json:
-                raise ValueError("Cannot specify both 'model' and 'model_name'/'model_schema_json'. Use either the direct class or the name/schema pair.")
+                raise ValueError("Cannot specify both 'summary_class' and 'model_name'/'model_schema_json'. Use either the direct class or the name/schema pair.")
             
             # Convert Pydantic class to name and schema
-            self.model_name = self.model.__name__
-            self.model_schema_json = json.dumps(self.model.model_json_schema())
+            self.model_name = self.summary_class.__name__
+            self.model_schema_json = json.dumps(self.summary_class.model_json_schema())
 
         # Structured output validation
         # Check if both pydantic model and custom prompts are specified
-        has_pydantic_model = bool(self.model_name or self.model_schema_json or self.model)
+        has_pydantic_model = bool(self.model_name or self.model_schema_json or self.summary_class)
         has_custom_prompts = bool(self.chunk_prompt or self.summary_of_summaries_prompt)
 
         if has_pydantic_model and has_custom_prompts:
-            raise ValueError("Cannot specify both pydantic model options (model/model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive.")
+            raise ValueError("Cannot specify both pydantic model options (summary_class/model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive.")
 
         # Validate pydantic model fields are complete
         if self.model_name and not self.model_schema_json:
