@@ -761,7 +761,6 @@ def test_summarize_command_live_api_comprehensive_options(
             output_path.unlink()
 
 
-@pytest.mark.liveonly
 def test_summarize_command_model_strength_levels(sample_phrases, api_key, api_url):
     """Test summarize command with different model strength levels."""
     if not api_key:
@@ -809,7 +808,6 @@ def test_summarize_command_model_strength_levels(sample_phrases, api_key, api_ur
     jsonl_file.unlink()
 
 
-@pytest.mark.liveonly
 def test_summarize_command_with_pydantic_model(sample_scientific_phrases, api_key, api_url):
     """Test summarize command with structured Pydantic model output."""
     if not api_key:
