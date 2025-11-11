@@ -1199,6 +1199,7 @@ class AsyncBookWyrmClient:
         url: Optional[str] = None,
         phrases: Optional[List[TextSpan]] = None,
         max_tokens: int = 10000,
+        model_strength: str = "swift",
         debug: bool = False,
     ) -> SummaryResponse:
         """Get a summary of the provided content using hierarchical summarization.
@@ -1279,6 +1280,7 @@ class AsyncBookWyrmClient:
             url=url,
             phrases=phrases,
             max_tokens=max_tokens,
+            model_strength=model_strength,
             debug=debug,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
@@ -1309,6 +1311,7 @@ class AsyncBookWyrmClient:
         url: Optional[str] = None,
         phrases: Optional[List[TextSpan]] = None,
         max_tokens: int = 10000,
+        model_strength: str = "swift",
         debug: bool = False,
     ) -> AsyncIterator[StreamingSummarizeResponse]:
         """Stream summarization progress and results with real-time updates.
@@ -1380,6 +1383,7 @@ class AsyncBookWyrmClient:
             url=url,
             phrases=phrases,
             max_tokens=max_tokens,
+            model_strength=model_strength,
             debug=debug,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}

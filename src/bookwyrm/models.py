@@ -6,6 +6,15 @@ from typing import List, Optional, Union, Literal, Dict
 from enum import Enum
 
 
+class ModelStrength(str, Enum):
+    """Model strength levels for processing quality vs speed trade-offs."""
+    SWIFT = "swift"         # Fast processing
+    SMART = "smart"         # Intelligent analysis
+    CLEVER = "clever"       # Advanced reasoning
+    WISE = "wise"           # High-quality analysis
+    BRAINIAC = "brainiac"   # Maximum sophistication
+
+
 class Text(BaseModel):
     """Base text model containing just text content."""
 
@@ -206,6 +215,7 @@ class SummarizeRequest(BaseModel):
     phrases: Optional[List[TextSpan]] = None
     max_tokens: int = 10000  # Default max tokens for chunking
     debug: bool = False  # Include intermediate summaries in response
+    model_strength: ModelStrength = ModelStrength.SWIFT  # Default to swift
     # Pydantic model option for structured output
     model_name: Optional[str] = None
     model_schema_json: Optional[str] = None

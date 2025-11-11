@@ -64,6 +64,7 @@ from bookwyrm.models import (
     PDFStreamError,
     CharacterMapping,
     PDFTextMapping,
+    ModelStrength,
 )
 
 console = Console()
@@ -685,6 +686,13 @@ def summarize(
         int,
         typer.Option(help="Maximum tokens per chunk (max: 131,072, default: 10000)"),
     ] = 10000,
+    model_strength: Annotated[
+        ModelStrength,
+        typer.Option(
+            "--model-strength",
+            help="Model strength level: swift (fast), smart (intelligent), clever (advanced), wise (high-quality), brainiac (maximum sophistication)",
+        ),
+    ] = ModelStrength.SWIFT,
     include_debug: Annotated[
         bool, typer.Option("--include-debug", help="Include intermediate summaries")
     ] = False,
@@ -755,27 +763,43 @@ def summarize(
     ## Examples
     
     ```bash
-    # Basic summarization
+    # Basic summarization (uses swift model by default)
     bookwyrm summarize book_phrases.jsonl --output summary.json
+    
+    # High-quality summarization
+    bookwyrm summarize book_phrases.jsonl --model-strength wise --output summary.json
+    
+    # Maximum sophistication
+    bookwyrm summarize complex_text.jsonl --model-strength brainiac --output summary.json
     
     # With debug information
     bookwyrm summarize data.jsonl --include-debug --output detailed_summary.json
     
-    # Larger chunks
-    bookwyrm summarize large_text.jsonl --max-tokens 20000 --output summary.json
+    # Larger chunks with advanced reasoning
+    bookwyrm summarize large_text.jsonl --max-tokens 20000 --model-strength clever --output summary.json
     
     # Structured output with Pydantic model
     bookwyrm summarize book.jsonl \
       --model-class-file models/book_summary.py \
       --model-class-name BookSummary \
+      --model-strength smart \
       --output structured_summary.json
     
-    # Custom prompts
+    # Custom prompts with high-quality model
     bookwyrm summarize scientific_text.jsonl \
       --chunk-prompt "Extract key scientific concepts and findings" \
       --summary-prompt "Create a comprehensive scientific overview" \
+      --model-strength wise \
       --output science_summary.json
     ```
+    
+    ## Model Strength Levels
+    
+    - **swift**: Fast processing for quick results
+    - **smart**: Intelligent analysis with good quality
+    - **clever**: Advanced reasoning capabilities
+    - **wise**: High-quality analysis for important content
+    - **brainiac**: Maximum sophistication for complex tasks
     
     ## Output Format
     
@@ -887,6 +911,7 @@ def summarize(
     request = SummarizeRequest(
         content=content,
         max_tokens=max_tokens,
+        model_strength=model_strength,
         debug=include_debug,
         # Structured output options
         model_name=model_name,
