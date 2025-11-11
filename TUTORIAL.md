@@ -95,7 +95,11 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl --output data/country
 
 ### Structured Literary Analysis with Pydantic Models
 
-For more structured analysis, we can use the `Summary` class to extract specific literary elements. The `Summary` model in `data/summary.py` defines the structure:
+BookWyrm supports structured output using custom Pydantic models, allowing you to extract specific information in a consistent format. This is particularly powerful for literary analysis, research, and data extraction tasks.
+
+#### The Summary Model
+
+The `Summary` model in `data/summary.py` demonstrates how to create a structured analysis model for literary works:
 
 ```python
 from pydantic import BaseModel, Field
@@ -136,7 +140,9 @@ class Summary(BaseModel):
     )
 ```
 
-Now we can use this model to generate structured literary analysis:
+#### Using Structured Output
+
+The key to structured output is the detailed `description` fields in each Pydantic Field. These descriptions act as instructions to the AI model, telling it exactly what information to extract and how to format it.
 
 ```bash
 # Generate structured literary analysis using the Summary model
@@ -151,10 +157,43 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 This produces a structured JSON output with the specific fields defined in the `Summary` model:
 - `title`: The work's title
 - `author`: Author information  
-- `date_of_publication`: Publication date
+- `date_of_publication`: Publication date in YYYY-MM-DD format
 - `plot`: Comprehensive plot summary
 - `timeline`: Temporal setting and chronology
-- `important_characters`: Key characters and figures
+- `important_characters`: List of key characters and figures
+
+#### Creating Custom Models
+
+You can create your own Pydantic models for different types of analysis:
+
+**Scientific Paper Analysis:**
+```python
+class ScientificPaper(BaseModel):
+    title: Optional[str] = Field(None, description="The paper's title")
+    authors: Optional[List[str]] = Field(None, description="List of author names")
+    abstract: Optional[str] = Field(None, description="The paper's abstract or summary")
+    methodology: Optional[str] = Field(None, description="Research methods used")
+    key_findings: Optional[List[str]] = Field(None, description="Main research findings")
+    conclusions: Optional[str] = Field(None, description="Authors' conclusions")
+```
+
+**Business Document Analysis:**
+```python
+class BusinessDocument(BaseModel):
+    document_type: Optional[str] = Field(None, description="Type of business document")
+    key_metrics: Optional[List[str]] = Field(None, description="Important numbers or KPIs mentioned")
+    action_items: Optional[List[str]] = Field(None, description="Tasks or actions to be taken")
+    stakeholders: Optional[List[str]] = Field(None, description="People or organizations involved")
+    deadlines: Optional[List[str]] = Field(None, description="Important dates or deadlines")
+```
+
+#### Best Practices for Structured Output
+
+1. **Detailed Descriptions**: Write clear, specific descriptions for each field
+2. **Optional Fields**: Use `Optional` for fields that might not always be present
+3. **Appropriate Types**: Use proper Python types (`str`, `List[str]`, `date`, etc.)
+4. **Output File Required**: Always specify `--output` when using structured models
+5. **Model Strength**: Use `smart`, `clever`, or `wise` for better structured output quality
 
 The structured output will look like:
 ```json
@@ -177,7 +216,7 @@ The structured output will look like:
 
 ### Advanced Model Strengths
 
-You can also use different model strengths for varying levels of analysis quality:
+Different model strengths provide varying levels of analysis quality and processing time:
 
 ```bash
 # High-quality literary analysis with the wise model
@@ -187,7 +226,29 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
   --model-strength wise \
   --max-tokens 2000 \
   --output data/country-detailed-analysis.json
+
+# Maximum sophistication for complex analysis
+bookwyrm summarize data/complex-literary-work.jsonl \
+  --model-class-file data/summary.py \
+  --model-class-name Summary \
+  --model-strength brainiac \
+  --max-tokens 4000 \
+  --output data/comprehensive-analysis.json
 ```
+
+#### Model Strength Guide
+
+- **swift**: Fast processing for quick results (good for testing)
+- **smart**: Intelligent analysis with good quality (recommended default)
+- **clever**: Advanced reasoning capabilities (better for complex texts)
+- **wise**: High-quality analysis for important content (slower but thorough)
+- **brainiac**: Maximum sophistication for complex tasks (slowest but highest quality)
+
+Choose higher model strengths for:
+- Complex literary works
+- Academic or research content  
+- Important business documents
+- When accuracy is more important than speed
 
 ## 7. Citation Finding
 
