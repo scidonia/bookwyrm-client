@@ -84,14 +84,69 @@ This generates a JSONL file with text chunks and their positional information, s
 
 ## 6. Text Summarization
 
-Let's create a summary from the phrasal data we just generated:
+Let's create summaries from the phrasal data we just generated. BookWyrm supports both basic summarization and structured output using Pydantic models.
+
+### Basic Summarization
 
 ```bash
-# Generate a summary from the Country of the Blind phrases
+# Generate a basic summary from the Country of the Blind phrases
 bookwyrm summarize data/country-of-the-blind-phrases.jsonl --output data/country-of-the-blind-summary.json --max-tokens 500 --verbose
 ```
 
-This produces a structured summary with key insights from the text.
+### Structured Literary Analysis with Pydantic Models
+
+For more structured analysis, we can use the `Summary` class to extract specific literary elements:
+
+```bash
+# Generate structured literary analysis using the Summary model
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
+  --model-class-file data/summary.py \
+  --model-class-name Summary \
+  --model-strength smart \
+  --output data/country-structured-summary.json \
+  --verbose
+```
+
+This produces a structured JSON output with specific fields like:
+- `title`: The work's title
+- `author`: Author information
+- `date_of_publication`: Publication date
+- `plot`: Comprehensive plot summary
+- `timeline`: Temporal setting and chronology
+- `important_characters`: Key characters and figures
+
+The structured output will look like:
+```json
+{
+  "summary": {
+    "title": "The Country of the Blind",
+    "author": "H.G. Wells",
+    "date_of_publication": "1904-01-01",
+    "plot": "A mountaineer named Nunez discovers an isolated valley...",
+    "timeline": "Early 20th century, set in an isolated Andean valley...",
+    "important_characters": ["Nunez", "Medina-saroté", "Yacob", "The Elders"]
+  },
+  "subsummary_count": 3,
+  "levels_used": 2,
+  "total_tokens": 1250,
+  "source_file": "data/country-of-the-blind-phrases.jsonl",
+  "model_used": "Summary"
+}
+```
+
+### Advanced Model Strengths
+
+You can also use different model strengths for varying levels of analysis quality:
+
+```bash
+# High-quality literary analysis with the wise model
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
+  --model-class-file data/summary.py \
+  --model-class-name Summary \
+  --model-strength wise \
+  --max-tokens 2000 \
+  --output data/country-detailed-analysis.json
+```
 
 ## 7. Citation Finding
 
@@ -144,12 +199,28 @@ bookwyrm cite data/country-of-the-blind-phrases.jsonl \
   --verbose
 ```
 
-### Debug Mode
-Use `--debug` to see detailed API interactions:
+### Custom Prompts for Summarization
+Instead of using Pydantic models, you can provide custom prompts:
 
 ```bash
-# Run with debug information
-bookwyrm summarize data/country-of-the-blind-phrases.jsonl --debug --max-tokens 200
+# Use custom prompts for specialized analysis
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
+  --chunk-prompt "Extract key themes, symbols, and literary devices from this text" \
+  --summary-prompt "Create a comprehensive literary analysis focusing on themes, symbolism, and narrative techniques" \
+  --model-strength clever \
+  --output data/country-literary-analysis.json
+```
+
+### Debug Mode
+Use `--include-debug` to see intermediate summaries:
+
+```bash
+# Run with debug information to see intermediate summaries
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
+  --model-class-file data/summary.py \
+  --model-class-name Summary \
+  --include-debug \
+  --output data/country-debug-summary.json
 ```
 
 ## Expected Output Files
@@ -160,7 +231,9 @@ After running these commands, you should have:
 - `data/heinrich_pages_1-4_mapping.json` - Character position to bounding box mapping
 - `data/character_positions.json` - Query results for specific character ranges
 - `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis
-- `data/country-of-the-blind-summary.json` - Text summary
+- `data/country-of-the-blind-summary.json` - Basic text summary
+- `data/country-structured-summary.json` - Structured literary analysis using Summary model
+- `data/country-detailed-analysis.json` - High-quality structured analysis
 - `data/protagonist-dangers.json` - Citation results
 
 These files demonstrate the full pipeline from raw documents to structured insights using the BookWyrm API, including the ability to map text positions back to their original locations in PDF documents.
