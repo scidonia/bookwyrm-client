@@ -11,6 +11,7 @@
 | PDF → Structure | `stream_extract_pdf()` | PDF bytes/URL | `PDFPage[]` | Document parsing |
 | File → Type | `classify()` | File bytes | `FileClassification` | Content routing |
 | Content → Summary | `stream_summarize()` | Text/phrases | Summary text | Document analysis |
+| **Structured Summary** | `stream_summarize()` | Text + Pydantic model | **Structured JSON** | **Data extraction** |
 
 ## Complete Type Definitions
 
@@ -83,6 +84,20 @@ async def process_document_tool(text: str, chunk_size: int = 1000) -> List[dict]
             if isinstance(response, TextSpanResult):
                 chunks.append(response.model_dump())
     return chunks
+
+async def structured_summary_tool(text: str, model_schema: dict, model_name: str) -> dict:
+    """Tool function for structured data extraction using Pydantic models."""
+    import json
+    async with AsyncBookWyrmClient() as client:
+        async for response in client.stream_summarize(
+            content=text,
+            model_name=model_name,
+            model_schema_json=json.dumps(model_schema),
+            model_strength="smart"
+        ):
+            if hasattr(response, 'summary'):
+                return json.loads(response.summary)
+    return {}
 ```
 
 ### Concurrent Processing Pattern
@@ -176,6 +191,15 @@ async with AsyncBookWyrmClient() as client:
 text_elements = [elem for page in pages for elem in page.text_blocks]
 ```
 
+### Structured Data Extraction (4 lines)
+
+```python
+import json
+async with AsyncBookWyrmClient() as client:
+    async for r in client.stream_summarize(content=text, model_name="MyModel", model_schema_json=schema):
+        if hasattr(r, 'summary'): return json.loads(r.summary)
+```
+
 ## Performance Optimization for AI Systems
 
 ### Batch Processing
@@ -223,6 +247,158 @@ async def stream_large_document(text: str, chunk_size: int = 2000):
 - **Error recovery**: Handle network issues and API errors gracefully
 - **Concurrent limits**: Don't exceed reasonable concurrent request limits
 - **Chunk size optimization**: 500-2000 characters for balanced performance
+- **Structured output**: Use detailed field descriptions in Pydantic models for better extraction
+- **Model strength selection**: Use `smart`/`clever`/`wise` for structured output, `swift` for testing
+- **JSON validation**: Always validate structured output with `json.loads()` and Pydantic models
+
+## Structured Data Extraction Patterns
+
+### Define Extraction Models
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, List
+import json
+
+class PersonInfo(BaseModel):
+    """Extract person information from text."""
+    name: Optional[str] = Field(None, description="Full name of the person")
+    age: Optional[int] = Field(None, description="Age in years")
+    occupation: Optional[str] = Field(None, description="Job title or profession")
+    location: Optional[str] = Field(None, description="City, state, or country of residence")
+    skills: Optional[List[str]] = Field(None, description="List of skills or expertise areas")
+
+class CompanyInfo(BaseModel):
+    """Extract company information from text."""
+    name: Optional[str] = Field(None, description="Official company name")
+    industry: Optional[str] = Field(None, description="Primary industry or sector")
+    founded: Optional[int] = Field(None, description="Year the company was founded")
+    employees: Optional[int] = Field(None, description="Number of employees")
+    revenue: Optional[str] = Field(None, description="Annual revenue or financial information")
+    products: Optional[List[str]] = Field(None, description="Main products or services offered")
+
+class EventInfo(BaseModel):
+    """Extract event information from text."""
+    name: Optional[str] = Field(None, description="Name or title of the event")
+    date: Optional[str] = Field(None, description="Date of the event in YYYY-MM-DD format")
+    location: Optional[str] = Field(None, description="Venue or location where event takes place")
+    attendees: Optional[int] = Field(None, description="Number of people attending")
+    organizer: Optional[str] = Field(None, description="Person or organization organizing the event")
+    topics: Optional[List[str]] = Field(None, description="Main topics or themes covered")
+```
+
+### AI Agent Integration
+
+```python
+async def extract_structured_data(text: str, extraction_type: str) -> dict:
+    """AI agent function for structured data extraction."""
+    
+    models = {
+        "person": PersonInfo,
+        "company": CompanyInfo, 
+        "event": EventInfo
+    }
+    
+    if extraction_type not in models:
+        raise ValueError(f"Unknown extraction type: {extraction_type}")
+    
+    model_class = models[extraction_type]
+    schema = json.dumps(model_class.model_json_schema())
+    
+    async with AsyncBookWyrmClient() as client:
+        async for response in client.stream_summarize(
+            content=text,
+            model_name=model_class.__name__,
+            model_schema_json=schema,
+            model_strength="smart"
+        ):
+            if hasattr(response, 'summary'):
+                try:
+                    structured_data = json.loads(response.summary)
+                    validated_data = model_class.model_validate(structured_data)
+                    return validated_data.model_dump()
+                except (json.JSONDecodeError, ValueError) as e:
+                    return {"error": f"Failed to parse structured output: {e}"}
+    
+    return {"error": "No response received"}
+
+# Usage in AI agents
+person_data = await extract_structured_data(resume_text, "person")
+company_data = await extract_structured_data(company_description, "company")
+event_data = await extract_structured_data(event_announcement, "event")
+```
+
+### Batch Structured Processing
+
+```python
+async def batch_extract_structured_data(texts: List[str], model_class: BaseModel) -> List[dict]:
+    """Process multiple texts with the same structured model."""
+    
+    schema = json.dumps(model_class.model_json_schema())
+    results = []
+    
+    async def process_single(text: str) -> dict:
+        async with AsyncBookWyrmClient() as client:
+            async for response in client.stream_summarize(
+                content=text,
+                model_name=model_class.__name__,
+                model_schema_json=schema,
+                model_strength="smart"
+            ):
+                if hasattr(response, 'summary'):
+                    try:
+                        return json.loads(response.summary)
+                    except json.JSONDecodeError:
+                        return {"error": "Invalid JSON response"}
+        return {"error": "No response"}
+    
+    # Process all texts concurrently
+    import asyncio
+    results = await asyncio.gather(*[process_single(text) for text in texts])
+    return results
+
+# Usage
+resume_texts = ["Resume 1 content...", "Resume 2 content...", "Resume 3 content..."]
+person_data_list = await batch_extract_structured_data(resume_texts, PersonInfo)
+```
+
+### Error Handling for Structured Output
+
+```python
+async def robust_structured_extraction(text: str, model_class: BaseModel, max_retries: int = 3) -> dict:
+    """Structured extraction with error handling and retries."""
+    
+    schema = json.dumps(model_class.model_json_schema())
+    
+    for attempt in range(max_retries):
+        try:
+            async with AsyncBookWyrmClient() as client:
+                async for response in client.stream_summarize(
+                    content=text,
+                    model_name=model_class.__name__,
+                    model_schema_json=schema,
+                    model_strength="smart" if attempt == 0 else "clever"  # Upgrade model on retry
+                ):
+                    if hasattr(response, 'summary'):
+                        try:
+                            structured_data = json.loads(response.summary)
+                            validated_data = model_class.model_validate(structured_data)
+                            return {"success": True, "data": validated_data.model_dump()}
+                        except json.JSONDecodeError as e:
+                            if attempt == max_retries - 1:
+                                return {"success": False, "error": f"JSON parsing failed: {e}", "raw": response.summary}
+                            continue  # Retry with better model
+                        except ValueError as e:
+                            if attempt == max_retries - 1:
+                                return {"success": False, "error": f"Validation failed: {e}", "raw": response.summary}
+                            continue  # Retry with better model
+        except Exception as e:
+            if attempt == max_retries - 1:
+                return {"success": False, "error": f"API error: {e}"}
+            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+    
+    return {"success": False, "error": "Max retries exceeded"}
+```
 
 ## Core Models
 

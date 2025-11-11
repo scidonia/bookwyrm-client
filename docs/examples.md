@@ -385,6 +385,173 @@ if final_summary:
 # - intermediate_summaries: Optional[List[List[str]]] (debug info if requested)
 ```
 
+### Structured Summarization with Pydantic Models
+
+BookWyrm supports structured output using custom Pydantic models, allowing you to extract specific information in a consistent JSON format.
+
+```python
+import json
+from typing import Optional, List
+from datetime import date
+from pydantic import BaseModel, Field
+from bookwyrm.models import SummaryResponse, ModelStrength
+
+# Define a custom Pydantic model for structured output
+class BookSummary(BaseModel):
+    """Structured summary model for books and literary works."""
+    
+    title: Optional[str] = Field(
+        None,
+        description="The title of the book or literary work"
+    )
+    
+    author: Optional[str] = Field(
+        None, 
+        description="The author or authors of the work"
+    )
+    
+    genre: Optional[str] = Field(
+        None,
+        description="The literary genre (fiction, non-fiction, mystery, etc.)"
+    )
+    
+    main_themes: Optional[List[str]] = Field(
+        None,
+        description="List of major themes explored in the work"
+    )
+    
+    plot_summary: Optional[str] = Field(
+        None,
+        description="Comprehensive plot summary including key events and resolution"
+    )
+    
+    main_characters: Optional[List[str]] = Field(
+        None,
+        description="List of primary characters in the story"
+    )
+
+# Literary text to analyze
+literary_text: str = """
+Pride and Prejudice by Jane Austen follows Elizabeth Bennet, a witty and independent 
+young woman in Regency England. When the proud Mr. Darcy arrives in her neighborhood, 
+Elizabeth initially dislikes him due to his apparent arrogance. However, as she learns 
+more about his true character and his acts of kindness, she realizes her prejudice was 
+unfounded. The novel explores themes of love, marriage, social class, and personal growth 
+as Elizabeth and Darcy overcome their initial impressions to find true love.
+"""
+
+# Convert model to JSON schema
+model_schema = json.dumps(BookSummary.model_json_schema())
+
+# Perform structured summarization
+final_summary: SummaryResponse = None
+for response in client.stream_summarize(
+    content=literary_text,
+    model_strength=ModelStrength.SMART,  # Use smart model for better structured output
+    model_name="BookSummary",
+    model_schema_json=model_schema,
+    max_tokens=3000
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+    elif hasattr(response, 'message'):
+        print(f"Progress: {response.message}")
+
+if final_summary:
+    # Parse the structured JSON output
+    try:
+        structured_data = json.loads(final_summary.summary)
+        book_summary = BookSummary.model_validate(structured_data)
+        
+        print("Structured Book Summary:")
+        print(f"Title: {book_summary.title}")
+        print(f"Author: {book_summary.author}")
+        print(f"Genre: {book_summary.genre}")
+        print(f"Main Themes: {', '.join(book_summary.main_themes or [])}")
+        print(f"Plot: {book_summary.plot_summary}")
+        print(f"Characters: {', '.join(book_summary.main_characters or [])}")
+        
+    except json.JSONDecodeError:
+        print("Raw summary (JSON parsing failed):")
+        print(final_summary.summary)
+
+# The structured output will be JSON conforming to your Pydantic model:
+# {
+#   "title": "Pride and Prejudice",
+#   "author": "Jane Austen", 
+#   "genre": "Romance/Social Commentary",
+#   "main_themes": ["Love", "Marriage", "Social Class", "Personal Growth", "Prejudice"],
+#   "plot_summary": "Elizabeth Bennet initially dislikes the proud Mr. Darcy...",
+#   "main_characters": ["Elizabeth Bennet", "Mr. Darcy", "Jane Bennet", "Mr. Bingley"]
+# }
+```
+
+### Advanced Structured Models
+
+```python
+# Scientific paper analysis model
+class ScientificPaper(BaseModel):
+    """Model for analyzing scientific papers."""
+    
+    title: Optional[str] = Field(None, description="The paper's title")
+    authors: Optional[List[str]] = Field(None, description="List of author names")
+    abstract: Optional[str] = Field(None, description="The paper's abstract")
+    methodology: Optional[str] = Field(None, description="Research methods used")
+    key_findings: Optional[List[str]] = Field(None, description="Main research findings")
+    conclusions: Optional[str] = Field(None, description="Authors' conclusions")
+    keywords: Optional[List[str]] = Field(None, description="Key scientific terms and concepts")
+
+# Business document analysis model  
+class BusinessDocument(BaseModel):
+    """Model for analyzing business documents."""
+    
+    document_type: Optional[str] = Field(None, description="Type of business document")
+    key_metrics: Optional[List[str]] = Field(None, description="Important numbers or KPIs")
+    action_items: Optional[List[str]] = Field(None, description="Tasks or actions to be taken")
+    stakeholders: Optional[List[str]] = Field(None, description="People or organizations involved")
+    deadlines: Optional[List[str]] = Field(None, description="Important dates or deadlines")
+    budget_info: Optional[str] = Field(None, description="Budget or financial information")
+
+# Use any model with the same pattern
+scientific_text = "Research paper content here..."
+model_schema = json.dumps(ScientificPaper.model_json_schema())
+
+for response in client.stream_summarize(
+    content=scientific_text,
+    model_name="ScientificPaper",
+    model_schema_json=model_schema,
+    model_strength=ModelStrength.WISE  # Use wise for complex analysis
+):
+    if hasattr(response, 'summary'):
+        structured_result = json.loads(response.summary)
+        paper = ScientificPaper.model_validate(structured_result)
+        print(f"Paper: {paper.title}")
+        print(f"Authors: {', '.join(paper.authors or [])}")
+        break
+```
+
+### Custom Prompts for Specialized Analysis
+
+```python
+# Alternative to Pydantic models: use custom prompts
+final_summary: SummaryResponse = None
+for response in client.stream_summarize(
+    content=literary_text,
+    chunk_prompt="Extract key literary elements: themes, character development, plot structure, and writing style",
+    summary_of_summaries_prompt="Create a comprehensive literary analysis focusing on narrative techniques, character arcs, and thematic significance",
+    model_strength=ModelStrength.CLEVER,
+    max_tokens=4000
+):
+    if hasattr(response, 'summary'):
+        final_summary = response
+        break
+
+if final_summary:
+    print("Literary Analysis:")
+    print(final_summary.summary)
+```
+
 ### Summarize from URL
 
 ```python
@@ -434,6 +601,43 @@ for response in client.stream_summarize(
 
 if final_summary:
     print(final_summary.summary)
+```
+
+### Model Strength Selection
+
+```python
+from bookwyrm.models import ModelStrength
+
+# Different model strengths for different use cases
+model_strengths = {
+    ModelStrength.SWIFT: "Fast processing for quick results",
+    ModelStrength.SMART: "Intelligent analysis with good quality", 
+    ModelStrength.CLEVER: "Advanced reasoning capabilities",
+    ModelStrength.WISE: "High-quality analysis for important content",
+    ModelStrength.BRAINIAC: "Maximum sophistication for complex tasks"
+}
+
+# Choose based on your needs
+for response in client.stream_summarize(
+    content=complex_academic_text,
+    model_strength=ModelStrength.WISE,  # High quality for academic content
+    max_tokens=8000
+):
+    if hasattr(response, 'summary'):
+        print("High-quality academic summary:")
+        print(response.summary)
+        break
+
+# For quick testing or simple content
+for response in client.stream_summarize(
+    content=simple_text,
+    model_strength=ModelStrength.SWIFT,  # Fast for simple content
+    max_tokens=2000
+):
+    if hasattr(response, 'summary'):
+        print("Quick summary:")
+        print(response.summary)
+        break
 ```
 
 ## Async Usage
