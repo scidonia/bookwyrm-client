@@ -198,7 +198,8 @@ class CitationErrorResponse(BaseModel):
     """
 
     type: Literal["error"] = Field("error", description="Message type identifier")
-    error: str = Field(..., description="Error message describing what went wrong")
+    error_message: str = Field(..., description="Error message describing what went wrong")
+    recoverable: bool = Field(True, description="Whether the error is recoverable")
 
 
 StreamingCitationResponse = Union[
