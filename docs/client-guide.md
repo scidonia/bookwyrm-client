@@ -6,29 +6,26 @@ All examples include proper type annotations following the project conventions.
 
 ## Installation and Setup
 
+<!--pytest.mark.skip-->
 ```bash
-# pytest-codeblocks:off
 pip install bookwyrm
-# pytest-codeblocks:on
 ```
 
 Set your API key as an environment variable:
 
+<!--pytest.mark.skip-->
 ```python
-# pytest-codeblocks:off
 import os
 os.environ["BOOKWYRM_API_KEY"] = "your-api-key-here"
-# pytest-codeblocks:on
 ```
 
 Or pass it directly to the client:
 
+<!--pytest.mark.skip-->
 ```python
-# pytest-codeblocks:off
 from bookwyrm import BookWyrmClient
 
 client = BookWyrmClient(api_key="your-api-key")
-# pytest-codeblocks:on
 ```
 
 ## 1. File Classification
