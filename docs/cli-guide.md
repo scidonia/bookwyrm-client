@@ -94,7 +94,7 @@ Let's create summaries from the phrasal data we just generated. BookWyrm support
 
 ```bash
 # Generate a basic summary from the Country of the Blind phrases
-bookwyrm summarize data/country-of-the-blind-phrases.jsonl --output data/country-of-the-blind-summary.json --max-tokens 500 --verbose
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl --output data/country-of-the-blind-summary.json --verbose
 ```
 
 ### Structured Literary Analysis with Pydantic Models
@@ -232,15 +232,13 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
   --model-class-file data/summary.py \
   --model-class-name Summary \
   --model-strength wise \
-  --max-tokens 2000 \
   --output data/country-detailed-analysis.json
 
 # Maximum sophistication for complex analysis
-bookwyrm summarize data/complex-literary-work.jsonl \
+bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
   --model-class-file data/summary.py \
   --model-class-name Summary \
   --model-strength brainiac \
-  --max-tokens 4000 \
   --output data/comprehensive-analysis.json
 ```
 
