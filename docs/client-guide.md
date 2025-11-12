@@ -740,8 +740,8 @@ After running these examples, you should have the same files as the CLI guide:
 
 The examples in this guide use sample data files included in the repository:
 
-- [`data/SOA_2025_Final.pdf`](../data/SOA_2025_Final.pdf) - State-of-the-Art spacecraft technology PDF for extraction examples
-- [`data/country-of-the-blind.txt`](../data/country-of-the-blind.txt) - H.G. Wells' "The Country of the Blind" text for phrasal analysis and summarization examples
+- [`data/SOA_2025_Final.pdf`](https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf) - State-of-the-Art spacecraft technology PDF for extraction examples
+- [`data/country-of-the-blind.txt`](https://github.com/scidonia/bookwyrm-client/blob/main/data/country-of-the-blind.txt) - H.G. Wells' "The Country of the Blind" text for phrasal analysis and summarization examples
 
 ## Key Differences from CLI
 
