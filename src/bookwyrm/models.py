@@ -221,7 +221,7 @@ class SummarizeRequest(BaseModel):
     # Pydantic model option for structured output
     model_name: Optional[str] = None
     model_schema_json: Optional[str] = None
-    summary_class: Optional[Type[BaseModel]] = None  # Direct Pydantic class
+    summary_class: Optional[Type[BaseModel]] = Field(None, exclude=True)  # Direct Pydantic class - excluded from serialization
     # Custom prompt option
     chunk_prompt: Optional[str] = None
     summary_of_summaries_prompt: Optional[str] = None
@@ -254,6 +254,8 @@ class SummarizeRequest(BaseModel):
             # Convert Pydantic class to name and schema
             self.model_name = self.summary_class.__name__
             self.model_schema_json = json.dumps(self.summary_class.model_json_schema())
+            # Clear the summary_class since it's now converted and excluded from serialization
+            self.summary_class = None
 
         # Structured output validation
         # Check if both pydantic model and custom prompts are specified
