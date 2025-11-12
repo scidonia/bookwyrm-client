@@ -577,7 +577,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import json
 
-def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, Any], Dict[str, Any]]:
+def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, Any], Dict[str, Any], List]:
     """Complete workflow from PDF to citations."""
     client = BookWyrmClient()
 
@@ -615,11 +615,21 @@ def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, An
         Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
         Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
 
-    print("Step 4: Process text for phrases (if we have a text file)")
-    # This would require having the text content available
+    print("Step 4: Process text for phrases")
+    # Process the extracted text to create phrases
+    from bookwyrm.utils import collect_phrases_from_stream
+    from bookwyrm.models import ResponseFormat
+
+    stream = client.stream_process_text(
+        text=mapping.raw_text,  # Use the raw text from the PDF mapping
+        response_format=ResponseFormat.WITH_OFFSETS
+    )
+
+    phrases = collect_phrases_from_stream(stream, verbose=True)
+    print(f"Created {len(phrases)} phrases from PDF text")
 
     print("Workflow complete!")
-    return pages, mapping, result1, result2
+    return pages, mapping, result1, result2, phrases
 
 # Run complete workflow
 results = complete_pdf_workflow()
