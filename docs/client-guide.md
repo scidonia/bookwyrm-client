@@ -22,6 +22,7 @@ os.environ["BOOKWYRM_API_KEY"] = "your-api-key-here"
 Or pass it directly to the client:
 
 ```python
+# doctest: +SKIP
 from bookwyrm import BookWyrmClient
 
 client = BookWyrmClient(api_key="your-api-key")
