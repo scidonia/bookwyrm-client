@@ -3,9 +3,43 @@
 import json
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple, Union, Iterator
 
-from .models import TextSpan, Citation, PDFTextMapping, CharacterMapping, PDFPage
+from pydantic import BaseModel
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+
+from .models import (
+    TextSpan, 
+    Citation, 
+    PDFTextMapping, 
+    CharacterMapping, 
+    PDFPage,
+    # Streaming response types
+    ClassifyProgressUpdate,
+    ClassifyStreamResponse,
+    ClassifyErrorResponse,
+    PDFStreamMetadata,
+    PDFStreamPageResponse,
+    PDFStreamPageError,
+    PDFStreamComplete,
+    PDFStreamError,
+    PhraseProgressUpdate,
+    TextResult,
+    TextSpanResult,
+    SummarizeProgressUpdate,
+    SummaryResponse,
+    SummarizeErrorResponse,
+    RateLimitMessage,
+    StructuralErrorMessage,
+    CitationProgressUpdate,
+    CitationStreamResponse,
+    CitationSummaryResponse,
+    CitationErrorResponse,
+    UsageInfo,
+)
+
+console = Console()
 
 
 def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
@@ -340,6 +374,329 @@ def query_mapping_range_in_memory(
     }
 
     return result
+
+
+def collect_classification_from_stream(
+    stream: Iterator, verbose: bool = False
+) -> Optional[ClassifyStreamResponse]:
+    """Collect classification results from a streaming response.
+
+    Args:
+        stream: Iterator of streaming classification responses
+        verbose: Whether to show detailed progress information
+
+    Returns:
+        ClassifyStreamResponse with classification results, or None if error
+
+    Raises:
+        ValueError: If classification fails or returns an error
+
+    Examples:
+        ```python
+        from bookwyrm.utils import collect_classification_from_stream
+
+        stream = client.stream_classify(content_bytes=pdf_bytes, filename="doc.pdf")
+        result = collect_classification_from_stream(stream, verbose=True)
+        
+        if result:
+            print(f"Format: {result.classification.format_type}")
+        ```
+    """
+    classification_result = None
+    
+    for response in stream:
+        if isinstance(response, ClassifyProgressUpdate):
+            if verbose:
+                console.print(f"[dim]Progress: {response.message}[/dim]")
+        elif isinstance(response, ClassifyStreamResponse):
+            classification_result = response
+            if verbose:
+                console.print("[green]✓ Classification complete![/green]")
+        elif isinstance(response, ClassifyErrorResponse):
+            raise ValueError(f"Classification error: {response.message}")
+    
+    return classification_result
+
+
+def collect_pdf_pages_from_stream(
+    stream: Iterator, verbose: bool = False
+) -> Tuple[List[PDFPage], Optional[PDFStreamMetadata]]:
+    """Collect PDF pages from a streaming extraction response.
+
+    Args:
+        stream: Iterator of streaming PDF extraction responses
+        verbose: Whether to show detailed progress information
+
+    Returns:
+        Tuple of (list of PDFPage objects, metadata)
+
+    Raises:
+        ValueError: If PDF extraction fails or returns an error
+
+    Examples:
+        ```python
+        from bookwyrm.utils import collect_pdf_pages_from_stream
+
+        stream = client.stream_extract_pdf(pdf_bytes=pdf_bytes, filename="doc.pdf")
+        pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
+        
+        print(f"Extracted {len(pages)} pages")
+        ```
+    """
+    pages = []
+    metadata = None
+    total_elements = 0
+    
+    for response in stream:
+        if isinstance(response, PDFStreamMetadata):
+            metadata = response
+            if verbose:
+                console.print(
+                    f"[dim]Document has {response.total_pages_in_document} total pages, "
+                    f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
+                )
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            total_elements += len(response.page_data.text_blocks)
+            if verbose:
+                console.print(
+                    f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
+                )
+        elif isinstance(response, PDFStreamPageError):
+            if verbose:
+                console.print(
+                    f"[red]Error on page {response.document_page}: {response.error}[/red]"
+                )
+        elif isinstance(response, PDFStreamComplete):
+            if verbose:
+                console.print("[green]✓ PDF extraction complete![/green]")
+        elif isinstance(response, PDFStreamError):
+            raise ValueError(f"PDF extraction error: {response.error}")
+    
+    return pages, metadata
+
+
+def collect_phrases_from_stream(
+    stream: Iterator, 
+    verbose: bool = False, 
+    output_file: Optional[Path] = None
+) -> List[Union[TextResult, TextSpanResult]]:
+    """Collect phrases from a streaming phrasal processing response.
+
+    Args:
+        stream: Iterator of streaming phrasal processing responses
+        verbose: Whether to show detailed progress information
+        output_file: Optional path to save phrases as JSONL
+
+    Returns:
+        List of TextResult or TextSpanResult objects
+
+    Examples:
+        ```python
+        from bookwyrm.utils import collect_phrases_from_stream
+
+        stream = client.stream_process_text(text=content, response_format=ResponseFormat.WITH_OFFSETS)
+        phrases = collect_phrases_from_stream(stream, verbose=True, output_file=Path("phrases.jsonl"))
+        
+        print(f"Found {len(phrases)} phrases")
+        ```
+    """
+    phrases = []
+    
+    for response in stream:
+        if isinstance(response, PhraseProgressUpdate):
+            if verbose:
+                console.print(
+                    f"[dim]Processed {response.phrases_processed} phrases, "
+                    f"created {response.chunks_created} chunks[/dim]"
+                )
+        elif isinstance(response, (TextResult, TextSpanResult)):
+            phrases.append(response)
+            
+            if verbose:
+                if isinstance(response, TextSpanResult):
+                    console.print(
+                        f"[green]Phrase ({response.start_char}-{response.end_char}):[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
+                    )
+                else:
+                    console.print(
+                        f"[green]Phrase:[/green] {response.text[:100]}{'...' if len(response.text) > 100 else ''}"
+                    )
+            
+            # Save to output file if specified
+            if output_file:
+                try:
+                    with open(output_file, "a", encoding="utf-8") as f:
+                        f.write(response.model_dump_json(exclude_none=True) + "\n")
+                        f.flush()
+                except Exception as e:
+                    raise ValueError(f"Error writing to output file: {e}")
+    
+    return phrases
+
+
+def collect_summary_from_stream(
+    stream: Iterator, verbose: bool = False
+) -> Optional[SummaryResponse]:
+    """Collect summary results from a streaming summarization response.
+
+    Args:
+        stream: Iterator of streaming summarization responses
+        verbose: Whether to show detailed progress information
+
+    Returns:
+        SummaryResponse with final summary, or None if error
+
+    Raises:
+        ValueError: If summarization fails or returns an error
+
+    Examples:
+        ```python
+        from bookwyrm.utils import collect_summary_from_stream
+
+        stream = client.stream_summarize(phrases=phrases, max_tokens=1000)
+        result = collect_summary_from_stream(stream, verbose=True)
+        
+        if result:
+            print(f"Summary: {result.summary}")
+        ```
+    """
+    final_result = None
+    
+    for response in stream:
+        if isinstance(response, SummarizeProgressUpdate):
+            if verbose:
+                console.print(
+                    f"[dim]Level {response.current_level}/{response.total_levels}: {response.message}[/dim]"
+                )
+        elif isinstance(response, RateLimitMessage):
+            if verbose:
+                console.print(
+                    f"[orange1]⚠ Rate limit retry {response.attempt}/{response.max_attempts}[/orange1]"
+                )
+        elif isinstance(response, StructuralErrorMessage):
+            if verbose:
+                if response.error_type == "fallback":
+                    console.print(f"[orange1]⚠ {response.message}[/orange1]")
+                else:
+                    console.print(
+                        f"[orange1]⚠ Structured output retry {response.attempt}/{response.max_attempts}[/orange1]"
+                    )
+        elif isinstance(response, SummaryResponse):
+            final_result = response
+            if verbose:
+                console.print("[green]✓ Summarization complete![/green]")
+        elif isinstance(response, SummarizeErrorResponse):
+            raise ValueError(f"Summarization error: {response.error}")
+    
+    return final_result
+
+
+def collect_citations_from_stream(
+    stream: Iterator, verbose: bool = False
+) -> Tuple[List[Citation], Optional[UsageInfo]]:
+    """Collect citations from a streaming citation response.
+
+    Args:
+        stream: Iterator of streaming citation responses
+        verbose: Whether to show detailed progress information
+
+    Returns:
+        Tuple of (list of Citation objects, usage information)
+
+    Examples:
+        ```python
+        from bookwyrm.utils import collect_citations_from_stream
+
+        stream = client.stream_citations(chunks=chunks, question="What is mentioned?")
+        citations, usage = collect_citations_from_stream(stream, verbose=True)
+        
+        print(f"Found {len(citations)} citations")
+        ```
+    """
+    citations = []
+    usage_info = None
+    
+    for response in stream:
+        if isinstance(response, CitationProgressUpdate):
+            if verbose:
+                console.print(f"[dim]{response.message}[/dim]")
+        elif isinstance(response, CitationStreamResponse):
+            citations.append(response.citation)
+            if verbose:
+                quality_text = f"quality {response.citation.quality}/4"
+                console.print(f"[green]Found citation ({quality_text})[/green]")
+        elif isinstance(response, CitationSummaryResponse):
+            usage_info = response.usage
+            if verbose:
+                console.print(
+                    f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
+                )
+                if response.usage:
+                    cost_str = (
+                        f"${response.usage.estimated_cost:.4f}"
+                        if response.usage.estimated_cost is not None
+                        else "N/A"
+                    )
+                    console.print(
+                        f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
+                    )
+        elif isinstance(response, CitationErrorResponse):
+            raise ValueError(f"Citation error: {response.error}")
+    
+    return citations, usage_info
+
+
+def save_model_to_json(model: BaseModel, output_path: Path) -> None:
+    """Save a Pydantic model to a JSON file.
+
+    Args:
+        model: Pydantic model instance to save
+        output_path: Path where to save the JSON file
+
+    Raises:
+        ValueError: If there's an error saving the file
+
+    Examples:
+        ```python
+        from bookwyrm.utils import save_model_to_json
+        from pathlib import Path
+
+        # After getting a summary result
+        save_model_to_json(summary_result, Path("output/summary.json"))
+        ```
+    """
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(model.model_dump_json(indent=2))
+    except Exception as e:
+        raise ValueError(f"Error saving model to {output_path}: {e}")
+
+
+def save_models_list_to_json(models: List[BaseModel], output_path: Path) -> None:
+    """Save a list of Pydantic models to a JSON file.
+
+    Args:
+        models: List of Pydantic model instances to save
+        output_path: Path where to save the JSON file
+
+    Raises:
+        ValueError: If there's an error saving the file
+
+    Examples:
+        ```python
+        from bookwyrm.utils import save_models_list_to_json
+        from pathlib import Path
+
+        # After collecting citations
+        save_models_list_to_json(citations, Path("output/citations.json"))
+        ```
+    """
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump([model.model_dump() for model in models], f, indent=2)
+    except Exception as e:
+        raise ValueError(f"Error saving models list to {output_path}: {e}")
 
 
 def pdf_to_text_with_mapping_from_json(
