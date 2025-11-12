@@ -41,7 +41,7 @@ You can also specify custom output filenames:
 
 ```bash
 # Convert with custom output filenames
-bookwyrm pdf-to-text data/heinrich_pages_1-4.json \
+bookwyrm pdf-to-text data/SOA_2025_Final_1-4.json \
   --output data/SOA_2025_Final_1-4_text.txt \
   --mapping data/SOA_2025_Final_1-4_char_map.json \
   --verbose
@@ -267,16 +267,16 @@ Here's a complete workflow for processing a PDF from extraction to position quer
 
 ```bash
 # Step 1: Extract PDF structure
-bookwyrm extract-pdf data/Heinrich_palaces.pdf --start-page 1 --num-pages 4 --output data/heinrich_extracted.json
+bookwyrm extract-pdf data/SOA_2025_Final.pdf --start-page 1 --num-pages 4 --output data/SOA_2025_Final_extracted.json
 
 # Step 2: Convert to raw text with character mapping
-bookwyrm pdf-to-text data/heinrich_extracted.json --verbose
+bookwyrm pdf-to-text data/SOA_2025_Final_extracted.json --verbose
 
 # Step 3: Query specific character ranges
-bookwyrm pdf-query-range data/heinrich_extracted_mapping.json 0 100 --verbose
+bookwyrm pdf-query-range data/SOA_2025_Final_extracted_mapping.json 0 100 --verbose
 
 # Step 4: Query a larger range and save results
-bookwyrm pdf-query-range data/heinrich_extracted_mapping.json 1000 2000 --output data/positions_1000-2000.json
+bookwyrm pdf-query-range data/SOA_2025_Final_extracted_mapping.json 1000 2000 --output data/positions_1000-2000.json
 ```
 
 ## Additional Options
@@ -328,9 +328,9 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 ## Expected Output Files
 
 After running these commands, you should have:
-- `data/heinrich_pages_1-4.json` - Structured PDF data with bounding boxes
-- `data/heinrich_pages_1-4_raw.txt` - Raw text extracted from PDF
-- `data/heinrich_pages_1-4_mapping.json` - Character position to bounding box mapping
+- `data/SOA_2025_Final_1-4.json` - Structured PDF data with bounding boxes
+- `data/SOA_2025_Final_1-4_raw.txt` - Raw text extracted from PDF
+- `data/SOA_2025_Final_1-4_mapping.json` - Character position to bounding box mapping
 - `data/character_positions.json` - Query results for specific character ranges
 - `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis
 - `data/country-of-the-blind-summary.json` - Basic text summary
