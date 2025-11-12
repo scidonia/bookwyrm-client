@@ -7,6 +7,7 @@ All examples include proper type annotations following the project conventions.
 ## Installation and Setup
 
 <!--pytest.mark.skip-->
+
 ```bash
 pip install bookwyrm
 ```
@@ -14,6 +15,7 @@ pip install bookwyrm
 Set your API key as an environment variable:
 
 <!--pytest.mark.skip-->
+
 ```python
 import os
 os.environ["BOOKWYRM_API_KEY"] = "your-api-key-here"
@@ -174,6 +176,7 @@ def convert_pdf_to_text(pages: List[PDFPage]) -> PDFTextMapping:
 If you need to save the mapping to files:
 
 <!--pytest.mark.skip-->
+
 ```python
 from pathlib import Path
 
@@ -185,6 +188,7 @@ from pathlib import Path
 For working with JSON data directly (if you have extraction data as a dictionary):
 
 <!--pytest.mark.skip-->
+
 ```python
 from bookwyrm.utils import pdf_to_text_with_mapping_from_json
 
@@ -197,6 +201,7 @@ from bookwyrm.utils import pdf_to_text_with_mapping_from_json
 For loading from saved JSON files (less preferred):
 
 <!--pytest.mark.skip-->
+
 ```python
 from bookwyrm.utils import pdf_to_text_with_mapping
 from pathlib import Path
@@ -212,6 +217,7 @@ mapping = pdf_to_text_with_mapping(
 Query specific character ranges to get their bounding box coordinates using the built-in utilities:
 
 <!--pytest.mark.skip-->
+
 ```python
 from bookwyrm.utils import query_mapping_range_in_memory
 from bookwyrm import BookWyrmClient
@@ -638,6 +644,7 @@ results = complete_pdf_workflow()
 ## Error Handling and Best Practices
 
 <!--pytest.mark.skip-->
+
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError

@@ -198,7 +198,9 @@ class CitationErrorResponse(BaseModel):
     """
 
     type: Literal["error"] = Field("error", description="Message type identifier")
-    error_message: str = Field(..., description="Error message describing what went wrong")
+    error_message: str = Field(
+        ..., description="Error message describing what went wrong"
+    )
     recoverable: bool = Field(True, description="Whether the error is recoverable")
 
 
@@ -222,7 +224,9 @@ class SummarizeRequest(BaseModel):
     # Pydantic model option for structured output
     model_name: Optional[str] = None
     model_schema_json: Optional[str] = None
-    summary_class: Optional[Type[BaseModel]] = Field(None, exclude=True)  # Direct Pydantic class - excluded from serialization
+    summary_class: Optional[Type[BaseModel]] = Field(
+        None, exclude=True
+    )  # Direct Pydantic class - excluded from serialization
     # Custom prompt option
     chunk_prompt: Optional[str] = None
     summary_of_summaries_prompt: Optional[str] = None

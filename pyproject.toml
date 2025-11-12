@@ -79,4 +79,3 @@ dev = [
   "tox-uv>=1.28.0",
   "pytest-codeblocks>=0.16.0",
 ]
-
