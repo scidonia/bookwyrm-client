@@ -45,6 +45,7 @@ for stream_response in client.stream_citations(
 ## Documentation
 
 - [Getting Started](getting-started.md) - Installation and basic usage
+- [CLI Guide](cli-guide.md) - Comprehensive CLI tutorial with examples
 - [Examples](examples.md) - Code examples for common use cases
 - [CLI Reference](cli.md) - Command-line interface documentation
 - [API Reference](api/index.md) - Detailed API documentation
