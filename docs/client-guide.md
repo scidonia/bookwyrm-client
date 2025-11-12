@@ -483,7 +483,6 @@ custom_result = custom_prompt_analysis()
 
 Find specific citations related to questions in the text:
 
-<!--pytest.mark.skip-->
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse, CitationErrorResponse, Citation
@@ -569,7 +568,7 @@ multiple_citations = find_multiple_citations()
 ## Complete Workflow Example
 
 Here's a complete workflow that processes a PDF from extraction to citation finding:
-<!--pytest.mark.skip-->
+
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.utils import create_pdf_text_mapping_from_pages, query_mapping_range_in_memory, save_mapping_query_in_memory
@@ -581,11 +580,11 @@ import json
 def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, Any], Dict[str, Any]]:
     """Complete workflow from PDF to citations."""
     client = BookWyrmClient()
-    
+
     print("Step 1: Extract PDF structure")
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
-    
+
     pages = []
     for response in client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
@@ -595,31 +594,30 @@ def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, An
     ):
         if isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
-    
+
     print("Step 2: Create text mapping directly from pages (in-memory)")
     # Use in-memory utility function - no file I/O needed
     mapping = create_pdf_text_mapping_from_pages(pages)
-    
+
     print("Step 3: Query character ranges (in-memory)")
     # Use in-memory mapping (preferred)
     result1 = query_mapping_range_in_memory(mapping, 0, 100)
-    result2 = save_mapping_query_in_memory(mapping, 1000, 2000, 
-                                          Path("data/positions_1000-2000.json"))
-    
+    result2 = save_mapping_query_in_memory(mapping, 1000, 2000, Path("data/positions_1000-2000.json"))
+
     # Optional: Save extracted data and mapping if needed for later use
     save_files = False  # Set to True if you want to save files
     if save_files:
         output_data = {"pages": [page.model_dump() for page in pages]}
         with open("data/SOA_2025_Final_extracted.json", "w") as f:
             json.dump(output_data, f, indent=2)
-        
+
         # Save text and mapping files
         Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
         Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
-    
+
     print("Step 4: Process text for phrases (if we have a text file)")
     # This would require having the text content available
-    
+
     print("Workflow complete!")
     return pages, mapping, result1, result2
 
@@ -628,6 +626,7 @@ results = complete_pdf_workflow()
 ```
 
 ## Error Handling and Best Practices
+
 <!--pytest.mark.skip-->
 ```python
 from bookwyrm import BookWyrmClient
@@ -638,20 +637,20 @@ from typing import List
 def robust_citation_search() -> List[Citation]:
     """Example with proper error handling."""
     from bookwyrm.utils import load_phrases_from_jsonl, collect_citations_from_stream
-    
+
     client = BookWyrmClient()
-    
+
     try:
         phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
-        
+
         stream = client.stream_citations(
             chunks=phrases,
             question="What are the main themes?"
         )
-        
+
         citations, usage = collect_citations_from_stream(stream, verbose=True)
         return citations
-        
+
     except BookWyrmAPIError as e:
         print(f"API Error: {e}")
         if e.status_code:
@@ -662,7 +661,7 @@ def robust_citation_search() -> List[Citation]:
         print(f"File not found: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
-    
+
     return []
 
 # Use context manager for automatic cleanup
