@@ -8,6 +8,7 @@ First, let's classify a PDF file to understand its content type and structure:
 
 ```bash
 # Classify the State-of-the-Art spacecraft technology (SOA) PDF to understand its content
+# Note: This file should be located in your repository's data/ directory
 bookwyrm classify --file data/SOA_2025_Final.pdf
 ```
 
@@ -19,6 +20,7 @@ Next, let's extract structured data from specific pages of the PDF:
 
 ```bash
 # Extract structured JSON data from pages 1-4 of the SOA PDF
+# The SOA_2025_Final.pdf file is included in the repository's data/ directory
 bookwyrm extract-pdf data/SOA_2025_Final.pdf --start-page 1 --num-pages 4 --output data/SOA_2025_Final_1-4.json
 ```
 
