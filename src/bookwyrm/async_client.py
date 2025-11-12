@@ -765,7 +765,7 @@ class AsyncBookWyrmClient:
 
             async def process_from_url():
                 async with AsyncBookWyrmClient(api_key="your-api-key") as client:
-                    phrases = []
+                    phrases: List[Union[TextResult, TextSpanResult]] = []
                     async for response in client.stream_process_text(
                         text_url="https://www.gutenberg.org/files/11/11-0.txt",
                         chunk_size=2000,

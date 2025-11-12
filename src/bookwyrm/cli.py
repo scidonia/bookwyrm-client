@@ -104,7 +104,7 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
 
 def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load phrases from a JSONL file."""
-    phrases = []
+    phrases: List[TextSpan] = []
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):

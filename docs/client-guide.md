@@ -2,6 +2,8 @@
 
 This guide demonstrates how to use the BookWyrm Python client library to perform the same operations shown in the CLI guide. We'll focus on the synchronous `BookWyrmClient` for simplicity.
 
+All examples include proper type annotations following the project conventions.
+
 ## Installation and Setup
 
 ```bash
@@ -29,10 +31,10 @@ Classify documents to understand their content type and structure:
 
 ```python
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import ClassifyProgressUpdate, ClassifyStreamResponse, ClassifyErrorResponse
+from bookwyrm.models import ClassifyProgressUpdate, ClassifyStreamResponse, ClassifyErrorResponse, ClassifyResponse
 from pathlib import Path
 
-def classify_pdf():
+def classify_pdf() -> ClassifyResponse:
     """Classify a PDF file to understand its content."""
     client = BookWyrmClient()
     
@@ -54,14 +56,14 @@ def classify_pdf():
     
     return response
 
-def classify_pdf_with_progress():
+def classify_pdf_with_progress() -> Optional[ClassifyStreamResponse]:
     """Classify a PDF with real-time progress updates."""
     client = BookWyrmClient()
     
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
-    classification_result = None
+    classification_result: Optional[ClassifyStreamResponse] = None
     for response in client.stream_classify(
         content_bytes=pdf_bytes,
         filename="SOA_2025_Final.pdf"
@@ -87,19 +89,20 @@ Extract structured data from specific pages of a PDF:
 
 ```python
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamComplete, PDFStreamPageError
+from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamComplete, PDFStreamPageError, PDFPage
 from pathlib import Path
+from typing import List
 import json
 
-def extract_pdf_structure():
+def extract_pdf_structure() -> List[PDFPage]:
     """Extract structured data from PDF pages 1-4."""
     client = BookWyrmClient()
     
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
-    pages = []
-    metadata = None
+    pages: List[PDFPage] = []
+    metadata: Optional[PDFStreamMetadata] = None
     
     for response in client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
@@ -131,11 +134,11 @@ def extract_pdf_structure():
     print(f"Saved structured data to {output_path}")
     return pages
 
-def extract_pdf_from_url():
+def extract_pdf_from_url() -> List[PDFPage]:
     """Extract PDF structure from a URL."""
     client = BookWyrmClient()
     
-    pages = []
+    pages: List[PDFPage] = []
     for response in client.stream_extract_pdf(
         pdf_url="https://example.com/document.pdf",
         start_page=1,
@@ -157,8 +160,10 @@ Convert the extracted PDF data to raw text with character position mapping using
 
 ```python
 from bookwyrm.utils import create_pdf_text_mapping_from_pages
+from bookwyrm.models import PDFPage, PDFTextMapping
+from typing import List
 
-def convert_pdf_to_text(pages):
+def convert_pdf_to_text(pages: List[PDFPage]) -> PDFTextMapping:
     """Convert PDF page objects to raw text with character mapping (in-memory)."""
     
     # Convert PDF pages to text mapping directly in memory (preferred)
@@ -276,9 +281,10 @@ Process text files to extract meaningful phrases and text spans:
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import TextResult, TextSpanResult, PhraseProgressUpdate, ResponseFormat
 from pathlib import Path
+from typing import List, Union
 import json
 
-def process_text_to_phrases():
+def process_text_to_phrases() -> List[Union[TextResult, TextSpanResult]]:
     """Create phrasal analysis of a text file."""
     client = BookWyrmClient()
     
@@ -286,7 +292,7 @@ def process_text_to_phrases():
     text_file = Path("data/country-of-the-blind.txt")
     text_content = text_file.read_text(encoding='utf-8')
     
-    phrases = []
+    phrases: List[Union[TextResult, TextSpanResult]] = []
     for response in client.stream_process_text(
         text=text_content,
         response_format=ResponseFormat.WITH_OFFSETS
@@ -305,7 +311,7 @@ def process_text_to_phrases():
     print(f"Saved {len(phrases)} phrases to {output_file}")
     return phrases
 
-def process_text_from_url():
+def process_text_from_url() -> List[Union[TextResult, TextSpanResult]]:
     """Process text from a URL."""
     client = BookWyrmClient()
     
@@ -340,9 +346,10 @@ Create summaries from phrasal data using both basic and structured approaches:
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import TextSpan, SummaryResponse, SummarizeProgressUpdate
 from pathlib import Path
+from typing import List
 import json
 
-def load_phrases_from_jsonl(file_path):
+def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load phrases from a JSONL file."""
     phrases = []
     with open(file_path, 'r') as f:
@@ -358,7 +365,7 @@ def load_phrases_from_jsonl(file_path):
                     phrases.append(phrase)
     return phrases
 
-def basic_summarization():
+def basic_summarization() -> Optional[SummaryResponse]:
     """Generate a basic summary from phrases."""
     client = BookWyrmClient()
     
@@ -366,7 +373,7 @@ def basic_summarization():
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
     # Stream summarization with progress
-    final_summary = None
+    final_summary: Optional[SummaryResponse] = None
     for response in client.stream_summarize(
         phrases=phrases,
         max_tokens=500,
@@ -401,6 +408,7 @@ summary = basic_summarization()
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import SummaryResponse, SummarizeProgressUpdate
 from pathlib import Path
+from typing import Optional
 import json
 import sys
 
@@ -408,7 +416,7 @@ import sys
 sys.path.append('data')
 from summary import Summary
 
-def structured_literary_analysis():
+def structured_literary_analysis() -> Optional[SummaryResponse]:
     """Generate structured literary analysis using the Summary model."""
     client = BookWyrmClient()
     
@@ -416,7 +424,7 @@ def structured_literary_analysis():
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
     # Create structured summary using the Summary Pydantic model
-    final_result = None
+    final_result: Optional[SummaryResponse] = None
     for response in client.stream_summarize(
         phrases=phrases,
         summary_class=Summary,
@@ -449,13 +457,13 @@ def structured_literary_analysis():
     
     return final_result
 
-def high_quality_analysis():
+def high_quality_analysis() -> Optional[SummaryResponse]:
     """Generate high-quality analysis using the 'wise' model."""
     client = BookWyrmClient()
     
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
-    final_result = None
+    final_result: Optional[SummaryResponse] = None
     for response in client.stream_summarize(
         phrases=phrases,
         summary_class=Summary,
@@ -484,13 +492,13 @@ detailed_result = high_quality_analysis()
 ### Custom Prompts for Specialized Analysis
 
 ```python
-def custom_prompt_analysis():
+def custom_prompt_analysis() -> Optional[SummaryResponse]:
     """Use custom prompts for specialized literary analysis."""
     client = BookWyrmClient()
     
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
-    final_result = None
+    final_result: Optional[SummaryResponse] = None
     for response in client.stream_summarize(
         phrases=phrases,
         chunk_prompt="Extract key themes, symbols, and literary devices from this text",
@@ -519,18 +527,19 @@ Find specific citations related to questions in the text:
 
 ```python
 from bookwyrm import BookWyrmClient
-from bookwyrm.models import CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse, CitationErrorResponse
+from bookwyrm.models import CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse, CitationErrorResponse, Citation
 from pathlib import Path
+from typing import List
 import json
 
-def find_citations():
+def find_citations() -> List[Citation]:
     """Find citations about life-threatening situations."""
     client = BookWyrmClient()
     
     # Load phrases
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
-    citations = []
+    citations: List[Citation] = []
     for response in client.stream_citations(
         chunks=phrases,
         question="Where does the protagonist experience life threatening situations?"
@@ -554,7 +563,7 @@ def find_citations():
     print(f"Saved {len(citations)} citations to {output_file}")
     return citations
 
-def find_multiple_citations():
+def find_multiple_citations() -> List[Citation]:
     """Ask multiple questions about the story."""
     client = BookWyrmClient()
     
@@ -566,10 +575,10 @@ def find_multiple_citations():
         "What role does blindness play in the narrative?"
     ]
     
-    all_citations = []
+    all_citations: List[Citation] = []
     for question in questions:
         print(f"\nSearching for: {question}")
-        question_citations = []
+        question_citations: List[Citation] = []
         
         for response in client.stream_citations(
             chunks=phrases,
@@ -584,13 +593,13 @@ def find_multiple_citations():
     
     return all_citations
 
-def find_citations_with_limits():
+def find_citations_with_limits() -> List[Citation]:
     """Find citations with start and limit parameters."""
     client = BookWyrmClient()
     
     phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
     
-    citations = []
+    citations: List[Citation] = []
     for response in client.stream_citations(
         chunks=phrases,
         question="What are the key themes in the story?",
@@ -615,11 +624,12 @@ Here's a complete workflow that processes a PDF from extraction to citation find
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.utils import create_pdf_text_mapping_from_pages, query_mapping_range_in_memory, save_mapping_query_in_memory
-from bookwyrm.models import PDFStreamPageResponse
+from bookwyrm.models import PDFStreamPageResponse, PDFPage, PDFTextMapping
 from pathlib import Path
+from typing import List, Dict, Any, Tuple
 import json
 
-def complete_pdf_workflow():
+def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, Any], Dict[str, Any]]:
     """Complete workflow from PDF to citations."""
     client = BookWyrmClient()
     
@@ -673,8 +683,10 @@ results = complete_pdf_workflow()
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.client import BookWyrmAPIError, BookWyrmClientError
+from bookwyrm.models import Citation, CitationStreamResponse, CitationErrorResponse
+from typing import List
 
-def robust_citation_search():
+def robust_citation_search() -> List[Citation]:
     """Example with proper error handling."""
     client = BookWyrmClient()
     
@@ -708,7 +720,7 @@ def robust_citation_search():
     return []
 
 # Use context manager for automatic cleanup
-def safe_client_usage():
+def safe_client_usage() -> ClassifyResponse:
     """Use client with context manager for automatic cleanup."""
     with BookWyrmClient() as client:
         # Client will be automatically closed when exiting the context
