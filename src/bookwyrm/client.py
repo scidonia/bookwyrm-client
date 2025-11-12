@@ -54,6 +54,7 @@ from .models import (
     PDFStreamError,
     TextSpan,
     UsageInfo,
+    PDFTextMapping,
 )
 
 
@@ -323,6 +324,88 @@ class BookWyrmClient:
             raise _marshal_http_error(e)
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
+
+    def query_character_range(
+        self,
+        *,
+        mapping: Optional[PDFTextMapping] = None,
+        mapping_file: Optional[Path] = None,
+        start_char: int,
+        end_char: int,
+        output_file: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        """Query character positions to get bounding boxes from mapping object or file.
+        
+        This method queries a character range to get the corresponding bounding boxes,
+        pages, and sample text. It can work with either an in-memory PDFTextMapping
+        object or load from a mapping file.
+        
+        Args:
+            mapping: In-memory PDFTextMapping object
+            mapping_file: Path to character mapping JSON file
+            start_char: Starting character index (inclusive)
+            end_char: Ending character index (exclusive)
+            output_file: Optional path to save query results
+            
+        Returns:
+            Dictionary containing query results with bounding boxes, pages, and sample text
+            
+        Raises:
+            ValueError: If neither mapping nor mapping_file is provided, or if character range is invalid
+            FileNotFoundError: If mapping_file doesn't exist
+            
+        Examples:
+            Query from in-memory mapping:
+            
+            ```python
+            # After creating mapping from pages
+            mapping = create_pdf_text_mapping_from_pages(pages)
+            
+            result = client.query_character_range(
+                mapping=mapping,
+                start_char=100,
+                end_char=200
+            )
+            
+            print(f"Found bounding boxes on {len(result['pages'])} pages")
+            ```
+            
+            Query from mapping file:
+            
+            ```python
+            result = client.query_character_range(
+                mapping_file=Path("data/mapping.json"),
+                start_char=100,
+                end_char=200,
+                output_file=Path("data/query_results.json")
+            )
+            ```
+        """
+        from .utils import query_mapping_range_in_memory, query_character_range, save_mapping_query_in_memory
+        
+        # Validate inputs
+        if mapping is None and mapping_file is None:
+            raise ValueError("Either mapping or mapping_file must be provided")
+        if mapping is not None and mapping_file is not None:
+            raise ValueError("Only one of mapping or mapping_file can be provided")
+        
+        # Use appropriate utility function
+        if mapping is not None:
+            # Use in-memory mapping
+            result = query_mapping_range_in_memory(mapping, start_char, end_char)
+            
+            # Save to file if requested
+            if output_file is not None:
+                result = save_mapping_query_in_memory(mapping, start_char, end_char, output_file)
+        else:
+            # Use mapping file
+            from .utils import save_character_query
+            if output_file is not None:
+                result = save_character_query(mapping_file, start_char, end_char, output_file)
+            else:
+                result = query_character_range(mapping_file, start_char, end_char)
+        
+        return result
 
     def stream_classify(
         self,

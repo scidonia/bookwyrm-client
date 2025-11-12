@@ -429,7 +429,7 @@ def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapp
 
     # Save raw text
     try:
-        output_path.write_text(raw_text, encoding="utf-8")
+        output_path.write_text(pdf_mapping.raw_text, encoding="utf-8")
     except Exception as e:
         raise ValueError(f"Error saving raw text: {e}")
 
