@@ -153,73 +153,57 @@ pages = extract_pdf_structure()
 
 ## 3. PDF to Text Conversion with Character Mapping
 
-The client library doesn't have a direct equivalent to the CLI's `pdf-to-text` command, but you can process the extracted PDF data to create text and character mappings:
+Convert the extracted PDF data to raw text with character position mapping using the built-in utility functions:
 
 ```python
-from bookwyrm.models import PDFTextMapping, CharacterMapping
+from bookwyrm.utils import pdf_to_text_with_mapping
 from pathlib import Path
-import json
 
-def pdf_to_text_with_mapping(pdf_data_file):
+def convert_pdf_to_text():
     """Convert PDF extraction data to raw text with character mapping."""
     
-    # Load the extracted PDF data
-    with open(pdf_data_file, 'r') as f:
-        pdf_data = json.load(f)
-    
-    # Extract text and create character mappings
-    raw_text = ""
-    character_mappings = []
-    
-    for page_data in pdf_data.get("pages", []):
-        page_num = page_data.get("page_number", 1)
-        
-        for text_block in page_data.get("text_blocks", []):
-            text = text_block.get("text", "")
-            bbox = text_block.get("bbox", {})
-            
-            # Create character mapping for this text block
-            start_char = len(raw_text)
-            end_char = start_char + len(text)
-            
-            mapping = CharacterMapping(
-                start_char=start_char,
-                end_char=end_char,
-                page_number=page_num,
-                bounding_box=bbox,
-                confidence=text_block.get("confidence", 1.0),
-                text_sample=text[:50]  # First 50 characters as sample
-            )
-            character_mappings.append(mapping)
-            
-            raw_text += text + "\n"
-    
-    # Create the complete mapping
-    text_mapping = PDFTextMapping(
-        raw_text=raw_text,
-        character_mappings=character_mappings,
-        total_pages=len(pdf_data.get("pages", [])),
-        source_file=str(pdf_data_file)
+    # Convert PDF extraction to text with mapping using utility function
+    mapping = pdf_to_text_with_mapping(
+        Path("data/SOA_2025_Final_pages_1-4.json")
     )
     
-    # Save raw text
-    base_name = Path(pdf_data_file).stem
-    text_file = Path(f"data/{base_name}_raw.txt")
-    with open(text_file, 'w', encoding='utf-8') as f:
-        f.write(raw_text)
+    print(f"Created raw text with {len(mapping.raw_text)} characters")
+    print(f"Created {len(mapping.character_mappings)} character mappings")
+    print(f"Processed {mapping.total_pages} pages")
     
-    # Save character mapping
-    mapping_file = Path(f"data/{base_name}_mapping.json")
-    with open(mapping_file, 'w') as f:
-        json.dump(text_mapping.model_dump(), f, indent=2)
-    
-    print(f"Created raw text file: {text_file}")
-    print(f"Created character mapping: {mapping_file}")
-    
-    return text_mapping
+    return mapping
 
 # Convert PDF data to text with mapping
-mapping = pdf_to_text_with_mapping("data/SOA_2025_Final_pages_1-4.json")
+mapping = convert_pdf_to_text()
+```
+
+You can also specify custom output paths:
+
+```python
+from bookwyrm.utils import pdf_to_text_with_mapping
+from pathlib import Path
+
+# Convert with custom output filenames
+mapping = pdf_to_text_with_mapping(
+    Path("data/SOA_2025_Final_pages_1-4.json"),
+    output_path=Path("data/custom_text.txt"),
+    mapping_output=Path("data/custom_mapping.json")
+)
+```
+
+For in-memory processing without saving files, use the JSON data directly:
+
+```python
+from bookwyrm.utils import pdf_to_text_with_mapping_from_json
+import json
+
+# Load extraction data
+with open("data/SOA_2025_Final_pages_1-4.json", "r") as f:
+    extraction_data = json.load(f)
+
+# Convert to text mapping in memory
+mapping = pdf_to_text_with_mapping_from_json(extraction_data)
+print(f"Converted {len(mapping.raw_text)} characters")
 ```
 
 ## 4. Querying Character Positions
@@ -609,6 +593,7 @@ Here's a complete workflow that processes a PDF from extraction to citation find
 
 ```python
 from bookwyrm import BookWyrmClient
+from bookwyrm.utils import create_pdf_text_mapping_from_pages, query_mapping_range_in_memory, save_mapping_query_in_memory
 from pathlib import Path
 import json
 
@@ -630,18 +615,25 @@ def complete_pdf_workflow():
         if isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
     
-    # Save extracted data
-    output_data = {"pages": [page.model_dump() for page in pages]}
-    with open("data/SOA_2025_Final_extracted.json", "w") as f:
-        json.dump(output_data, f, indent=2)
+    print("Step 2: Create text mapping directly from pages (in-memory)")
+    # Use in-memory utility function - no file I/O needed
+    mapping = create_pdf_text_mapping_from_pages(pages)
     
-    print("Step 2: Convert to text and create character mapping")
-    mapping = pdf_to_text_with_mapping("data/SOA_2025_Final_extracted.json")
+    print("Step 3: Query character ranges (in-memory)")
+    # Use in-memory mapping (preferred)
+    result1 = query_mapping_range_in_memory(mapping, 0, 100)
+    result2 = save_mapping_query_in_memory(mapping, 1000, 2000, 
+                                          Path("data/positions_1000-2000.json"))
     
-    print("Step 3: Query character ranges")
-    result1 = query_character_range("data/SOA_2025_Final_extracted_mapping.json", 0, 100)
-    result2 = save_character_query("data/SOA_2025_Final_extracted_mapping.json", 1000, 2000, 
-                                   "data/positions_1000-2000.json")
+    # Optional: Save extracted data and mapping if needed for later use
+    if you_want_to_save_files:
+        output_data = {"pages": [page.model_dump() for page in pages]}
+        with open("data/SOA_2025_Final_extracted.json", "w") as f:
+            json.dump(output_data, f, indent=2)
+        
+        # Save text and mapping files
+        Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
+        Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
     
     print("Step 4: Process text for phrases (if we have a text file)")
     # This would require having the text content available
