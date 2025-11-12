@@ -446,6 +446,8 @@ detailed_result = high_quality_analysis()
 
 ```python
 from typing import Optional
+from bookwyrm import BookWyrmClient
+from bookwyrm.models import SummaryResponse
 
 def custom_prompt_analysis() -> Optional[SummaryResponse]:
     """Use custom prompts for specialized literary analysis."""
