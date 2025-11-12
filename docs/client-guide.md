@@ -245,6 +245,26 @@ if you_need_to_save_results:
         end_char=1089,
         output_file=Path("data/character_positions.json")
     )
+
+# Query from mapping data directly (in-memory)
+from bookwyrm import query_character_range_from_mapping
+import json
+
+# Load mapping data
+with open("data/mapping.json", "r") as f:
+    mapping_data = json.load(f)
+
+# Query character range in memory
+result = query_character_range_from_mapping(mapping_data, 974, 1089)
+print(f"Found bounding boxes on {len(result['pages'])} pages")
+
+# Query from mapping file (loads file internally)
+from bookwyrm import query_character_range
+result = query_character_range(
+    Path("data/mapping.json"), 
+    start_char=974, 
+    end_char=1089
+)
 ```
 
 ## 5. Phrasal Text Processing
