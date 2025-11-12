@@ -29,14 +29,18 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Tutorials:
+      - CLI Guide: cli-guide.md
+      - Client Library Guide: client-guide.md
   - Examples: examples.md
   - AI Integration: ai.md
-  - CLI Reference: cli.md
-  - API Reference:
-      - api/index.md
-      - Synchronous Client: api/client.md
-      - Asynchronous Client: api/async-client.md
-      - Models: api/models.md
+  - Reference:
+      - CLI Reference: cli.md
+      - API Reference:
+          - api/index.md
+          - Synchronous Client: api/client.md
+          - Asynchronous Client: api/async-client.md
+          - Models: api/models.md
   - Contributing: contributing.md
 plugins:
   - search
