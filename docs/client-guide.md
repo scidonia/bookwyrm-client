@@ -35,6 +35,7 @@ Classify documents to understand their content type and structure:
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import ClassifyProgressUpdate, ClassifyStreamResponse, ClassifyErrorResponse, ClassifyResponse
 from pathlib import Path
+from typing import Optional
 
 def classify_pdf() -> ClassifyResponse:
     """Classify a PDF file to understand its content."""
