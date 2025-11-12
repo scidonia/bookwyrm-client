@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional, Tuple, Union, Iterator
 
 from pydantic import BaseModel
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TaskID
 
 from .models import (
     TextSpan, 
@@ -377,7 +377,10 @@ def query_mapping_range_in_memory(
 
 
 def collect_classification_from_stream(
-    stream: Iterator, verbose: bool = False
+    stream: Iterator, 
+    verbose: bool = False,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None
 ) -> Optional[ClassifyStreamResponse]:
     """Collect classification results from a streaming response.
 
@@ -406,11 +409,15 @@ def collect_classification_from_stream(
     
     for response in stream:
         if isinstance(response, ClassifyProgressUpdate):
-            if verbose:
+            if progress and task_id:
+                progress.update(task_id, description=response.message)
+            elif verbose:
                 console.print(f"[dim]Progress: {response.message}[/dim]")
         elif isinstance(response, ClassifyStreamResponse):
             classification_result = response
-            if verbose:
+            if progress and task_id:
+                progress.update(task_id, description="Classification complete!")
+            elif verbose:
                 console.print("[green]✓ Classification complete![/green]")
         elif isinstance(response, ClassifyErrorResponse):
             raise ValueError(f"Classification error: {response.message}")
@@ -419,7 +426,10 @@ def collect_classification_from_stream(
 
 
 def collect_pdf_pages_from_stream(
-    stream: Iterator, verbose: bool = False
+    stream: Iterator, 
+    verbose: bool = False,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None
 ) -> Tuple[List[PDFPage], Optional[PDFStreamMetadata]]:
     """Collect PDF pages from a streaming extraction response.
 
@@ -450,7 +460,14 @@ def collect_pdf_pages_from_stream(
     for response in stream:
         if isinstance(response, PDFStreamMetadata):
             metadata = response
-            if verbose:
+            if progress and task_id:
+                progress.update(
+                    task_id,
+                    total=response.total_pages,
+                    completed=0,
+                    description=f"Processing {response.total_pages} pages (doc pages {response.start_page}-{response.start_page + response.total_pages - 1})"
+                )
+            elif verbose:
                 console.print(
                     f"[dim]Document has {response.total_pages_in_document} total pages, "
                     f"processing {response.total_pages} pages starting from page {response.start_page}[/dim]"
@@ -458,17 +475,35 @@ def collect_pdf_pages_from_stream(
         elif isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
             total_elements += len(response.page_data.text_blocks)
-            if verbose:
+            if progress and task_id:
+                progress.update(
+                    task_id,
+                    completed=response.current_page,
+                    description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found"
+                )
+            elif verbose:
                 console.print(
                     f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
                 )
         elif isinstance(response, PDFStreamPageError):
-            if verbose:
+            if progress and task_id:
+                progress.update(
+                    task_id,
+                    completed=response.current_page,
+                    description=f"Error on page {response.document_page}"
+                )
+            elif verbose:
                 console.print(
                     f"[red]Error on page {response.document_page}: {response.error}[/red]"
                 )
         elif isinstance(response, PDFStreamComplete):
-            if verbose:
+            if progress and task_id:
+                progress.update(
+                    task_id,
+                    completed=response.current_page,
+                    description="Complete!"
+                )
+            elif verbose:
                 console.print("[green]✓ PDF extraction complete![/green]")
         elif isinstance(response, PDFStreamError):
             raise ValueError(f"PDF extraction error: {response.error}")
@@ -479,7 +514,9 @@ def collect_pdf_pages_from_stream(
 def collect_phrases_from_stream(
     stream: Iterator, 
     verbose: bool = False, 
-    output_file: Optional[Path] = None
+    output_file: Optional[Path] = None,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None
 ) -> List[Union[TextResult, TextSpanResult]]:
     """Collect phrases from a streaming phrasal processing response.
 
@@ -505,7 +542,9 @@ def collect_phrases_from_stream(
     
     for response in stream:
         if isinstance(response, PhraseProgressUpdate):
-            if verbose:
+            if progress and task_id:
+                progress.update(task_id, description=response.message)
+            elif verbose:
                 console.print(
                     f"[dim]Processed {response.phrases_processed} phrases, "
                     f"created {response.chunks_created} chunks[/dim]"
@@ -536,7 +575,10 @@ def collect_phrases_from_stream(
 
 
 def collect_summary_from_stream(
-    stream: Iterator, verbose: bool = False
+    stream: Iterator, 
+    verbose: bool = False,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None
 ) -> Optional[SummaryResponse]:
     """Collect summary results from a streaming summarization response.
 
@@ -565,7 +607,15 @@ def collect_summary_from_stream(
     
     for response in stream:
         if isinstance(response, SummarizeProgressUpdate):
-            if verbose:
+            if progress and task_id:
+                # Create or update task for this level if we have multiple levels
+                progress.update(
+                    task_id,
+                    completed=response.chunks_processed,
+                    total=response.total_chunks,
+                    description=f"Level {response.current_level}/{response.total_levels}: {response.message}"
+                )
+            elif verbose:
                 console.print(
                     f"[dim]Level {response.current_level}/{response.total_levels}: {response.message}[/dim]"
                 )
@@ -584,7 +634,9 @@ def collect_summary_from_stream(
                     )
         elif isinstance(response, SummaryResponse):
             final_result = response
-            if verbose:
+            if progress and task_id:
+                progress.update(task_id, description="Complete!")
+            elif verbose:
                 console.print("[green]✓ Summarization complete![/green]")
         elif isinstance(response, SummarizeErrorResponse):
             raise ValueError(f"Summarization error: {response.error}")
@@ -593,7 +645,10 @@ def collect_summary_from_stream(
 
 
 def collect_citations_from_stream(
-    stream: Iterator, verbose: bool = False
+    stream: Iterator, 
+    verbose: bool = False,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None
 ) -> Tuple[List[Citation], Optional[UsageInfo]]:
     """Collect citations from a streaming citation response.
 
@@ -619,7 +674,16 @@ def collect_citations_from_stream(
     
     for response in stream:
         if isinstance(response, CitationProgressUpdate):
-            if verbose:
+            if progress and task_id:
+                # For URL sources, set total when we first get it
+                if progress.tasks[task_id].total is None:
+                    progress.update(task_id, total=response.total_chunks)
+                progress.update(
+                    task_id,
+                    completed=response.chunks_processed,
+                    description=response.message
+                )
+            elif verbose:
                 console.print(f"[dim]{response.message}[/dim]")
         elif isinstance(response, CitationStreamResponse):
             citations.append(response.citation)
@@ -628,7 +692,13 @@ def collect_citations_from_stream(
                 console.print(f"[green]Found citation ({quality_text})[/green]")
         elif isinstance(response, CitationSummaryResponse):
             usage_info = response.usage
-            if verbose:
+            if progress and task_id:
+                progress.update(
+                    task_id,
+                    completed=response.chunks_processed,
+                    description="Complete!"
+                )
+            elif verbose:
                 console.print(
                     f"[blue]Processing complete: {response.total_citations} citations found[/blue]"
                 )
