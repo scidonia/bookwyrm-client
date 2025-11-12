@@ -9,11 +9,12 @@ from enum import Enum
 
 class ModelStrength(str, Enum):
     """Model strength levels for processing quality vs speed trade-offs."""
-    SWIFT = "swift"         # Fast processing
-    SMART = "smart"         # Intelligent analysis
-    CLEVER = "clever"       # Advanced reasoning
-    WISE = "wise"           # High-quality analysis
-    BRAINIAC = "brainiac"   # Maximum sophistication
+
+    SWIFT = "swift"  # Fast processing
+    SMART = "smart"  # Intelligent analysis
+    CLEVER = "clever"  # Advanced reasoning
+    WISE = "wise"  # High-quality analysis
+    BRAINIAC = "brainiac"  # Maximum sophistication
 
 
 class Text(BaseModel):
@@ -246,31 +247,45 @@ class SummarizeRequest(BaseModel):
         # Handle direct Pydantic model conversion
         if self.summary_class is not None:
             if self.model_name or self.model_schema_json:
-                raise ValueError("Cannot specify both 'summary_class' and 'model_name'/'model_schema_json'. Use either the direct class or the name/schema pair.")
-            
+                raise ValueError(
+                    "Cannot specify both 'summary_class' and 'model_name'/'model_schema_json'. Use either the direct class or the name/schema pair."
+                )
+
             # Convert Pydantic class to name and schema
             self.model_name = self.summary_class.__name__
             self.model_schema_json = json.dumps(self.summary_class.model_json_schema())
 
         # Structured output validation
         # Check if both pydantic model and custom prompts are specified
-        has_pydantic_model = bool(self.model_name or self.model_schema_json or self.summary_class)
+        has_pydantic_model = bool(
+            self.model_name or self.model_schema_json or self.summary_class
+        )
         has_custom_prompts = bool(self.chunk_prompt or self.summary_of_summaries_prompt)
 
         if has_pydantic_model and has_custom_prompts:
-            raise ValueError("Cannot specify both pydantic model options (summary_class/model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive.")
+            raise ValueError(
+                "Cannot specify both pydantic model options (summary_class/model_name/model_schema_json) and custom prompt options (chunk_prompt/summary_of_summaries_prompt). These are mutually exclusive."
+            )
 
         # Validate pydantic model fields are complete
         if self.model_name and not self.model_schema_json:
-            raise ValueError("model_schema_json is required when model_name is provided")
+            raise ValueError(
+                "model_schema_json is required when model_name is provided"
+            )
         if self.model_schema_json and not self.model_name:
-            raise ValueError("model_name is required when model_schema_json is provided")
+            raise ValueError(
+                "model_name is required when model_schema_json is provided"
+            )
 
         # Validate custom prompts are complete
         if self.chunk_prompt and not self.summary_of_summaries_prompt:
-            raise ValueError("summary_of_summaries_prompt is required when chunk_prompt is provided")
+            raise ValueError(
+                "summary_of_summaries_prompt is required when chunk_prompt is provided"
+            )
         if self.summary_of_summaries_prompt and not self.chunk_prompt:
-            raise ValueError("chunk_prompt is required when summary_of_summaries_prompt is provided")
+            raise ValueError(
+                "chunk_prompt is required when summary_of_summaries_prompt is provided"
+            )
 
         return self
 
@@ -323,7 +338,9 @@ class SummarizeErrorResponse(BaseModel):
     """
 
     type: Literal["error"] = Field("error", description="Message type identifier")
-    error: Optional[str] = Field(None, description="Error message describing what went wrong")
+    error: Optional[str] = Field(
+        None, description="Error message describing what went wrong"
+    )
     recoverable: bool = Field(True, description="Whether the error is recoverable")
 
 
@@ -708,8 +725,12 @@ class ClassifyStreamResponse(BaseModel):
     Sent when classification is complete during streaming requests.
     """
 
-    type: Literal["classification"] = Field("classification", description="Message type identifier")
-    classification: FileClassification = Field(..., description="The file classification results")
+    type: Literal["classification"] = Field(
+        "classification", description="Message type identifier"
+    )
+    classification: FileClassification = Field(
+        ..., description="The file classification results"
+    )
     file_size: int = Field(..., description="Size of the file in bytes")
     sample_preview: Optional[str] = Field(
         None, description="First few characters if text-based file"
@@ -737,7 +758,7 @@ StreamingClassifyResponse = Union[
 
 class CharacterMapping(BaseModel):
     """Mapping from character position in raw text to bounding box coordinates."""
-    
+
     char_index: int = Field(..., description="Character index in the raw text")
     page_number: int = Field(..., description="PDF page number (1-based)")
     x1: float = Field(..., description="Left edge x-coordinate")
@@ -745,39 +766,49 @@ class CharacterMapping(BaseModel):
     x2: float = Field(..., description="Right edge x-coordinate")
     y2: float = Field(..., description="Bottom edge y-coordinate")
     confidence: float = Field(..., description="OCR confidence score (0.0-1.0)")
-    original_text_element_index: int = Field(..., description="Index of the original text element on the page")
+    original_text_element_index: int = Field(
+        ..., description="Index of the original text element on the page"
+    )
 
 
 class PDFTextMapping(BaseModel):
     """Complete mapping from PDF extraction to raw text with character positions."""
-    
+
     raw_text: str = Field(..., description="The complete raw text with newlines")
-    character_mappings: List[CharacterMapping] = Field(..., description="Character position to bounding box mappings")
+    character_mappings: List[CharacterMapping] = Field(
+        ..., description="Character position to bounding box mappings"
+    )
     total_pages: int = Field(..., description="Total number of pages processed")
-    total_characters: int = Field(..., description="Total number of characters in raw text")
-    source_file: Optional[str] = Field(None, description="Source PDF extraction JSON file")
-    
-    def get_bounding_boxes_for_range(self, start_char: int, end_char: int) -> Dict[int, List[Dict[str, Union[int, float]]]]:
+    total_characters: int = Field(
+        ..., description="Total number of characters in raw text"
+    )
+    source_file: Optional[str] = Field(
+        None, description="Source PDF extraction JSON file"
+    )
+
+    def get_bounding_boxes_for_range(
+        self, start_char: int, end_char: int
+    ) -> Dict[int, List[Dict[str, Union[int, float]]]]:
         """Get bounding boxes for a character range, grouped by page.
-        
+
         Args:
             start_char: Starting character index (inclusive)
             end_char: Ending character index (exclusive)
-            
+
         Returns:
             Dictionary mapping page numbers to lists of bounding box info.
             Each bounding box dict contains: char_index, x1, y1, x2, y2, confidence, original_text_element_index
-            
+
         Examples:
             ```python
             # Get bounding boxes for characters 100-200
             boxes = mapping.get_bounding_boxes_for_range(100, 200)
-            
+
             # boxes = {
             #     1: [{'char_index': 100, 'x1': 50.0, 'y1': 100.0, ...}, ...],
             #     2: [{'char_index': 180, 'x1': 25.0, 'y1': 50.0, ...}, ...]
             # }
-            
+
             for page_num, page_boxes in boxes.items():
                 print(f"Page {page_num}: {len(page_boxes)} characters")
             ```
@@ -788,36 +819,38 @@ class PDFTextMapping(BaseModel):
             end_char = len(self.character_mappings)
         if start_char >= end_char:
             return {}
-            
+
         result: Dict[int, List[Dict[str, Union[int, float]]]] = {}
-        
+
         for mapping in self.character_mappings[start_char:end_char]:
             page_num = mapping.page_number
             if page_num not in result:
                 result[page_num] = []
-                
-            result[page_num].append({
-                'char_index': mapping.char_index,
-                'x1': mapping.x1,
-                'y1': mapping.y1, 
-                'x2': mapping.x2,
-                'y2': mapping.y2,
-                'confidence': mapping.confidence,
-                'original_text_element_index': mapping.original_text_element_index
-            })
-        
+
+            result[page_num].append(
+                {
+                    "char_index": mapping.char_index,
+                    "x1": mapping.x1,
+                    "y1": mapping.y1,
+                    "x2": mapping.x2,
+                    "y2": mapping.y2,
+                    "confidence": mapping.confidence,
+                    "original_text_element_index": mapping.original_text_element_index,
+                }
+            )
+
         return result
-    
+
     def get_pages_for_range(self, start_char: int, end_char: int) -> List[int]:
         """Get list of page numbers that contain characters in the given range.
-        
+
         Args:
             start_char: Starting character index (inclusive)
             end_char: Ending character index (exclusive)
-            
+
         Returns:
             Sorted list of page numbers containing characters in the range
-            
+
         Examples:
             ```python
             pages = mapping.get_pages_for_range(100, 200)

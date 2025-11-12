@@ -383,9 +383,9 @@ async def test_stream_citations_multiple_questions_list(async_client, sample_chu
     questions = [
         "What is machine learning?",
         "What is artificial intelligence?",
-        "What is natural language processing?"
+        "What is natural language processing?",
     ]
-    
+
     all_citations = []
     summary_responses = []
 
@@ -410,14 +410,16 @@ async def test_stream_citations_multiple_questions_list(async_client, sample_chu
 
 
 @pytest.mark.asyncio
-async def test_stream_citations_multiple_questions_with_jsonl(async_client, sample_jsonl_content):
+async def test_stream_citations_multiple_questions_with_jsonl(
+    async_client, sample_jsonl_content
+):
     """Test streaming citation finding with multiple questions using JSONL content."""
     questions = [
         "What programming language was created by Guido van Rossum?",
         "What are the key features of Python?",
-        "When was Python first released?"
+        "When was Python first released?",
     ]
-    
+
     citations = []
     summary_count = 0
 
@@ -456,7 +458,7 @@ async def test_stream_citations_mixed_question_types(async_client, sample_chunks
         "How does machine learning work?",  # Process question
         "Where is computer vision used?",  # Application question
     ]
-    
+
     responses = []
     async for response in async_client.stream_citations(
         chunks=sample_chunks,
@@ -473,7 +475,7 @@ async def test_stream_citations_mixed_question_types(async_client, sample_chunks
 async def test_stream_citations_single_question_in_list(async_client, sample_chunks):
     """Test streaming citation finding with single question in list format."""
     questions = ["What is deep learning?"]
-    
+
     citations = []
     async for response in async_client.stream_citations(
         chunks=sample_chunks,
@@ -492,11 +494,8 @@ async def test_stream_citations_single_question_in_list(async_client, sample_chu
 @pytest.mark.asyncio
 async def test_async_get_citations_multiple_questions(async_client, sample_chunks):
     """Test async get_citations with multiple questions."""
-    questions = [
-        "What is machine learning?",
-        "What is artificial intelligence?"
-    ]
-    
+    questions = ["What is machine learning?", "What is artificial intelligence?"]
+
     response = await async_client.get_citations(
         chunks=sample_chunks,
         question=questions,

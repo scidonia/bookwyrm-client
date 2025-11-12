@@ -180,8 +180,6 @@ def test_phrasal_command_with_chunk_size(sample_text_content):
         test_file.unlink()
 
 
-
-
 def test_phrasal_command_with_boolean_flags(sample_text_content):
     """Test phrasal command with boolean format flags."""
     test_file = create_test_file(sample_text_content, ".txt")
@@ -229,11 +227,11 @@ def test_phrasal_command_with_text_only_flag(sample_text_content):
         test_file.unlink()
 
 
-
 def test_phrasal_command_with_url_option():
     """Test phrasal command with --url option."""
     # Skip this test - we are not doing URL connections yet
     import pytest
+
     pytest.skip("URL connections not implemented yet")
 
 

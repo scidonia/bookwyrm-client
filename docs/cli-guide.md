@@ -34,6 +34,7 @@ bookwyrm pdf-to-text data/SOA_2025_Final_1-4.json --verbose
 ```
 
 This creates two files:
+
 - `data/SOA_2025_Final_1-4_raw.txt` - Raw text with all PDF text elements joined by newlines
 - `data/SOA_2025_Final_1-4_mapping.json` - Character mapping that links each character position to its bounding box coordinates and page number
 
@@ -57,6 +58,7 @@ bookwyrm pdf-query-range data/SOA_2025_Final_1-4_mapping.json 974 1089 --verbose
 ```
 
 This shows you:
+
 - Which pages contain the specified character range
 - Bounding box coordinates for each character
 - OCR confidence scores
@@ -155,8 +157,9 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 ```
 
 This produces a structured JSON output with the specific fields defined in the `Summary` model:
+
 - `title`: The work's title
-- `author`: Author information  
+- `author`: Author information
 - `date_of_publication`: Publication date in YYYY-MM-DD format
 - `plot`: Comprehensive plot summary
 - `timeline`: Temporal setting and chronology
@@ -167,6 +170,7 @@ This produces a structured JSON output with the specific fields defined in the `
 You can create your own Pydantic models for different types of analysis:
 
 **Scientific Paper Analysis:**
+
 ```python
 class ScientificPaper(BaseModel):
     title: Optional[str] = Field(None, description="The paper's title")
@@ -178,6 +182,7 @@ class ScientificPaper(BaseModel):
 ```
 
 **Business Document Analysis:**
+
 ```python
 class BusinessDocument(BaseModel):
     document_type: Optional[str] = Field(None, description="Type of business document")
@@ -190,12 +195,13 @@ class BusinessDocument(BaseModel):
 #### Best Practices for Structured Output
 
 1. **Detailed Descriptions**: Write clear, specific descriptions for each field
-2. **Optional Fields**: Use `Optional` for fields that might not always be present
-3. **Appropriate Types**: Use proper Python types (`str`, `List[str]`, `date`, etc.)
-4. **Output File Required**: Always specify `--output` when using structured models
-5. **Model Strength**: Use `smart`, `clever`, or `wise` for better structured output quality
+1. **Optional Fields**: Use `Optional` for fields that might not always be present
+1. **Appropriate Types**: Use proper Python types (`str`, `List[str]`, `date`, etc.)
+1. **Output File Required**: Always specify `--output` when using structured models
+1. **Model Strength**: Use `smart`, `clever`, or `wise` for better structured output quality
 
 The structured output will look like:
+
 ```json
 {
   "summary": {
@@ -245,8 +251,9 @@ bookwyrm summarize data/complex-literary-work.jsonl \
 - **brainiac**: Maximum sophistication for complex tasks (slowest but highest quality)
 
 Choose higher model strengths for:
+
 - Complex literary works
-- Academic or research content  
+- Academic or research content
 - Important business documents
 - When accuracy is more important than speed
 
@@ -282,6 +289,7 @@ bookwyrm pdf-query-range data/SOA_2025_Final_extracted_mapping.json 1000 2000 --
 ## Additional Options
 
 ### Streaming Output
+
 For real-time processing feedback, add the `--stream` flag to most commands:
 
 ```bash
@@ -290,6 +298,7 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl --stream --verbose
 ```
 
 ### Multiple Questions
+
 You can ask multiple citation questions at once:
 
 ```bash
@@ -302,6 +311,7 @@ bookwyrm cite data/country-of-the-blind-phrases.jsonl \
 ```
 
 ### Custom Prompts for Summarization
+
 Instead of using Pydantic models, you can provide custom prompts:
 
 ```bash
@@ -314,6 +324,7 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 ```
 
 ### Debug Mode
+
 Use `--include-debug` to see intermediate summaries:
 
 ```bash
@@ -328,6 +339,7 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 ## Expected Output Files
 
 After running these commands, you should have:
+
 - `data/SOA_2025_Final_1-4.json` - Structured PDF data with bounding boxes
 - `data/SOA_2025_Final_1-4_raw.txt` - Raw text extracted from PDF
 - `data/SOA_2025_Final_1-4_mapping.json` - Character position to bounding box mapping
@@ -345,7 +357,7 @@ These files demonstrate the full pipeline from raw documents to structured insig
 The character mapping functionality enables several powerful use cases:
 
 1. **Citation Highlighting**: Find citations in text, then highlight the exact regions in the original PDF
-2. **Search Result Visualization**: Show users exactly where search results appear in the document
-3. **Annotation Systems**: Allow users to annotate text and map annotations back to PDF coordinates
-4. **Quality Analysis**: Analyze OCR confidence scores for specific text regions
-5. **Layout Analysis**: Understand how text flows across pages and identify reading order
+1. **Search Result Visualization**: Show users exactly where search results appear in the document
+1. **Annotation Systems**: Allow users to annotate text and map annotations back to PDF coordinates
+1. **Quality Analysis**: Analyze OCR confidence scores for specific text regions
+1. **Layout Analysis**: Understand how text flows across pages and identify reading order

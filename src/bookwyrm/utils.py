@@ -10,22 +10,22 @@ from .models import TextSpan, Citation, PDFTextMapping, CharacterMapping, PDFPag
 
 def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load text chunks from a JSONL file.
-    
+
     Args:
         file_path: Path to the JSONL file containing text chunks
-        
+
     Returns:
         List of TextSpan objects loaded from the file
-        
+
     Raises:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the file contains invalid JSON or missing required fields
-        
+
     Examples:
         ```python
         from bookwyrm.utils import load_chunks_from_jsonl
         from pathlib import Path
-        
+
         chunks = load_chunks_from_jsonl(Path("data/chunks.jsonl"))
         print(f"Loaded {len(chunks)} chunks")
         ```
@@ -56,22 +56,22 @@ def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
 
 def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
     """Load phrases from a JSONL file.
-    
+
     Args:
         file_path: Path to the JSONL file containing phrases
-        
+
     Returns:
         List of TextSpan objects loaded from the file
-        
+
     Raises:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the file contains invalid JSON or missing required fields
-        
+
     Examples:
         ```python
         from bookwyrm.utils import load_phrases_from_jsonl
         from pathlib import Path
-        
+
         phrases = load_phrases_from_jsonl(Path("data/phrases.jsonl"))
         print(f"Loaded {len(phrases)} phrases")
         ```
@@ -102,21 +102,21 @@ def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
 
 def load_jsonl_content(file_path: Path) -> str:
     """Load raw content from a JSONL file.
-    
+
     Args:
         file_path: Path to the JSONL file
-        
+
     Returns:
         Raw file content as string
-        
+
     Raises:
         FileNotFoundError: If the file doesn't exist
-        
+
     Examples:
         ```python
         from bookwyrm.utils import load_jsonl_content
         from pathlib import Path
-        
+
         content = load_jsonl_content(Path("data/phrases.jsonl"))
         # Use content directly with client methods that accept raw JSONL
         ```
@@ -131,19 +131,19 @@ def load_jsonl_content(file_path: Path) -> str:
 
 def save_citations_to_json(citations: List[Citation], output_path: Path) -> None:
     """Save citations to a JSON file.
-    
+
     Args:
         citations: List of Citation objects to save
         output_path: Path where to save the JSON file
-        
+
     Raises:
         ValueError: If there's an error saving the file
-        
+
     Examples:
         ```python
         from bookwyrm.utils import save_citations_to_json
         from pathlib import Path
-        
+
         # After getting citations from client
         save_citations_to_json(citations, Path("output/citations.json"))
         ```
@@ -157,19 +157,19 @@ def save_citations_to_json(citations: List[Citation], output_path: Path) -> None
 
 def append_citation_to_jsonl(citation: Citation, output_path: Path) -> None:
     """Append a single citation to a JSONL file.
-    
+
     Args:
         citation: Citation object to append
         output_path: Path to the JSONL file
-        
+
     Raises:
         ValueError: If there's an error writing to the file
-        
+
     Examples:
         ```python
         from bookwyrm.utils import append_citation_to_jsonl
         from pathlib import Path
-        
+
         # Append citations as they're found during streaming
         for response in client.stream_citations(...):
             if hasattr(response, 'citation'):
@@ -186,27 +186,27 @@ def append_citation_to_jsonl(citation: Citation, output_path: Path) -> None:
 
 def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
     """Create PDF text mapping directly from page objects (in-memory).
-    
+
     This function takes a list of PDFPage objects and converts them to:
     1. Raw text with all text elements joined by newlines
     2. Character mapping that maps each character position to its bounding box coordinates
-    
+
     Args:
         pages: List of PDFPage objects from PDF extraction
-        
+
     Returns:
         PDFTextMapping object containing the text and character mappings
-        
+
     Examples:
         ```python
         from bookwyrm.utils import create_pdf_text_mapping_from_pages
-        
+
         # After extracting PDF pages
         pages = []
         for response in client.stream_extract_pdf(pdf_bytes=pdf_bytes, filename="doc.pdf"):
             if hasattr(response, 'page_data'):
                 pages.append(response.page_data)
-        
+
         # Convert to text mapping in memory
         mapping = create_pdf_text_mapping_from_pages(pages)
         print(f"Converted {len(mapping.raw_text)} characters")
@@ -236,7 +236,7 @@ def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
                     x2=coordinates.x2,
                     y2=coordinates.y2,
                     confidence=confidence,
-                    original_text_element_index=element_index
+                    original_text_element_index=element_index,
                 )
                 character_mappings.append(mapping)
                 current_char_index += 1
@@ -254,7 +254,7 @@ def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
                     x2=coordinates.x2,
                     y2=coordinates.y2,
                     confidence=confidence,
-                    original_text_element_index=element_index
+                    original_text_element_index=element_index,
                 )
                 character_mappings.append(newline_mapping)
                 current_char_index += 1
@@ -268,36 +268,38 @@ def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
         character_mappings=character_mappings,
         total_pages=len(pages),
         total_characters=len(raw_text),
-        source_file="in-memory"
+        source_file="in-memory",
     )
 
     return pdf_mapping
 
 
-def query_mapping_range_in_memory(mapping: PDFTextMapping, start_char: int, end_char: int) -> Dict[str, Any]:
+def query_mapping_range_in_memory(
+    mapping: PDFTextMapping, start_char: int, end_char: int
+) -> Dict[str, Any]:
     """Query character positions from in-memory mapping object to get bounding boxes.
-    
+
     Args:
         mapping: PDFTextMapping object containing character mappings
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
-        
+
     Returns:
         Dictionary containing query results with bounding boxes, pages, and sample text
-        
+
     Raises:
         ValueError: If the character range is invalid
-        
+
     Examples:
         ```python
         from bookwyrm.utils import query_mapping_range_in_memory
-        
+
         # After creating mapping from pages
         mapping = create_pdf_text_mapping_from_pages(pages)
-        
+
         # Query character range in memory
         result = query_mapping_range_in_memory(mapping, 100, 200)
-        
+
         print(f"Found bounding boxes on {len(result['pages'])} pages")
         print(f"Sample text: {result['sample_text']}")
         ```
@@ -305,12 +307,16 @@ def query_mapping_range_in_memory(mapping: PDFTextMapping, start_char: int, end_
     # Validate character range
     if start_char < 0:
         raise ValueError(f"start_char must be >= 0 (got {start_char})")
-    
+
     if end_char <= start_char:
-        raise ValueError(f"end_char must be > start_char (got {end_char} <= {start_char})")
+        raise ValueError(
+            f"end_char must be > start_char (got {end_char} <= {start_char})"
+        )
 
     if start_char >= mapping.total_characters:
-        raise ValueError(f"start_char {start_char} is beyond text length {mapping.total_characters}")
+        raise ValueError(
+            f"start_char {start_char} is beyond text length {mapping.total_characters}"
+        )
 
     # Adjust end_char if it exceeds text length
     if end_char > mapping.total_characters:
@@ -330,37 +336,39 @@ def query_mapping_range_in_memory(mapping: PDFTextMapping, start_char: int, end_
         "pages": pages,
         "bounding_boxes": bounding_boxes,
         "sample_text": sample_text[:200],  # First 200 characters
-        "total_characters": end_char - start_char
+        "total_characters": end_char - start_char,
     }
 
     return result
 
 
-def pdf_to_text_with_mapping_from_json(extraction_data: Dict[str, Any]) -> PDFTextMapping:
+def pdf_to_text_with_mapping_from_json(
+    extraction_data: Dict[str, Any],
+) -> PDFTextMapping:
     """Convert PDF extraction JSON data to raw text with character position mapping (in-memory).
-    
+
     This function takes the JSON data from PDF extraction and converts it to:
     1. Raw text with all text elements joined by newlines
     2. Character mapping that maps each character position to its bounding box coordinates
-    
+
     Args:
         extraction_data: Dictionary containing PDF extraction data with 'pages' key
-        
+
     Returns:
         PDFTextMapping object containing the text and character mappings
-        
+
     Raises:
         ValueError: If the extraction data is invalid or malformed
-        
+
     Examples:
         ```python
         from bookwyrm.utils import pdf_to_text_with_mapping_from_json
         import json
-        
+
         # Load extraction data
         with open("data/extracted.json", "r") as f:
             extraction_data = json.load(f)
-        
+
         # Convert to text mapping in memory
         mapping = pdf_to_text_with_mapping_from_json(extraction_data)
         print(f"Converted {len(mapping.raw_text)} characters")
@@ -376,6 +384,7 @@ def pdf_to_text_with_mapping_from_json(extraction_data: Dict[str, Any]) -> PDFTe
 
     # Convert JSON data to PDFPage objects
     from .models import PDFPage, PDFTextElement, PDFBoundingBox
+
     pages = []
     for page_data in pages_data:
         text_blocks = []
@@ -385,61 +394,62 @@ def pdf_to_text_with_mapping_from_json(extraction_data: Dict[str, Any]) -> PDFTe
                 x1=coords_data.get("x1", 0.0),
                 y1=coords_data.get("y1", 0.0),
                 x2=coords_data.get("x2", 0.0),
-                y2=coords_data.get("y2", 0.0)
+                y2=coords_data.get("y2", 0.0),
             )
             text_element = PDFTextElement(
                 text=block_data.get("text", ""),
                 coordinates=coordinates,
-                confidence=block_data.get("confidence", 0.0)
+                confidence=block_data.get("confidence", 0.0),
             )
             text_blocks.append(text_element)
-        
+
         page = PDFPage(
-            page_number=page_data.get("page_number", 1),
-            text_blocks=text_blocks
+            page_number=page_data.get("page_number", 1), text_blocks=text_blocks
         )
         pages.append(page)
 
     # Use the in-memory function to create the mapping
     pdf_mapping = create_pdf_text_mapping_from_pages(pages)
-    
+
     # Set source as in-memory by default
     pdf_mapping.source_file = "in-memory"
 
     return pdf_mapping
 
 
-def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapping_output: Path = None) -> PDFTextMapping:
+def pdf_to_text_with_mapping(
+    pdf_data_file: Path, output_path: Path = None, mapping_output: Path = None
+) -> PDFTextMapping:
     """Convert PDF extraction JSON file to raw text with character position mapping.
-    
+
     This function takes the JSON output from PDF extraction and converts it to:
     1. Raw text file with all text elements joined by newlines
     2. Character mapping JSON that maps each character position to its bounding box coordinates
-    
+
     Args:
         pdf_data_file: Path to the JSON file from PDF extraction
         output_path: Optional path for raw text output (default: pdf_data_file_raw.txt)
         mapping_output: Optional path for mapping JSON (default: pdf_data_file_mapping.json)
-        
+
     Returns:
         PDFTextMapping object containing the text and character mappings
-        
+
     Raises:
         FileNotFoundError: If the PDF data file doesn't exist
         ValueError: If the PDF data file is invalid or malformed
-        
+
     Examples:
         ```python
         from bookwyrm.utils import pdf_to_text_with_mapping
         from pathlib import Path
-        
+
         # Convert PDF extraction to text with mapping
         mapping = pdf_to_text_with_mapping(
             Path("data/extracted.json"),
             output_path=Path("data/text.txt"),
             mapping_output=Path("data/mapping.json")
         )
-        
+
         print(f"Converted {len(mapping.raw_text)} characters")
         ```
     """
@@ -454,7 +464,7 @@ def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapp
 
     # Use the in-memory function to create the mapping
     pdf_mapping = pdf_to_text_with_mapping_from_json(extraction_data)
-    
+
     # Update source file reference
     pdf_mapping.source_file = str(pdf_data_file)
 
@@ -482,29 +492,31 @@ def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapp
     return pdf_mapping
 
 
-def query_character_range_from_mapping(mapping_data: Dict[str, Any], start_char: int, end_char: int) -> Dict[str, Any]:
+def query_character_range_from_mapping(
+    mapping_data: Dict[str, Any], start_char: int, end_char: int
+) -> Dict[str, Any]:
     """Query character positions to get bounding boxes from mapping data (in-memory).
-    
+
     Args:
         mapping_data: Dictionary containing PDFTextMapping data
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
-        
+
     Returns:
         Dictionary containing query results with bounding boxes, pages, and sample text
-        
+
     Raises:
         ValueError: If the mapping data is invalid or character range is invalid
-        
+
     Examples:
         ```python
         from bookwyrm.utils import query_character_range_from_mapping
         import json
-        
+
         # Load mapping data
         with open("data/mapping.json", "r") as f:
             mapping_data = json.load(f)
-        
+
         # Query character range in memory
         result = query_character_range_from_mapping(mapping_data, 100, 200)
         print(f"Found bounding boxes on {len(result['pages'])} pages")
@@ -519,39 +531,41 @@ def query_character_range_from_mapping(mapping_data: Dict[str, Any], start_char:
     return query_mapping_range_in_memory(mapping, start_char, end_char)
 
 
-def query_character_range(mapping_file: Path, start_char: int, end_char: int) -> Dict[str, Any]:
+def query_character_range(
+    mapping_file: Path, start_char: int, end_char: int
+) -> Dict[str, Any]:
     """Query character positions to get bounding boxes from a mapping file.
-    
+
     Args:
         mapping_file: Path to the character mapping JSON file
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
-        
+
     Returns:
         Dictionary containing query results with bounding boxes, pages, and sample text
-        
+
     Raises:
         FileNotFoundError: If the mapping file doesn't exist
         ValueError: If the mapping file is invalid or character range is invalid
-        
+
     Examples:
         ```python
         from bookwyrm.utils import query_character_range
         from pathlib import Path
-        
+
         result = query_character_range(
-            Path("data/mapping.json"), 
-            start_char=100, 
+            Path("data/mapping.json"),
+            start_char=100,
             end_char=200
         )
-        
+
         print(f"Found bounding boxes on {len(result['pages'])} pages")
         print(f"Sample text: {result['sample_text']}")
         ```
     """
     try:
         # Load the character mapping
-        with open(mapping_file, 'r', encoding="utf-8") as f:
+        with open(mapping_file, "r", encoding="utf-8") as f:
             mapping_data = json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {mapping_file}")
@@ -562,34 +576,36 @@ def query_character_range(mapping_file: Path, start_char: int, end_char: int) ->
     return query_character_range_from_mapping(mapping_data, start_char, end_char)
 
 
-def save_character_query_from_mapping(mapping_data: Dict[str, Any], start_char: int, end_char: int, output_file: Path) -> Dict[str, Any]:
+def save_character_query_from_mapping(
+    mapping_data: Dict[str, Any], start_char: int, end_char: int, output_file: Path
+) -> Dict[str, Any]:
     """Query character range from mapping data and save results to file (in-memory).
-    
+
     Args:
         mapping_data: Dictionary containing PDFTextMapping data
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
         output_file: Path to save the query results
-        
+
     Returns:
         Dictionary containing query results
-        
+
     Raises:
         ValueError: If the mapping data is invalid, character range is invalid, or saving fails
-        
+
     Examples:
         ```python
         from bookwyrm.utils import save_character_query_from_mapping
         from pathlib import Path
         import json
-        
+
         # Load mapping data
         with open("data/mapping.json", "r") as f:
             mapping_data = json.load(f)
-        
+
         result = save_character_query_from_mapping(
-            mapping_data, 
-            start_char=100, 
+            mapping_data,
+            start_char=100,
             end_char=200,
             output_file=Path("output/query_results.json")
         )
@@ -597,40 +613,42 @@ def save_character_query_from_mapping(mapping_data: Dict[str, Any], start_char: 
     """
     # Use the in-memory query function
     result = query_character_range_from_mapping(mapping_data, start_char, end_char)
-    
+
     try:
-        with open(output_file, 'w', encoding="utf-8") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2)
     except Exception as e:
         raise ValueError(f"Error saving query results: {e}")
-    
+
     return result
 
 
-def save_character_query(mapping_file: Path, start_char: int, end_char: int, output_file: Path) -> Dict[str, Any]:
+def save_character_query(
+    mapping_file: Path, start_char: int, end_char: int, output_file: Path
+) -> Dict[str, Any]:
     """Query character range and save results to file.
-    
+
     Args:
         mapping_file: Path to the character mapping JSON file
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
         output_file: Path to save the query results
-        
+
     Returns:
         Dictionary containing query results
-        
+
     Raises:
         FileNotFoundError: If the mapping file doesn't exist
         ValueError: If the mapping file is invalid, character range is invalid, or saving fails
-        
+
     Examples:
         ```python
         from bookwyrm.utils import save_character_query
         from pathlib import Path
-        
+
         result = save_character_query(
-            Path("data/mapping.json"), 
-            start_char=100, 
+            Path("data/mapping.json"),
+            start_char=100,
             end_char=200,
             output_file=Path("output/query_results.json")
         )
@@ -638,42 +656,44 @@ def save_character_query(mapping_file: Path, start_char: int, end_char: int, out
     """
     # Use the file-based query function which now calls the in-memory version
     result = query_character_range(mapping_file, start_char, end_char)
-    
+
     try:
-        with open(output_file, 'w', encoding="utf-8") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2)
     except Exception as e:
         raise ValueError(f"Error saving query results: {e}")
-    
+
     return result
 
 
-def save_mapping_query_in_memory(mapping: PDFTextMapping, start_char: int, end_char: int, output_file: Path) -> Dict[str, Any]:
+def save_mapping_query_in_memory(
+    mapping: PDFTextMapping, start_char: int, end_char: int, output_file: Path
+) -> Dict[str, Any]:
     """Query character range from in-memory mapping and save results to file.
-    
+
     Args:
         mapping: PDFTextMapping object containing character mappings
         start_char: Starting character index (inclusive)
         end_char: Ending character index (exclusive)
         output_file: Path to save the query results
-        
+
     Returns:
         Dictionary containing query results
-        
+
     Raises:
         ValueError: If the character range is invalid or saving fails
-        
+
     Examples:
         ```python
         from bookwyrm.utils import save_mapping_query_in_memory
         from pathlib import Path
-        
+
         # After creating mapping from pages
         mapping = create_pdf_text_mapping_from_pages(pages)
-        
+
         result = save_mapping_query_in_memory(
-            mapping, 
-            start_char=100, 
+            mapping,
+            start_char=100,
             end_char=200,
             output_file=Path("output/query_results.json")
         )
@@ -681,11 +701,11 @@ def save_mapping_query_in_memory(mapping: PDFTextMapping, start_char: int, end_c
     """
     # Use the in-memory query function
     result = query_mapping_range_in_memory(mapping, start_char, end_char)
-    
+
     try:
-        with open(output_file, 'w', encoding="utf-8") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2)
     except Exception as e:
         raise ValueError(f"Error saving query results: {e}")
-    
+
     return result

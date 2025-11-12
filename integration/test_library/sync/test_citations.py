@@ -316,7 +316,7 @@ def test_stream_citations_empty_chunks(client):
     """Test streaming citation finding with empty chunks list."""
     responses = []
     summary_response = None
-    
+
     for response in client.stream_citations(
         chunks=[], question="What is AI?", max_tokens_per_chunk=1000
     ):
@@ -326,7 +326,9 @@ def test_stream_citations_empty_chunks(client):
 
     # Should get at least one response and find a summary
     assert len(responses) >= 1
-    assert summary_response is not None, f"No CitationSummaryResponse found in {len(responses)} responses: {[type(r).__name__ for r in responses]}"
+    assert (
+        summary_response is not None
+    ), f"No CitationSummaryResponse found in {len(responses)} responses: {[type(r).__name__ for r in responses]}"
     assert summary_response.total_citations == 0
     assert isinstance(summary_response.usage, UsageInfo)
     assert summary_response.usage.tokens_processed == 0
@@ -366,9 +368,9 @@ def test_stream_citations_multiple_questions_list(client, sample_chunks):
     questions = [
         "What is machine learning?",
         "What is artificial intelligence?",
-        "What is natural language processing?"
+        "What is natural language processing?",
     ]
-    
+
     all_citations = []
     summary_responses = []
 
@@ -397,9 +399,9 @@ def test_stream_citations_multiple_questions_with_jsonl(client, sample_jsonl_con
     questions = [
         "What programming language was created by Guido van Rossum?",
         "What are the key features of Python?",
-        "When was Python first released?"
+        "When was Python first released?",
     ]
-    
+
     citations = []
     summary_count = 0
 
@@ -435,7 +437,7 @@ def test_stream_citations_mixed_question_types(client, sample_chunks):
         "How does machine learning work?",  # Process question
         "Where is computer vision used?",  # Application question
     ]
-    
+
     responses = []
     for response in client.stream_citations(
         chunks=sample_chunks,
@@ -451,7 +453,7 @@ def test_stream_citations_mixed_question_types(client, sample_chunks):
 def test_stream_citations_single_question_in_list(client, sample_chunks):
     """Test streaming citation finding with single question in list format."""
     questions = ["What is deep learning?"]
-    
+
     citations = []
     for response in client.stream_citations(
         chunks=sample_chunks,

@@ -3,10 +3,10 @@
 The BookWyrm client includes a comprehensive command-line interface for all text processing operations. The documentation below is automatically generated from the CLI code.
 
 ::: mkdocs-typer
-    :module: bookwyrm.cli
-    :command: app
-    :prog_name: bookwyrm
-    :depth: 2
+:module: bookwyrm.cli
+:command: app
+:prog_name: bookwyrm
+:depth: 2
 
 ## Additional Information
 

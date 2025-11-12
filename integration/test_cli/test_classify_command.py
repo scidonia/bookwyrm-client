@@ -197,14 +197,14 @@ def test_classify_command_with_filename_hint(sample_python_content):
 def test_classify_command_with_stdin_content():
     """Test classify command with stdin content input."""
     stdin_content = "import pandas as pd\ndf = pd.DataFrame()"
-    
+
     result = run_bookwyrm_command(
         [
             "classify",
             "--filename",
             "script.py",
         ],
-        input_data=stdin_content
+        input_data=stdin_content,
     )
 
     # Check command parsing
@@ -307,15 +307,18 @@ def test_classify_command_multiple_input_sources():
 
     try:
         result = run_bookwyrm_command(
-            ["classify", "--file", str(test_file), "--url", "https://example.com/file.txt"]
+            [
+                "classify",
+                "--file",
+                str(test_file),
+                "--url",
+                "https://example.com/file.txt",
+            ]
         )
 
         # Should fail due to multiple input sources
         assert result.returncode != 0
-        assert (
-            "only one" in result.stderr.lower()
-            or "one of" in result.stderr.lower()
-        )
+        assert "only one" in result.stderr.lower() or "one of" in result.stderr.lower()
 
     finally:
         test_file.unlink()
@@ -393,7 +396,7 @@ def test_classify_command_live_api_stdin_content(api_key, api_url):
         pytest.skip("No API key provided for live test")
 
     stdin_content = '{"name": "test", "data": [1, 2, 3]}'
-    
+
     result = run_bookwyrm_command(
         [
             "classify",
@@ -404,7 +407,7 @@ def test_classify_command_live_api_stdin_content(api_key, api_url):
             "--base-url",
             api_url,
         ],
-        input_data=stdin_content
+        input_data=stdin_content,
     )
 
     assert result.returncode == 0, f"Command failed: {result.stderr}"

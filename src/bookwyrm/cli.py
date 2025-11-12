@@ -654,13 +654,21 @@ def cite(
 
     except BookWyrmAPIError as e:
         if e.status_code == 401:
-            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print(
+                "[red]Authentication Error: Invalid or missing API key[/red]"
+            )
             error_console.print("[yellow]To fix this issue:[/yellow]")
             error_console.print("  1. Set your API key as an environment variable:")
-            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print(
+                "     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]"
+            )
             error_console.print("  2. Or use the --api-key option:")
-            error_console.print("     [cyan]bookwyrm classify --api-key your-api-key-here --file data/Heinrich_palaces.pdf[/cyan]")
-            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+            error_console.print(
+                "     [cyan]bookwyrm classify --api-key your-api-key-here --file data/Heinrich_palaces.pdf[/cyan]"
+            )
+            error_console.print(
+                "\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]"
+            )
         else:
             error_console.print(f"[red]API Error: {e}[/red]")
             if e.status_code:
@@ -874,12 +882,16 @@ def summarize(
     model_schema_json = None
     if model_class_file and model_class_name:
         try:
-            console.print(f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]")
+            console.print(
+                f"[blue]Loading model class '{model_class_name}' from {model_class_file}[/blue]"
+            )
 
             # Load the Python file as a module
             import importlib.util
 
-            spec = importlib.util.spec_from_file_location("user_model", model_class_file)
+            spec = importlib.util.spec_from_file_location(
+                "user_model", model_class_file
+            )
             if spec is None or spec.loader is None:
                 raise ImportError(f"Could not load module from {model_class_file}")
 
@@ -889,20 +901,27 @@ def summarize(
 
             # Get the model class
             if not hasattr(user_module, model_class_name):
-                raise AttributeError(f"Class '{model_class_name}' not found in {model_class_file}")
+                raise AttributeError(
+                    f"Class '{model_class_name}' not found in {model_class_file}"
+                )
 
             model_class = getattr(user_module, model_class_name)
 
             # Validate it's a Pydantic model
             from pydantic import BaseModel
+
             if not issubclass(model_class, BaseModel):
-                raise TypeError(f"Class '{model_class_name}' must be a Pydantic BaseModel")
+                raise TypeError(
+                    f"Class '{model_class_name}' must be a Pydantic BaseModel"
+                )
 
             # Get the schema
             model_name = model_class_name
             model_schema_json = json.dumps(model_class.model_json_schema())
 
-            console.print(f"[green]Successfully loaded model class '{model_class_name}'[/green]")
+            console.print(
+                f"[green]Successfully loaded model class '{model_class_name}'[/green]"
+            )
 
         except Exception as e:
             error_console.print(f"[red]Error loading model class: {e}[/red]")
@@ -1063,13 +1082,21 @@ def summarize(
 
     except BookWyrmAPIError as e:
         if e.status_code == 401:
-            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print(
+                "[red]Authentication Error: Invalid or missing API key[/red]"
+            )
             error_console.print("[yellow]To fix this issue:[/yellow]")
             error_console.print("  1. Set your API key as an environment variable:")
-            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print(
+                "     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]"
+            )
             error_console.print("  2. Or use the --api-key option:")
-            error_console.print("     [cyan]bookwyrm cite --api-key your-api-key-here [other-options][/cyan]")
-            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+            error_console.print(
+                "     [cyan]bookwyrm cite --api-key your-api-key-here [other-options][/cyan]"
+            )
+            error_console.print(
+                "\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]"
+            )
         else:
             error_console.print(f"[red]API Error: {e}[/red]")
             if e.status_code:
@@ -1110,7 +1137,10 @@ def phrasal(
         bool, typer.Option("--text-only", help="Return text only without position data")
     ] = False,
     offsets: Annotated[
-        bool, typer.Option("--offsets", help="Return text with position offsets (default behavior)")
+        bool,
+        typer.Option(
+            "--offsets", help="Return text with position offsets (default behavior)"
+        ),
     ] = False,
     base_url: Annotated[
         Optional[str],
@@ -1191,9 +1221,11 @@ def phrasal(
 
     # Set format based on flags
     if text_only and offsets:
-        error_console.print("[red]Error: Cannot specify both --text-only and --offsets[/red]")
+        error_console.print(
+            "[red]Error: Cannot specify both --text-only and --offsets[/red]"
+        )
         raise typer.Exit(1)
-    
+
     if text_only:
         format = "text_only"
     elif offsets:
@@ -1381,13 +1413,21 @@ def phrasal(
 
     except BookWyrmAPIError as e:
         if e.status_code == 401:
-            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print(
+                "[red]Authentication Error: Invalid or missing API key[/red]"
+            )
             error_console.print("[yellow]To fix this issue:[/yellow]")
             error_console.print("  1. Set your API key as an environment variable:")
-            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print(
+                "     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]"
+            )
             error_console.print("  2. Or use the --api-key option:")
-            error_console.print("     [cyan]bookwyrm phrasal --api-key your-api-key-here [other-options][/cyan]")
-            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+            error_console.print(
+                "     [cyan]bookwyrm phrasal --api-key your-api-key-here [other-options][/cyan]"
+            )
+            error_console.print(
+                "\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]"
+            )
         else:
             error_console.print(f"[red]API Error: {e}[/red]")
             if e.status_code:
@@ -1580,16 +1620,22 @@ def classify(
         ) as progress:
             task = progress.add_task("Analyzing file...", total=None)
 
-            for response in client.stream_classify(**request.model_dump(exclude_none=True)):
+            for response in client.stream_classify(
+                **request.model_dump(exclude_none=True)
+            ):
                 if isinstance(response, ClassifyProgressUpdate):  # Progress update
                     progress.update(task, description=response.message)
                     if state.verbose:
                         console.print(f"[dim]Progress: {response.message}[/dim]")
-                elif isinstance(response, ClassifyStreamResponse):  # Classification result
+                elif isinstance(
+                    response, ClassifyStreamResponse
+                ):  # Classification result
                     classification_result = response
                     progress.update(task, description="Classification complete!")
                 elif isinstance(response, ClassifyErrorResponse):  # Error
-                    error_console.print(f"[red]Classification error: {response.message}[/red]")
+                    error_console.print(
+                        f"[red]Classification error: {response.message}[/red]"
+                    )
                     raise typer.Exit(1)
 
         if not classification_result:
@@ -1606,7 +1652,9 @@ def classify(
         table.add_row("Format Type", classification_result.classification.format_type)
         table.add_row("Content Type", classification_result.classification.content_type)
         table.add_row("MIME Type", classification_result.classification.mime_type)
-        table.add_row("Confidence", f"{classification_result.classification.confidence:.2%}")
+        table.add_row(
+            "Confidence", f"{classification_result.classification.confidence:.2%}"
+        )
         table.add_row("File Size", f"{classification_result.file_size:,} bytes")
 
         if classification_result.sample_preview:
@@ -1660,13 +1708,21 @@ def classify(
 
     except BookWyrmAPIError as e:
         if e.status_code == 401:
-            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print(
+                "[red]Authentication Error: Invalid or missing API key[/red]"
+            )
             error_console.print("[yellow]To fix this issue:[/yellow]")
             error_console.print("  1. Set your API key as an environment variable:")
-            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print(
+                "     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]"
+            )
             error_console.print("  2. Or use the --api-key option:")
-            error_console.print("     [cyan]bookwyrm classify --api-key your-api-key-here [other-options][/cyan]")
-            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+            error_console.print(
+                "     [cyan]bookwyrm classify --api-key your-api-key-here [other-options][/cyan]"
+            )
+            error_console.print(
+                "\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]"
+            )
         else:
             error_console.print(f"[red]API Error: {e}[/red]")
             if e.status_code:
@@ -1910,7 +1966,9 @@ def extract_pdf(
                     )
                     console.print("[green]✓ PDF extraction complete![/green]")
                 elif isinstance(response, PDFStreamError):
-                    error_console.print(f"[red]Extraction error: {response.error}[/red]")
+                    error_console.print(
+                        f"[red]Extraction error: {response.error}[/red]"
+                    )
                     raise typer.Exit(1)
 
         # Display summary
@@ -2005,13 +2063,21 @@ def extract_pdf(
 
     except BookWyrmAPIError as e:
         if e.status_code == 401:
-            error_console.print("[red]Authentication Error: Invalid or missing API key[/red]")
+            error_console.print(
+                "[red]Authentication Error: Invalid or missing API key[/red]"
+            )
             error_console.print("[yellow]To fix this issue:[/yellow]")
             error_console.print("  1. Set your API key as an environment variable:")
-            error_console.print("     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]")
+            error_console.print(
+                "     [cyan]export BOOKWYRM_API_KEY='your-api-key-here'[/cyan]"
+            )
             error_console.print("  2. Or use the --api-key option:")
-            error_console.print("     [cyan]bookwyrm extract-pdf --api-key your-api-key-here [other-options][/cyan]")
-            error_console.print("\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]")
+            error_console.print(
+                "     [cyan]bookwyrm extract-pdf --api-key your-api-key-here [other-options][/cyan]"
+            )
+            error_console.print(
+                "\n[dim]Get your API key from: https://api.bookwyrm.ai[/dim]"
+            )
         else:
             error_console.print(f"[red]API Error: {e}[/red]")
             if e.status_code:
@@ -2027,17 +2093,20 @@ def extract_pdf(
 @app.command()
 def pdf_query_range(
     mapping_file: Annotated[
-        Path, typer.Argument(help="Character mapping JSON file from pdf-to-text command", exists=True)
+        Path,
+        typer.Argument(
+            help="Character mapping JSON file from pdf-to-text command", exists=True
+        ),
     ],
     start_char: Annotated[
         int, typer.Argument(help="Starting character index (inclusive)")
     ],
-    end_char: Annotated[
-        int, typer.Argument(help="Ending character index (exclusive)")
-    ],
+    end_char: Annotated[int, typer.Argument(help="Ending character index (exclusive)")],
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="Output file for bounding box results (JSON format)"),
+        typer.Option(
+            "-o", "--output", help="Output file for bounding box results (JSON format)"
+        ),
     ] = None,
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
@@ -2079,49 +2148,69 @@ def pdf_query_range(
             error_console.print(f"[red]Error: Invalid mapping file format: {e}[/red]")
             raise typer.Exit(1)
 
-        console.print(f"[green]Loaded mapping with {pdf_mapping.total_characters:,} characters across {pdf_mapping.total_pages} pages[/green]")
+        console.print(
+            f"[green]Loaded mapping with {pdf_mapping.total_characters:,} characters across {pdf_mapping.total_pages} pages[/green]"
+        )
 
         # Validate character range
         if start_char < 0:
-            error_console.print(f"[red]Error: start_char must be >= 0 (got {start_char})[/red]")
+            error_console.print(
+                f"[red]Error: start_char must be >= 0 (got {start_char})[/red]"
+            )
             raise typer.Exit(1)
-        
+
         if end_char <= start_char:
-            error_console.print(f"[red]Error: end_char must be > start_char (got {end_char} <= {start_char})[/red]")
+            error_console.print(
+                f"[red]Error: end_char must be > start_char (got {end_char} <= {start_char})[/red]"
+            )
             raise typer.Exit(1)
 
         if start_char >= pdf_mapping.total_characters:
-            error_console.print(f"[red]Error: start_char {start_char} is beyond text length {pdf_mapping.total_characters}[/red]")
+            error_console.print(
+                f"[red]Error: start_char {start_char} is beyond text length {pdf_mapping.total_characters}[/red]"
+            )
             raise typer.Exit(1)
 
         # Adjust end_char if it exceeds text length
         original_end_char = end_char
         if end_char > pdf_mapping.total_characters:
             end_char = pdf_mapping.total_characters
-            console.print(f"[yellow]Warning: end_char {original_end_char} adjusted to text length {end_char}[/yellow]")
+            console.print(
+                f"[yellow]Warning: end_char {original_end_char} adjusted to text length {end_char}[/yellow]"
+            )
 
-        console.print(f"[blue]Querying character range {start_char}-{end_char} ({end_char - start_char} characters)[/blue]")
+        console.print(
+            f"[blue]Querying character range {start_char}-{end_char} ({end_char - start_char} characters)[/blue]"
+        )
 
         # Get bounding boxes for the range
         bounding_boxes = pdf_mapping.get_bounding_boxes_for_range(start_char, end_char)
         pages_in_range = pdf_mapping.get_pages_for_range(start_char, end_char)
 
         if not bounding_boxes:
-            console.print("[yellow]No bounding boxes found for the specified range[/yellow]")
+            console.print(
+                "[yellow]No bounding boxes found for the specified range[/yellow]"
+            )
             return
 
         # Display summary
         total_boxes = sum(len(page_boxes) for page_boxes in bounding_boxes.values())
-        console.print(f"[green]Found {total_boxes:,} character mappings across {len(pages_in_range)} pages[/green]")
+        console.print(
+            f"[green]Found {total_boxes:,} character mappings across {len(pages_in_range)} pages[/green]"
+        )
 
         if verbose:
             # Show sample text from the range
-            sample_text = pdf_mapping.raw_text[start_char:min(start_char + 200, end_char)]
+            sample_text = pdf_mapping.raw_text[
+                start_char : min(start_char + 200, end_char)
+            ]
             console.print(f"\n[bold]Sample text from range:[/bold]")
             console.print(f"[dim]{repr(sample_text)}[/dim]")
 
         # Display results in a table
-        console.print(f"\n[bold]Pages containing characters {start_char}-{end_char}:[/bold]")
+        console.print(
+            f"\n[bold]Pages containing characters {start_char}-{end_char}:[/bold]"
+        )
         pages_table = Table()
         pages_table.add_column("Page", justify="right", style="cyan")
         pages_table.add_column("Characters", justify="right", style="green")
@@ -2130,23 +2219,27 @@ def pdf_query_range(
 
         for page_num in sorted(bounding_boxes.keys()):
             page_boxes = bounding_boxes[page_num]
-            char_indices = [box['char_index'] for box in page_boxes]
+            char_indices = [box["char_index"] for box in page_boxes]
             min_char = min(char_indices)
             max_char = max(char_indices)
-            avg_confidence = sum(box['confidence'] for box in page_boxes) / len(page_boxes)
-            
+            avg_confidence = sum(box["confidence"] for box in page_boxes) / len(
+                page_boxes
+            )
+
             pages_table.add_row(
                 str(page_num),
                 str(len(page_boxes)),
                 f"{min_char}-{max_char}",
-                f"{avg_confidence:.2f}"
+                f"{avg_confidence:.2f}",
             )
 
         console.print(pages_table)
 
         if verbose:
             # Show detailed bounding box information for first few characters
-            console.print(f"\n[bold]Detailed bounding boxes (first 10 characters):[/bold]")
+            console.print(
+                f"\n[bold]Detailed bounding boxes (first 10 characters):[/bold]"
+            )
             detail_table = Table()
             detail_table.add_column("Char Index", justify="right", style="cyan")
             detail_table.add_column("Character", style="green")
@@ -2159,20 +2252,24 @@ def pdf_query_range(
                 for box in bounding_boxes[page_num]:
                     if char_count >= 10:
                         break
-                    
-                    char_index = box['char_index']
-                    char_display = repr(pdf_mapping.raw_text[char_index]) if char_index < len(pdf_mapping.raw_text) else "EOF"
+
+                    char_index = box["char_index"]
+                    char_display = (
+                        repr(pdf_mapping.raw_text[char_index])
+                        if char_index < len(pdf_mapping.raw_text)
+                        else "EOF"
+                    )
                     coords = f"({box['x1']:.1f},{box['y1']:.1f})-({box['x2']:.1f},{box['y2']:.1f})"
-                    
+
                     detail_table.add_row(
                         str(char_index),
                         char_display,
                         str(page_num),
                         coords,
-                        f"{box['confidence']:.2f}"
+                        f"{box['confidence']:.2f}",
                     )
                     char_count += 1
-                
+
                 if char_count >= 10:
                     break
 
@@ -2187,21 +2284,21 @@ def pdf_query_range(
                 "start_char": start_char,
                 "end_char": end_char,
                 "character_count": end_char - start_char,
-                "source_file": str(mapping_file)
+                "source_file": str(mapping_file),
             },
             "results": {
                 "total_characters": total_boxes,
                 "pages_spanned": len(pages_in_range),
                 "pages": pages_in_range,
-                "bounding_boxes_by_page": bounding_boxes
+                "bounding_boxes_by_page": bounding_boxes,
             },
             "metadata": {
                 "source_mapping": {
                     "total_characters": pdf_mapping.total_characters,
                     "total_pages": pdf_mapping.total_pages,
-                    "source_file": pdf_mapping.source_file
+                    "source_file": pdf_mapping.source_file,
                 }
-            }
+            },
         }
 
         # Save to output file if specified
@@ -2233,11 +2330,18 @@ def pdf_to_text(
     ],
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="Output file for raw text (default: input_name_raw.txt)"),
+        typer.Option(
+            "-o",
+            "--output",
+            help="Output file for raw text (default: input_name_raw.txt)",
+        ),
     ] = None,
     mapping_output: Annotated[
         Optional[Path],
-        typer.Option("--mapping", help="Output file for character mapping JSON (default: input_name_mapping.json)"),
+        typer.Option(
+            "--mapping",
+            help="Output file for character mapping JSON (default: input_name_mapping.json)",
+        ),
     ] = None,
     verbose: Annotated[
         bool, typer.Option("-v", "--verbose", help="Show detailed information")
@@ -2279,7 +2383,9 @@ def pdf_to_text(
 
         # Validate the structure
         if "pages" not in extraction_data:
-            error_console.print("[red]Error: Invalid JSON format - missing 'pages' key[/red]")
+            error_console.print(
+                "[red]Error: Invalid JSON format - missing 'pages' key[/red]"
+            )
             raise typer.Exit(1)
 
         pages = extraction_data["pages"]
@@ -2299,7 +2405,9 @@ def pdf_to_text(
             text_blocks = page.get("text_blocks", [])
 
             if verbose:
-                console.print(f"[dim]Processing page {page_number} with {len(text_blocks)} text blocks[/dim]")
+                console.print(
+                    f"[dim]Processing page {page_number} with {len(text_blocks)} text blocks[/dim]"
+                )
 
             for element_index, text_block in enumerate(text_blocks):
                 text = text_block.get("text", "")
@@ -2316,7 +2424,7 @@ def pdf_to_text(
                         x2=coordinates.get("x2", 0.0),
                         y2=coordinates.get("y2", 0.0),
                         confidence=confidence,
-                        original_text_element_index=element_index
+                        original_text_element_index=element_index,
                     )
                     character_mappings.append(mapping)
                     current_char_index += 1
@@ -2334,7 +2442,7 @@ def pdf_to_text(
                         x2=coordinates.get("x2", 0.0),
                         y2=coordinates.get("y2", 0.0),
                         confidence=confidence,
-                        original_text_element_index=element_index
+                        original_text_element_index=element_index,
                     )
                     character_mappings.append(newline_mapping)
                     current_char_index += 1
@@ -2348,7 +2456,7 @@ def pdf_to_text(
             character_mappings=character_mappings,
             total_pages=len(pages),
             total_characters=len(raw_text),
-            source_file=str(json_file)
+            source_file=str(json_file),
         )
 
         # Generate output filenames if not provided
@@ -2373,7 +2481,9 @@ def pdf_to_text(
         # Display summary
         console.print(f"[green]✓ Conversion complete![/green]")
         console.print(f"[green]Raw text: {len(raw_text):,} characters[/green]")
-        console.print(f"[green]Character mappings: {len(character_mappings):,} entries[/green]")
+        console.print(
+            f"[green]Character mappings: {len(character_mappings):,} entries[/green]"
+        )
         console.print(f"[green]Pages processed: {len(pages)}[/green]")
 
         if verbose:
@@ -2392,14 +2502,18 @@ def pdf_to_text(
             table.add_column("Confidence", justify="right", style="blue")
 
             for i, mapping in enumerate(character_mappings[:5]):
-                char_display = repr(raw_text[mapping.char_index]) if mapping.char_index < len(raw_text) else "EOF"
+                char_display = (
+                    repr(raw_text[mapping.char_index])
+                    if mapping.char_index < len(raw_text)
+                    else "EOF"
+                )
                 coords = f"({mapping.x1:.1f},{mapping.y1:.1f})-({mapping.x2:.1f},{mapping.y2:.1f})"
                 table.add_row(
                     str(mapping.char_index),
                     char_display,
                     str(mapping.page_number),
                     coords,
-                    f"{mapping.confidence:.2f}"
+                    f"{mapping.confidence:.2f}",
                 )
 
             console.print(table)

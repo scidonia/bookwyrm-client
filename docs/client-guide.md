@@ -705,10 +705,10 @@ The examples in this guide use sample data files included in the repository:
 ## Key Differences from CLI
 
 1. **Streaming by default**: Most client methods return streaming responses, giving you real-time progress updates
-2. **Type safety**: All responses are typed Pydantic models, providing better IDE support and validation
-3. **Programmatic control**: You can process responses as they arrive and implement custom logic
-4. **Error handling**: Structured exception handling with specific error types
-5. **Context managers**: Automatic resource cleanup with `with` statements
-6. **Memory efficiency**: Streaming responses don't load all results into memory at once
+1. **Type safety**: All responses are typed Pydantic models, providing better IDE support and validation
+1. **Programmatic control**: You can process responses as they arrive and implement custom logic
+1. **Error handling**: Structured exception handling with specific error types
+1. **Context managers**: Automatic resource cleanup with `with` statements
+1. **Memory efficiency**: Streaming responses don't load all results into memory at once
 
 The client library provides the same functionality as the CLI but with more programmatic control and better integration into Python applications.

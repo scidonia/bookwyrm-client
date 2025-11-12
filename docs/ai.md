@@ -493,5 +493,3 @@ show_root_heading: true
 ::: bookwyrm.AsyncBookWyrmClient.stream_summarize
 options:
 show_root_heading: true
-
-

@@ -104,7 +104,7 @@ def _check_deprecation_headers(response: requests.Response) -> None:
     """Check for deprecation headers and write warnings to stderr."""
     deprecation = response.headers.get("Deprecation")
     warning = response.headers.get("Warning")
-    
+
     if deprecation and deprecation != "false":
         if warning and warning.startswith("299 bookwyrm"):
             # Extract the warning message from the 299 warning format
@@ -335,43 +335,43 @@ class BookWyrmClient:
         output_file: Optional[Path] = None,
     ) -> Dict[str, Any]:
         """Query character positions to get bounding boxes from mapping object or file.
-        
+
         This method queries a character range to get the corresponding bounding boxes,
         pages, and sample text. It can work with either an in-memory PDFTextMapping
         object or load from a mapping file.
-        
+
         Args:
             mapping: In-memory PDFTextMapping object
             mapping_file: Path to character mapping JSON file
             start_char: Starting character index (inclusive)
             end_char: Ending character index (exclusive)
             output_file: Optional path to save query results
-            
+
         Returns:
             Dictionary containing query results with bounding boxes, pages, and sample text
-            
+
         Raises:
             ValueError: If neither mapping nor mapping_file is provided, or if character range is invalid
             FileNotFoundError: If mapping_file doesn't exist
-            
+
         Examples:
             Query from in-memory mapping:
-            
+
             ```python
             # After creating mapping from pages
             mapping = create_pdf_text_mapping_from_pages(pages)
-            
+
             result = client.query_character_range(
                 mapping=mapping,
                 start_char=100,
                 end_char=200
             )
-            
+
             print(f"Found bounding boxes on {len(result['pages'])} pages")
             ```
-            
+
             Query from mapping file:
-            
+
             ```python
             result = client.query_character_range(
                 mapping_file=Path("data/mapping.json"),
@@ -381,30 +381,39 @@ class BookWyrmClient:
             )
             ```
         """
-        from .utils import query_mapping_range_in_memory, query_character_range, save_mapping_query_in_memory
-        
+        from .utils import (
+            query_mapping_range_in_memory,
+            query_character_range,
+            save_mapping_query_in_memory,
+        )
+
         # Validate inputs
         if mapping is None and mapping_file is None:
             raise ValueError("Either mapping or mapping_file must be provided")
         if mapping is not None and mapping_file is not None:
             raise ValueError("Only one of mapping or mapping_file can be provided")
-        
+
         # Use appropriate utility function
         if mapping is not None:
             # Use in-memory mapping
             result = query_mapping_range_in_memory(mapping, start_char, end_char)
-            
+
             # Save to file if requested
             if output_file is not None:
-                result = save_mapping_query_in_memory(mapping, start_char, end_char, output_file)
+                result = save_mapping_query_in_memory(
+                    mapping, start_char, end_char, output_file
+                )
         else:
             # Use mapping file
             from .utils import save_character_query
+
             if output_file is not None:
-                result = save_character_query(mapping_file, start_char, end_char, output_file)
+                result = save_character_query(
+                    mapping_file, start_char, end_char, output_file
+                )
             else:
                 result = query_character_range(mapping_file, start_char, end_char)
-        
+
         return result
 
     def stream_classify(
@@ -497,7 +506,8 @@ class BookWyrmClient:
             # Handle marshalling at API level - convert to base64 for SSE endpoint
             if request.content_bytes is not None:
                 import base64
-                content_base64 = base64.b64encode(request.content_bytes).decode('ascii')
+
+                content_base64 = base64.b64encode(request.content_bytes).decode("ascii")
             elif request.content is not None:
                 if request.content_encoding == ContentEncoding.BASE64:
                     # Content is already base64 encoded
@@ -505,11 +515,17 @@ class BookWyrmClient:
                 elif request.content_encoding == ContentEncoding.UTF8:
                     # Encode UTF-8 text to base64
                     import base64
-                    content_base64 = base64.b64encode(request.content.encode("utf-8")).decode('ascii')
+
+                    content_base64 = base64.b64encode(
+                        request.content.encode("utf-8")
+                    ).decode("ascii")
                 elif request.content_encoding == ContentEncoding.RAW:
                     # Treat as raw bytes and encode to base64
                     import base64
-                    content_base64 = base64.b64encode(request.content.encode("latin-1")).decode('ascii')
+
+                    content_base64 = base64.b64encode(
+                        request.content.encode("latin-1")
+                    ).decode("ascii")
                 else:
                     raise BookWyrmAPIError(
                         f"Unsupported content encoding: {request.content_encoding}"
@@ -542,10 +558,10 @@ class BookWyrmClient:
                 if event.data and event.data.strip():
                     try:
                         data: Dict[str, Any] = json.loads(event.data)
-                        
+
                         # Use the event type, or fall back to data.type
                         event_type = event.event or data.get("type")
-                        
+
                         match event_type:
                             case "progress":
                                 yield ClassifyProgressUpdate.model_validate(data)
@@ -728,7 +744,9 @@ class BookWyrmClient:
 
                 # Debug: Print every event received if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
-                    print(f"DEBUG: Event {event_count} - type: {event.event}, data: {repr(event.data)}")
+                    print(
+                        f"DEBUG: Event {event_count} - type: {event.event}, data: {repr(event.data)}"
+                    )
 
                 # Always yield raw event info for debugging if BOOKWYRM_DEBUG is set
                 if os.getenv("BOOKWYRM_DEBUG") == "1":
@@ -744,10 +762,10 @@ class BookWyrmClient:
                 if event.data and event.data.strip():
                     try:
                         data: Dict[str, Any] = json.loads(event.data)
-                        
+
                         # Use the event type, or fall back to data.type
                         event_type = event.event or data.get("type")
-                        
+
                         match event_type:
                             case "progress":
                                 yield PhraseProgressUpdate.model_validate(data)
@@ -981,10 +999,10 @@ class BookWyrmClient:
                 if event.data and event.data.strip():
                     try:
                         data: Dict[str, Any] = json.loads(event.data)
-                        
+
                         # Use the event type, or fall back to data.type
                         event_type = event.event or data.get("type")
-                        
+
                         match event_type:
                             case "progress":
                                 # SSE endpoint sends ProgressUpdate, convert to CitationProgressUpdate
@@ -993,34 +1011,47 @@ class BookWyrmClient:
                                     "chunks_processed": data.get("chunks_processed", 0),
                                     "total_chunks": data.get("total_chunks", 0),
                                     "citations_found": data.get("citations_found", 0),
-                                    "current_chunk_range": data.get("message", "Processing..."),  # Use message as range
+                                    "current_chunk_range": data.get(
+                                        "message", "Processing..."
+                                    ),  # Use message as range
                                     "message": data.get("message", "Processing..."),
                                 }
-                                yield CitationProgressUpdate.model_validate(progress_data)
+                                yield CitationProgressUpdate.model_validate(
+                                    progress_data
+                                )
                             case "citation":
                                 yield CitationStreamResponse.model_validate(data)
                             case "citation_span":
                                 # Handle citation_span events as regular citations
                                 citation_data = {
                                     "type": "citation",
-                                    "citation": data.get("citation")
+                                    "citation": data.get("citation"),
                                 }
-                                yield CitationStreamResponse.model_validate(citation_data)
+                                yield CitationStreamResponse.model_validate(
+                                    citation_data
+                                )
                             case "summary":
                                 # SSE endpoint sends SummaryResult, convert to CitationSummaryResponse
                                 summary_data = {
                                     "type": "summary",
                                     "total_citations": data.get("total_citations", 0),
                                     "chunks_processed": data.get("chunks_processed", 0),
-                                    "token_chunks_processed": data.get("token_chunks_processed", 0),
+                                    "token_chunks_processed": data.get(
+                                        "token_chunks_processed", 0
+                                    ),
                                     "start_offset": 0,  # SSE endpoint doesn't provide this, default to 0
-                                    "usage": data.get("usage", {
-                                        "tokens_processed": 0,
-                                        "chunks_processed": 0,
-                                        "remaining_credits": 0.0
-                                    }),
+                                    "usage": data.get(
+                                        "usage",
+                                        {
+                                            "tokens_processed": 0,
+                                            "chunks_processed": 0,
+                                            "remaining_credits": 0.0,
+                                        },
+                                    ),
                                 }
-                                yield CitationSummaryResponse.model_validate(summary_data)
+                                yield CitationSummaryResponse.model_validate(
+                                    summary_data
+                                )
                             case "error":
                                 yield CitationErrorResponse.model_validate(data)
                             case _:
@@ -1171,10 +1202,10 @@ class BookWyrmClient:
                 if event.data and event.data.strip():
                     try:
                         data: Dict[str, Any] = json.loads(event.data)
-                        
+
                         # Use the event type, or fall back to data.type
                         event_type = event.event or data.get("type")
-                        
+
                         match event_type:
                             case "metadata":
                                 yield PDFStreamMetadata.model_validate(data)
@@ -1312,10 +1343,10 @@ class BookWyrmClient:
                 if event.data and event.data.strip():
                     try:
                         data: Dict[str, Any] = json.loads(event.data)
-                        
+
                         # Use the event type, or fall back to data.type
                         event_type = event.event or data.get("type")
-                        
+
                         match event_type:
                             case "progress":
                                 yield SummarizeProgressUpdate.model_validate(data)
@@ -1328,7 +1359,9 @@ class BookWyrmClient:
                                     "subsummary_count": data.get("subsummary_count", 0),
                                     "levels_used": data.get("levels_used", 0),
                                     "total_tokens": data.get("total_tokens", 0),
-                                    "intermediate_summaries": data.get("intermediate_summaries"),
+                                    "intermediate_summaries": data.get(
+                                        "intermediate_summaries"
+                                    ),
                                 }
                                 yield SummaryResponse.model_validate(summary_data)
                             case "error":

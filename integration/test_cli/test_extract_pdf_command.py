@@ -239,8 +239,6 @@ def test_extract_pdf_command_with_start_page_only():
         test_file.unlink()
 
 
-
-
 def test_extract_pdf_command_with_verbose_option():
     """Test extract-pdf command with --verbose option."""
     test_file = create_test_pdf_file()
@@ -566,8 +564,6 @@ def test_extract_pdf_command_live_api_with_page_range(api_key, api_url):
 
     finally:
         test_file.unlink()
-
-
 
 
 @pytest.mark.liveonly

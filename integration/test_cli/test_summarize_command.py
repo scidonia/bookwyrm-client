@@ -767,27 +767,37 @@ def test_summarize_command_model_strength_levels(sample_phrases, api_key, api_ur
         pytest.skip("No API key provided for live test")
 
     jsonl_file = create_test_jsonl_file(sample_phrases)
-    
+
     # Test different model strength levels
     model_strengths = ["swift", "smart", "clever", "wise", "brainiac"]
-    
+
     for strength in model_strengths:
         output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         output_path = Path(output_file.name)
         output_file.close()
-        
-        try:
-            result = run_bookwyrm_command([
-                "summarize", str(jsonl_file),
-                "--output", str(output_path),
-                "--model-strength", strength,
-                "--max-tokens", "1000",
-                "--verbose",
-                "--api-key", api_key,
-                "--base-url", api_url,
-            ])
 
-            assert result.returncode == 0, f"Failed for model strength: {strength}. Error: {result.stderr}"
+        try:
+            result = run_bookwyrm_command(
+                [
+                    "summarize",
+                    str(jsonl_file),
+                    "--output",
+                    str(output_path),
+                    "--model-strength",
+                    strength,
+                    "--max-tokens",
+                    "1000",
+                    "--verbose",
+                    "--api-key",
+                    api_key,
+                    "--base-url",
+                    api_url,
+                ]
+            )
+
+            assert (
+                result.returncode == 0
+            ), f"Failed for model strength: {strength}. Error: {result.stderr}"
             assert len(result.stdout) > 0
             assert output_path.exists()
 
@@ -803,12 +813,14 @@ def test_summarize_command_model_strength_levels(sample_phrases, api_key, api_ur
             # Cleanup
             if output_path.exists():
                 output_path.unlink()
-    
+
     # Cleanup phrases file
     jsonl_file.unlink()
 
 
-def test_summarize_command_with_pydantic_model(sample_scientific_phrases, api_key, api_url):
+def test_summarize_command_with_pydantic_model(
+    sample_scientific_phrases, api_key, api_url
+):
     """Test summarize command with structured Pydantic model output."""
     if not api_key:
         pytest.skip("No API key provided for live test")
@@ -817,7 +829,7 @@ def test_summarize_command_with_pydantic_model(sample_scientific_phrases, api_ke
     output_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
     output_path = Path(output_file.name)
     output_file.close()
-    
+
     # Create a temporary Pydantic model file
     model_file = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
     model_content = '''from pydantic import BaseModel, Field
@@ -833,23 +845,33 @@ class ScientificSummary(BaseModel):
     implications: Optional[str] = Field(None, description="Implications or significance")
     summary: str = Field(..., description="Overall summary of the content")
 '''
-    
+
     model_file.write(model_content)
     model_file.close()
     model_path = Path(model_file.name)
-    
+
     try:
-        result = run_bookwyrm_command([
-            "summarize", str(jsonl_file),
-            "--output", str(output_path),
-            "--model-class-file", str(model_path),
-            "--model-class-name", "ScientificSummary",
-            "--model-strength", "wise",
-            "--max-tokens", "2000",
-            "--verbose",
-            "--api-key", api_key,
-            "--base-url", api_url,
-        ])
+        result = run_bookwyrm_command(
+            [
+                "summarize",
+                str(jsonl_file),
+                "--output",
+                str(output_path),
+                "--model-class-file",
+                str(model_path),
+                "--model-class-name",
+                "ScientificSummary",
+                "--model-strength",
+                "wise",
+                "--max-tokens",
+                "2000",
+                "--verbose",
+                "--api-key",
+                api_key,
+                "--base-url",
+                api_url,
+            ]
+        )
 
         assert result.returncode == 0, f"Command failed: {result.stderr}"
         assert len(result.stdout) > 0
@@ -860,7 +882,7 @@ class ScientificSummary(BaseModel):
             summary_data = json.load(f)
 
         assert "summary" in summary_data
-        
+
         # The summary field should contain structured JSON data
         if isinstance(summary_data["summary"], str):
             # Try to parse as JSON
@@ -870,7 +892,13 @@ class ScientificSummary(BaseModel):
                 # Check for expected Pydantic model fields
                 assert "summary" in structured_summary  # Required field
                 # Optional fields may or may not be present
-                possible_fields = ["title", "key_concepts", "main_findings", "methodology", "implications"]
+                possible_fields = [
+                    "title",
+                    "key_concepts",
+                    "main_findings",
+                    "methodology",
+                    "implications",
+                ]
                 assert any(field in structured_summary for field in possible_fields)
             except json.JSONDecodeError:
                 # If it's not JSON, it should still be a valid summary string
