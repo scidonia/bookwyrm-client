@@ -23,9 +23,10 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.docs)
             item.add_marker(pytest.mark.live)
             
-            # Skip bash/shell code blocks
-            if hasattr(item, 'obj') and hasattr(item.obj, 'code'):
-                if item.obj.language in ['bash', 'shell', 'sh']:
+            # Skip bash/shell code blocks - check for pytest-codeblocks attributes
+            if hasattr(item, 'obj') and hasattr(item.obj, 'info'):
+                # pytest-codeblocks stores language in info attribute
+                if item.obj.info in ['bash', 'shell', 'sh']:
                     item.add_marker(pytest.mark.skip(reason="Skipping shell commands"))
 
 
