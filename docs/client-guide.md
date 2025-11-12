@@ -220,7 +220,7 @@ from pathlib import Path
 def query_character_positions(mapping):
     """Query character positions from mapping (requires mapping from previous examples)."""
     client = BookWyrmClient()
-    
+
     # Query character positions from in-memory mapping (preferred approach)
     result = query_mapping_range_in_memory(mapping, 974, 1089)
 
@@ -235,7 +235,7 @@ def query_character_positions(mapping):
         start_char=974,
         end_char=1089
     )
-    
+
     return result
 
 # Example usage (requires mapping from previous examples):
@@ -245,10 +245,10 @@ def query_character_positions(mapping):
 def query_from_saved_mapping():
     """Query from a saved mapping file."""
     from bookwyrm.utils import query_character_range
-    
+
     result = query_character_range(
-        Path("data/SOA_2025_Final_mapping.json"), 
-        start_char=974, 
+        Path("data/SOA_2025_Final_mapping.json"),
+        start_char=974,
         end_char=1089
     )
     print(f"Found bounding boxes on {len(result['pages'])} pages")
@@ -272,41 +272,41 @@ import json
 def process_text_to_phrases() -> List[Union[TextResult, TextSpanResult]]:
     """Create phrasal analysis of a text file."""
     from bookwyrm.utils import collect_phrases_from_stream
-    
+
     client = BookWyrmClient()
-    
+
     # Read text file (available in the repository)
     text_file = Path("data/country-of-the-blind.txt")
     text_content = text_file.read_text(encoding='utf-8')
-    
+
     # Stream phrasal processing with utility function
     stream = client.stream_process_text(
         text=text_content,
         response_format=ResponseFormat.WITH_OFFSETS
     )
-    
+
     output_file = Path("data/country-of-the-blind-phrases.jsonl")
     phrases = collect_phrases_from_stream(stream, verbose=True, output_file=output_file)
-    
+
     print(f"Saved {len(phrases)} phrases to {output_file}")
     return phrases
 
 def process_text_from_url() -> List[Union[TextResult, TextSpanResult]]:
     """Process text from a URL."""
     from bookwyrm.utils import collect_phrases_from_stream
-    
+
     client = BookWyrmClient()
-    
+
     stream = client.stream_process_text(
         text_url="https://www.gutenberg.org/files/11/11-0.txt",
         chunk_size=2000,
         response_format=ResponseFormat.WITH_OFFSETS
     )
-    
+
     # Save to JSONL using utility function
     output_file = Path("data/alice-phrases.jsonl")
     phrases = collect_phrases_from_stream(stream, verbose=False, output_file=output_file)
-    
+
     return phrases
 
 # Process text to phrases
@@ -332,30 +332,30 @@ from bookwyrm.utils import load_phrases_from_jsonl
 def basic_summarization() -> Optional[SummaryResponse]:
     """Generate a basic summary from phrases."""
     from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
-    
+
     client = BookWyrmClient()
-    
+
     # Load phrases from JSONL file
     phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
-    
+
     # Stream summarization with progress using utility function
     stream = client.stream_summarize(
         phrases=phrases,
         debug=True
     )
-    
+
     final_summary = collect_summary_from_stream(stream, verbose=True)
-    
+
     if final_summary:
         # Save summary to JSON file using utility function
         output_file = Path("data/country-of-the-blind-summary.json")
         save_model_to_json(final_summary, output_file)
-        
+
         print(f"Summary: {final_summary.summary}")
         print(f"Levels used: {final_summary.levels_used}")
         print(f"Total tokens: {final_summary.total_tokens}")
         print(f"Saved to {output_file}")
-    
+
     return final_summary
 
 # Generate basic summary
