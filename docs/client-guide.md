@@ -58,24 +58,22 @@ def classify_pdf() -> ClassifyResponse:
 
 def classify_pdf_with_progress() -> Optional[ClassifyStreamResponse]:
     """Classify a PDF with real-time progress updates."""
+    from bookwyrm.utils import collect_classification_from_stream
+    
     client = BookWyrmClient()
     
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
-    classification_result: Optional[ClassifyStreamResponse] = None
-    for response in client.stream_classify(
+    stream = client.stream_classify(
         content_bytes=pdf_bytes,
         filename="SOA_2025_Final.pdf"
-    ):
-        if isinstance(response, ClassifyProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, ClassifyStreamResponse):
-            classification_result = response
-            print(f"Classification complete!")
-            print(f"Format: {response.classification.format_type}")
-        elif isinstance(response, ClassifyErrorResponse):
-            print(f"Error: {response.message}")
+    )
+    
+    classification_result = collect_classification_from_stream(stream, verbose=True)
+    
+    if classification_result:
+        print(f"Format: {classification_result.classification.format_type}")
     
     return classification_result
 
@@ -96,30 +94,21 @@ import json
 
 def extract_pdf_structure() -> List[PDFPage]:
     """Extract structured data from PDF pages 1-4."""
+    from bookwyrm.utils import collect_pdf_pages_from_stream
+    
     client = BookWyrmClient()
     
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
-    pages: List[PDFPage] = []
-    metadata: Optional[PDFStreamMetadata] = None
-    
-    for response in client.stream_extract_pdf(
+    stream = client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
         filename="SOA_2025_Final.pdf",
         start_page=1,
         num_pages=4
-    ):
-        if isinstance(response, PDFStreamMetadata):
-            metadata = response
-            print(f"Processing {response.total_pages} pages")
-        elif isinstance(response, PDFStreamPageResponse):
-            pages.append(response.page_data)
-            print(f"Extracted page {response.document_page}: {len(response.page_data.text_blocks)} text elements")
-        elif isinstance(response, PDFStreamPageError):
-            print(f"Error on page {response.document_page}: {response.error}")
-        elif isinstance(response, PDFStreamComplete):
-            print(f"Extraction complete: {response.pages_processed} pages processed")
+    )
+    
+    pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
     
     # Save extracted data to JSON file
     output_data = {
@@ -136,18 +125,17 @@ def extract_pdf_structure() -> List[PDFPage]:
 
 def extract_pdf_from_url() -> List[PDFPage]:
     """Extract PDF structure from a URL."""
+    from bookwyrm.utils import collect_pdf_pages_from_stream
+    
     client = BookWyrmClient()
     
-    pages: List[PDFPage] = []
-    for response in client.stream_extract_pdf(
+    stream = client.stream_extract_pdf(
         pdf_url="https://example.com/document.pdf",
         start_page=1,
         num_pages=5
-    ):
-        if isinstance(response, PDFStreamPageResponse):
-            pages.append(response.page_data)
-            print(f"Extracted page {response.document_page}")
+    )
     
+    pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
     return pages
 
 # Extract PDF structure
@@ -286,49 +274,41 @@ import json
 
 def process_text_to_phrases() -> List[Union[TextResult, TextSpanResult]]:
     """Create phrasal analysis of a text file."""
+    from bookwyrm.utils import collect_phrases_from_stream
+    
     client = BookWyrmClient()
     
     # Read text file (available in the repository)
     text_file = Path("data/country-of-the-blind.txt")
     text_content = text_file.read_text(encoding='utf-8')
     
-    phrases: List[Union[TextResult, TextSpanResult]] = []
-    for response in client.stream_process_text(
+    # Stream phrasal processing with utility function
+    stream = client.stream_process_text(
         text=text_content,
         response_format=ResponseFormat.WITH_OFFSETS
-    ):
-        if isinstance(response, PhraseProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, (TextResult, TextSpanResult)):
-            phrases.append(response)
+    )
     
-    # Save phrases to JSONL file
     output_file = Path("data/country-of-the-blind-phrases.jsonl")
-    with open(output_file, 'w') as f:
-        for phrase in phrases:
-            f.write(phrase.model_dump_json() + '\n')
+    phrases = collect_phrases_from_stream(stream, verbose=True, output_file=output_file)
     
     print(f"Saved {len(phrases)} phrases to {output_file}")
     return phrases
 
 def process_text_from_url() -> List[Union[TextResult, TextSpanResult]]:
     """Process text from a URL."""
+    from bookwyrm.utils import collect_phrases_from_stream
+    
     client = BookWyrmClient()
     
-    phrases = []
-    for response in client.stream_process_text(
+    stream = client.stream_process_text(
         text_url="https://www.gutenberg.org/files/11/11-0.txt",
         chunk_size=2000,
         response_format=ResponseFormat.WITH_OFFSETS
-    ):
-        if isinstance(response, (TextResult, TextSpanResult)):
-            phrases.append(response)
+    )
     
-    # Save to JSONL
+    # Save to JSONL using utility function
     output_file = Path("data/alice-phrases.jsonl")
-    with open(output_file, 'w') as f:
-        for phrase in phrases:
-            f.write(phrase.model_dump_json() + '\n')
+    phrases = collect_phrases_from_stream(stream, verbose=False, output_file=output_file)
     
     return phrases
 
@@ -349,47 +329,31 @@ from pathlib import Path
 from typing import List
 import json
 
-def load_phrases_from_jsonl(file_path: Path) -> List[TextSpan]:
-    """Load phrases from a JSONL file."""
-    phrases = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            if line.strip():
-                data = json.loads(line)
-                if data.get('type') == 'text_span':
-                    phrase = TextSpan(
-                        text=data['text'],
-                        start_char=data['start_char'],
-                        end_char=data['end_char']
-                    )
-                    phrases.append(phrase)
-    return phrases
+# Use the enhanced utility function from bookwyrm.utils
+from bookwyrm.utils import load_phrases_from_jsonl
 
 def basic_summarization() -> Optional[SummaryResponse]:
     """Generate a basic summary from phrases."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
+    
     client = BookWyrmClient()
     
     # Load phrases from JSONL file
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
-    # Stream summarization with progress
-    final_summary: Optional[SummaryResponse] = None
-    for response in client.stream_summarize(
+    # Stream summarization with progress using utility function
+    stream = client.stream_summarize(
         phrases=phrases,
         max_tokens=500,
         debug=True
-    ):
-        if isinstance(response, SummarizeProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, SummaryResponse):
-            final_summary = response
-            print("Summary complete!")
+    )
+    
+    final_summary = collect_summary_from_stream(stream, verbose=True)
     
     if final_summary:
-        # Save summary to JSON file
+        # Save summary to JSON file using utility function
         output_file = Path("data/country-of-the-blind-summary.json")
-        with open(output_file, 'w') as f:
-            json.dump(final_summary.model_dump(), f, indent=2)
+        save_model_to_json(final_summary, output_file)
         
         print(f"Summary: {final_summary.summary}")
         print(f"Levels used: {final_summary.levels_used}")
@@ -418,31 +382,28 @@ from summary import Summary
 
 def structured_literary_analysis() -> Optional[SummaryResponse]:
     """Generate structured literary analysis using the Summary model."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
+    
     client = BookWyrmClient()
     
     # Load phrases
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
     # Create structured summary using the Summary Pydantic model
-    final_result: Optional[SummaryResponse] = None
-    for response in client.stream_summarize(
+    stream = client.stream_summarize(
         phrases=phrases,
         summary_class=Summary,
         model_strength="smart",
         max_tokens=2000,
         debug=True
-    ):
-        if isinstance(response, SummarizeProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, SummaryResponse):
-            final_result = response
-            print("Structured analysis complete!")
+    )
+    
+    final_result = collect_summary_from_stream(stream, verbose=True)
     
     if final_result:
-        # Save structured summary
+        # Save structured summary using utility function
         output_file = Path("data/country-structured-summary.json")
-        with open(output_file, 'w') as f:
-            json.dump(final_result.model_dump(), f, indent=2)
+        save_model_to_json(final_result, output_file)
         
         # Display structured results
         if isinstance(final_result.summary, dict):
@@ -459,27 +420,25 @@ def structured_literary_analysis() -> Optional[SummaryResponse]:
 
 def high_quality_analysis() -> Optional[SummaryResponse]:
     """Generate high-quality analysis using the 'wise' model."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
+    
     client = BookWyrmClient()
     
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
-    final_result: Optional[SummaryResponse] = None
-    for response in client.stream_summarize(
+    stream = client.stream_summarize(
         phrases=phrases,
         summary_class=Summary,
         model_strength="wise",
         max_tokens=4000,
         debug=True
-    ):
-        if isinstance(response, SummarizeProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, SummaryResponse):
-            final_result = response
+    )
+    
+    final_result = collect_summary_from_stream(stream, verbose=True)
     
     if final_result:
         output_file = Path("data/country-detailed-analysis.json")
-        with open(output_file, 'w') as f:
-            json.dump(final_result.model_dump(), f, indent=2)
+        save_model_to_json(final_result, output_file)
         print(f"High-quality analysis saved to {output_file}")
     
     return final_result
@@ -494,25 +453,25 @@ detailed_result = high_quality_analysis()
 ```python
 def custom_prompt_analysis() -> Optional[SummaryResponse]:
     """Use custom prompts for specialized literary analysis."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
+    
     client = BookWyrmClient()
     
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
-    final_result: Optional[SummaryResponse] = None
-    for response in client.stream_summarize(
+    stream = client.stream_summarize(
         phrases=phrases,
         chunk_prompt="Extract key themes, symbols, and literary devices from this text",
         summary_of_summaries_prompt="Create a comprehensive literary analysis focusing on themes, symbolism, and narrative techniques",
         model_strength="clever",
         max_tokens=3000
-    ):
-        if isinstance(response, SummaryResponse):
-            final_result = response
+    )
+    
+    final_result = collect_summary_from_stream(stream, verbose=False)
     
     if final_result:
         output_file = Path("data/country-literary-analysis.json")
-        with open(output_file, 'w') as f:
-            json.dump(final_result.model_dump(), f, indent=2)
+        save_model_to_json(final_result, output_file)
         print(f"Literary analysis saved to {output_file}")
     
     return final_result
@@ -534,40 +493,35 @@ import json
 
 def find_citations() -> List[Citation]:
     """Find citations about life-threatening situations."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_citations_from_stream, save_models_list_to_json
+    
     client = BookWyrmClient()
     
     # Load phrases
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
-    citations: List[Citation] = []
-    for response in client.stream_citations(
+    # Stream citations with utility function
+    stream = client.stream_citations(
         chunks=phrases,
         question="Where does the protagonist experience life threatening situations?"
-    ):
-        if isinstance(response, CitationProgressUpdate):
-            print(f"Progress: {response.message}")
-        elif isinstance(response, CitationStreamResponse):
-            citations.append(response.citation)
-            print(f"Found citation: {response.citation.text[:100]}...")
-        elif isinstance(response, CitationSummaryResponse):
-            print(f"Search complete: {response.total_citations} citations found")
-        elif isinstance(response, CitationErrorResponse):
-            print(f"Error: {response.message}")
+    )
     
-    # Save citations to JSON
+    citations, usage = collect_citations_from_stream(stream, verbose=True)
+    
+    # Save citations to JSON using utility function
     output_file = Path("data/protagonist-dangers.json")
-    citations_data = [citation.model_dump() for citation in citations]
-    with open(output_file, 'w') as f:
-        json.dump(citations_data, f, indent=2)
+    save_models_list_to_json(citations, output_file)
     
     print(f"Saved {len(citations)} citations to {output_file}")
     return citations
 
 def find_multiple_citations() -> List[Citation]:
     """Ask multiple questions about the story."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_citations_from_stream
+    
     client = BookWyrmClient()
     
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
     questions = [
         "What are the main conflicts in the story?",
@@ -578,38 +532,34 @@ def find_multiple_citations() -> List[Citation]:
     all_citations: List[Citation] = []
     for question in questions:
         print(f"\nSearching for: {question}")
-        question_citations: List[Citation] = []
         
-        for response in client.stream_citations(
+        stream = client.stream_citations(
             chunks=phrases,
             question=question
-        ):
-            if isinstance(response, CitationStreamResponse):
-                question_citations.append(response.citation)
-            elif isinstance(response, CitationSummaryResponse):
-                print(f"Found {response.total_citations} citations for this question")
+        )
         
+        question_citations, usage = collect_citations_from_stream(stream, verbose=True)
         all_citations.extend(question_citations)
     
     return all_citations
 
 def find_citations_with_limits() -> List[Citation]:
     """Find citations with start and limit parameters."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_citations_from_stream
+    
     client = BookWyrmClient()
     
-    phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+    phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
     
-    citations: List[Citation] = []
-    for response in client.stream_citations(
+    stream = client.stream_citations(
         chunks=phrases,
         question="What are the key themes in the story?",
         start=10,  # Start from chunk 10
         limit=50,  # Process only 50 chunks
         max_tokens_per_chunk=1500
-    ):
-        if isinstance(response, CitationStreamResponse):
-            citations.append(response.citation)
+    )
     
+    citations, usage = collect_citations_from_stream(stream, verbose=False)
     return citations
 
 # Find citations
@@ -688,22 +638,19 @@ from typing import List
 
 def robust_citation_search() -> List[Citation]:
     """Example with proper error handling."""
+    from bookwyrm.utils import load_phrases_from_jsonl, collect_citations_from_stream
+    
     client = BookWyrmClient()
     
     try:
-        phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
+        phrases = load_phrases_from_jsonl(Path("data/country-of-the-blind-phrases.jsonl"))
         
-        citations: List[Citation] = []
-        for response in client.stream_citations(
+        stream = client.stream_citations(
             chunks=phrases,
             question="What are the main themes?"
-        ):
-            if isinstance(response, CitationStreamResponse):
-                citations.append(response.citation)
-            elif isinstance(response, CitationErrorResponse):
-                print(f"Citation error: {response.message}")
-                break
+        )
         
+        citations, usage = collect_citations_from_stream(stream, verbose=True)
         return citations
         
     except BookWyrmAPIError as e:
