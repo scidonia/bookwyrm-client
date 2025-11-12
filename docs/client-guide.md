@@ -55,6 +55,8 @@ def classify_pdf() -> ClassifyResponse:
     print(f"Content Type: {response.classification.content_type}")
     print(f"MIME Type: {response.classification.mime_type}")
     print(f"Confidence: {response.classification.confidence:.2%}")
+    print(f"File Size: {response.file_size} bytes")
+    print(f"Details: {response.classification.details}")
 
     return response
 
