@@ -323,7 +323,7 @@ Create summaries from phrasal data using both basic and structured approaches:
 from bookwyrm import BookWyrmClient
 from bookwyrm.models import TextSpan, SummaryResponse, SummarizeProgressUpdate
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import json
 
 # Use the enhanced utility function from bookwyrm.utils
@@ -445,6 +445,8 @@ detailed_result = high_quality_analysis()
 ### Custom Prompts for Specialized Analysis
 
 ```python
+from typing import Optional
+
 def custom_prompt_analysis() -> Optional[SummaryResponse]:
     """Use custom prompts for specialized literary analysis."""
     from bookwyrm.utils import load_phrases_from_jsonl, collect_summary_from_stream, save_model_to_json
