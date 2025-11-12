@@ -224,58 +224,43 @@ mapping = pdf_to_text_with_mapping("data/SOA_2025_Final_pages_1-4.json")
 
 ## 4. Querying Character Positions
 
-Query specific character ranges to get their bounding box coordinates:
+Query specific character ranges to get their bounding box coordinates using the built-in utilities:
 
 ```python
-from pathlib import Path
-import json
+from bookwyrm import query_mapping_range_in_memory
 
-def query_character_range(mapping_file, start_char, end_char):
-    """Query character positions to get bounding boxes."""
-    
-    # Load the character mapping
-    with open(mapping_file, 'r') as f:
-        mapping_data = json.load(f)
-    
-    mapping = PDFTextMapping.model_validate(mapping_data)
-    
-    # Get bounding boxes for the character range
-    bounding_boxes = mapping.get_bounding_boxes_for_range(start_char, end_char)
-    pages = mapping.get_pages_for_range(start_char, end_char)
-    
-    # Get sample text from the range
-    raw_text = mapping.raw_text
-    sample_text = raw_text[start_char:end_char]
-    
-    result = {
-        "start_char": start_char,
-        "end_char": end_char,
-        "pages": pages,
-        "bounding_boxes": bounding_boxes,
-        "sample_text": sample_text[:200],  # First 200 characters
-        "total_characters": end_char - start_char
-    }
-    
-    print(f"Character range {start_char}-{end_char}:")
-    print(f"Pages: {pages}")
-    print(f"Sample text: {sample_text[:100]}...")
-    print(f"Bounding boxes found on {len(bounding_boxes)} pages")
-    
-    return result
+# Query character positions from in-memory mapping (preferred approach)
+result = query_mapping_range_in_memory(mapping, 974, 1089)
 
-def save_character_query(mapping_file, start_char, end_char, output_file):
-    """Query character range and save results to file."""
-    result = query_character_range(mapping_file, start_char, end_char)
-    
-    with open(output_file, 'w') as f:
-        json.dump(result, f, indent=2)
-    
-    print(f"Saved query results to {output_file}")
-    return result
+print(f"Character range 974-1089:")
+print(f"Pages: {result['pages']}")
+print(f"Sample text: {result['sample_text'][:100]}...")
+print(f"Bounding boxes found on {len(result['bounding_boxes'])} pages")
 
-# Query character positions
-result = query_character_range("data/SOA_2025_Final_pages_1-4_mapping.json", 974, 1089)
-save_character_query("data/SOA_2025_Final_pages_1-4_mapping.json", 974, 1089, "data/character_positions.json")
+# Or use the client method directly with in-memory mapping
+result = client.query_character_range(
+    mapping=mapping,
+    start_char=974,
+    end_char=1089
+)
+
+# Only save to file if needed
+if you_need_to_save_results:
+    from bookwyrm import save_mapping_query_in_memory
+    result = save_mapping_query_in_memory(
+        mapping, 
+        974, 
+        1089, 
+        Path("data/character_positions.json")
+    )
+    
+    # Or use client method
+    result = client.query_character_range(
+        mapping=mapping,
+        start_char=974,
+        end_char=1089,
+        output_file=Path("data/character_positions.json")
+    )
 ```
 
 ## 5. Phrasal Text Processing

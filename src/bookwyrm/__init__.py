@@ -67,8 +67,11 @@ from .utils import (
     save_citations_to_json,
     append_citation_to_jsonl,
     pdf_to_text_with_mapping,
+    create_pdf_text_mapping_from_pages,
     query_character_range,
+    query_mapping_range_in_memory,
     save_character_query,
+    save_mapping_query_in_memory,
 )
 
 __all__ = [
@@ -131,6 +134,9 @@ __all__ = [
     "save_citations_to_json",
     "append_citation_to_jsonl",
     "pdf_to_text_with_mapping",
+    "create_pdf_text_mapping_from_pages",
     "query_character_range",
+    "query_mapping_range_in_memory",
     "save_character_query",
+    "save_mapping_query_in_memory",
 ]

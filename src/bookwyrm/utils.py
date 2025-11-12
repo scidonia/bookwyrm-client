@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Any
 
-from .models import TextSpan, Citation, PDFTextMapping, CharacterMapping
+from .models import TextSpan, Citation, PDFTextMapping, CharacterMapping, PDFPage
 
 
 def load_chunks_from_jsonl(file_path: Path) -> List[TextSpan]:
@@ -184,6 +184,158 @@ def append_citation_to_jsonl(citation: Citation, output_path: Path) -> None:
         raise ValueError(f"Error appending citation: {e}")
 
 
+def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
+    """Create PDF text mapping directly from page objects (in-memory).
+    
+    This function takes a list of PDFPage objects and converts them to:
+    1. Raw text with all text elements joined by newlines
+    2. Character mapping that maps each character position to its bounding box coordinates
+    
+    Args:
+        pages: List of PDFPage objects from PDF extraction
+        
+    Returns:
+        PDFTextMapping object containing the text and character mappings
+        
+    Examples:
+        ```python
+        from bookwyrm.utils import create_pdf_text_mapping_from_pages
+        
+        # After extracting PDF pages
+        pages = []
+        for response in client.stream_extract_pdf(pdf_bytes=pdf_bytes, filename="doc.pdf"):
+            if hasattr(response, 'page_data'):
+                pages.append(response.page_data)
+        
+        # Convert to text mapping in memory
+        mapping = create_pdf_text_mapping_from_pages(pages)
+        print(f"Converted {len(mapping.raw_text)} characters")
+        ```
+    """
+    # Process pages to create raw text and mappings
+    raw_text_parts = []
+    character_mappings = []
+    current_char_index = 0
+
+    for page in pages:
+        page_number = page.page_number
+        text_blocks = page.text_blocks
+
+        for element_index, text_block in enumerate(text_blocks):
+            text = text_block.text
+            coordinates = text_block.coordinates
+            confidence = text_block.confidence
+
+            # Add character mappings for each character in the text
+            for char_offset, char in enumerate(text):
+                mapping = CharacterMapping(
+                    char_index=current_char_index,
+                    page_number=page_number,
+                    x1=coordinates.x1,
+                    y1=coordinates.y1,
+                    x2=coordinates.x2,
+                    y2=coordinates.y2,
+                    confidence=confidence,
+                    original_text_element_index=element_index
+                )
+                character_mappings.append(mapping)
+                current_char_index += 1
+
+            # Add the text to raw text parts
+            raw_text_parts.append(text)
+
+            # Add newline mapping (using the bounding box of the last character)
+            if text:  # Only add newline if there was text
+                newline_mapping = CharacterMapping(
+                    char_index=current_char_index,
+                    page_number=page_number,
+                    x1=coordinates.x1,
+                    y1=coordinates.y1,
+                    x2=coordinates.x2,
+                    y2=coordinates.y2,
+                    confidence=confidence,
+                    original_text_element_index=element_index
+                )
+                character_mappings.append(newline_mapping)
+                current_char_index += 1
+
+    # Join all text with newlines
+    raw_text = "\n".join(raw_text_parts)
+
+    # Create the mapping object
+    pdf_mapping = PDFTextMapping(
+        raw_text=raw_text,
+        character_mappings=character_mappings,
+        total_pages=len(pages),
+        total_characters=len(raw_text),
+        source_file="in-memory"
+    )
+
+    return pdf_mapping
+
+
+def query_mapping_range_in_memory(mapping: PDFTextMapping, start_char: int, end_char: int) -> Dict[str, Any]:
+    """Query character positions from in-memory mapping object to get bounding boxes.
+    
+    Args:
+        mapping: PDFTextMapping object containing character mappings
+        start_char: Starting character index (inclusive)
+        end_char: Ending character index (exclusive)
+        
+    Returns:
+        Dictionary containing query results with bounding boxes, pages, and sample text
+        
+    Raises:
+        ValueError: If the character range is invalid
+        
+    Examples:
+        ```python
+        from bookwyrm.utils import query_mapping_range_in_memory
+        
+        # After creating mapping from pages
+        mapping = create_pdf_text_mapping_from_pages(pages)
+        
+        # Query character range in memory
+        result = query_mapping_range_in_memory(mapping, 100, 200)
+        
+        print(f"Found bounding boxes on {len(result['pages'])} pages")
+        print(f"Sample text: {result['sample_text']}")
+        ```
+    """
+    # Validate character range
+    if start_char < 0:
+        raise ValueError(f"start_char must be >= 0 (got {start_char})")
+    
+    if end_char <= start_char:
+        raise ValueError(f"end_char must be > start_char (got {end_char} <= {start_char})")
+
+    if start_char >= mapping.total_characters:
+        raise ValueError(f"start_char {start_char} is beyond text length {mapping.total_characters}")
+
+    # Adjust end_char if it exceeds text length
+    if end_char > mapping.total_characters:
+        end_char = mapping.total_characters
+
+    # Get bounding boxes for the character range
+    bounding_boxes = mapping.get_bounding_boxes_for_range(start_char, end_char)
+    pages = mapping.get_pages_for_range(start_char, end_char)
+
+    # Get sample text from the range
+    raw_text = mapping.raw_text
+    sample_text = raw_text[start_char:end_char]
+
+    result = {
+        "start_char": start_char,
+        "end_char": end_char,
+        "pages": pages,
+        "bounding_boxes": bounding_boxes,
+        "sample_text": sample_text[:200],  # First 200 characters
+        "total_characters": end_char - start_char
+    }
+
+    return result
+
+
 def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapping_output: Path = None) -> PDFTextMapping:
     """Convert PDF extraction JSON to raw text with character position mapping.
     
@@ -231,68 +383,41 @@ def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapp
     if "pages" not in extraction_data:
         raise ValueError("Invalid JSON format - missing 'pages' key")
 
-    pages = extraction_data["pages"]
-    if not pages:
+    pages_data = extraction_data["pages"]
+    if not pages_data:
         raise ValueError("No pages found in extraction data")
 
-    # Process pages to create raw text and mappings
-    raw_text_parts = []
-    character_mappings = []
-    current_char_index = 0
+    # Convert JSON data to PDFPage objects
+    from .models import PDFPage, PDFTextElement, PDFBoundingBox
+    pages = []
+    for page_data in pages_data:
+        text_blocks = []
+        for block_data in page_data.get("text_blocks", []):
+            coords_data = block_data.get("coordinates", {})
+            coordinates = PDFBoundingBox(
+                x1=coords_data.get("x1", 0.0),
+                y1=coords_data.get("y1", 0.0),
+                x2=coords_data.get("x2", 0.0),
+                y2=coords_data.get("y2", 0.0)
+            )
+            text_element = PDFTextElement(
+                text=block_data.get("text", ""),
+                coordinates=coordinates,
+                confidence=block_data.get("confidence", 0.0)
+            )
+            text_blocks.append(text_element)
+        
+        page = PDFPage(
+            page_number=page_data.get("page_number", 1),
+            text_blocks=text_blocks
+        )
+        pages.append(page)
 
-    for page in pages:
-        page_number = page.get("page_number", 1)
-        text_blocks = page.get("text_blocks", [])
-
-        for element_index, text_block in enumerate(text_blocks):
-            text = text_block.get("text", "")
-            coordinates = text_block.get("coordinates", {})
-            confidence = text_block.get("confidence", 0.0)
-
-            # Add character mappings for each character in the text
-            for char_offset, char in enumerate(text):
-                mapping = CharacterMapping(
-                    char_index=current_char_index,
-                    page_number=page_number,
-                    x1=coordinates.get("x1", 0.0),
-                    y1=coordinates.get("y1", 0.0),
-                    x2=coordinates.get("x2", 0.0),
-                    y2=coordinates.get("y2", 0.0),
-                    confidence=confidence,
-                    original_text_element_index=element_index
-                )
-                character_mappings.append(mapping)
-                current_char_index += 1
-
-            # Add the text to raw text parts
-            raw_text_parts.append(text)
-
-            # Add newline mapping (using the bounding box of the last character)
-            if text:  # Only add newline if there was text
-                newline_mapping = CharacterMapping(
-                    char_index=current_char_index,
-                    page_number=page_number,
-                    x1=coordinates.get("x1", 0.0),
-                    y1=coordinates.get("y1", 0.0),
-                    x2=coordinates.get("x2", 0.0),
-                    y2=coordinates.get("y2", 0.0),
-                    confidence=confidence,
-                    original_text_element_index=element_index
-                )
-                character_mappings.append(newline_mapping)
-                current_char_index += 1
-
-    # Join all text with newlines
-    raw_text = "\n".join(raw_text_parts)
-
-    # Create the mapping object
-    pdf_mapping = PDFTextMapping(
-        raw_text=raw_text,
-        character_mappings=character_mappings,
-        total_pages=len(pages),
-        total_characters=len(raw_text),
-        source_file=str(pdf_data_file)
-    )
+    # Use the in-memory function to create the mapping
+    pdf_mapping = create_pdf_text_mapping_from_pages(pages)
+    
+    # Update source file reference
+    pdf_mapping.source_file = str(pdf_data_file)
 
     # Generate output filenames if not provided
     if not output_path:
@@ -319,7 +444,7 @@ def pdf_to_text_with_mapping(pdf_data_file: Path, output_path: Path = None, mapp
 
 
 def query_character_range(mapping_file: Path, start_char: int, end_char: int) -> Dict[str, Any]:
-    """Query character positions to get bounding boxes.
+    """Query character positions to get bounding boxes from a mapping file.
     
     Args:
         mapping_file: Path to the character mapping JSON file
@@ -362,38 +487,8 @@ def query_character_range(mapping_file: Path, start_char: int, end_char: int) ->
     except Exception as e:
         raise ValueError(f"Invalid mapping file format: {e}")
 
-    # Validate character range
-    if start_char < 0:
-        raise ValueError(f"start_char must be >= 0 (got {start_char})")
-    
-    if end_char <= start_char:
-        raise ValueError(f"end_char must be > start_char (got {end_char} <= {start_char})")
-
-    if start_char >= mapping.total_characters:
-        raise ValueError(f"start_char {start_char} is beyond text length {mapping.total_characters}")
-
-    # Adjust end_char if it exceeds text length
-    if end_char > mapping.total_characters:
-        end_char = mapping.total_characters
-
-    # Get bounding boxes for the character range
-    bounding_boxes = mapping.get_bounding_boxes_for_range(start_char, end_char)
-    pages = mapping.get_pages_for_range(start_char, end_char)
-
-    # Get sample text from the range
-    raw_text = mapping.raw_text
-    sample_text = raw_text[start_char:end_char]
-
-    result = {
-        "start_char": start_char,
-        "end_char": end_char,
-        "pages": pages,
-        "bounding_boxes": bounding_boxes,
-        "sample_text": sample_text[:200],  # First 200 characters
-        "total_characters": end_char - start_char
-    }
-
-    return result
+    # Use the in-memory function
+    return query_mapping_range_in_memory(mapping, start_char, end_char)
 
 
 def save_character_query(mapping_file: Path, start_char: int, end_char: int, output_file: Path) -> Dict[str, Any]:
@@ -425,7 +520,51 @@ def save_character_query(mapping_file: Path, start_char: int, end_char: int, out
         )
         ```
     """
+    # Use the file-based query function which now calls the in-memory version
     result = query_character_range(mapping_file, start_char, end_char)
+    
+    try:
+        with open(output_file, 'w', encoding="utf-8") as f:
+            json.dump(result, f, indent=2)
+    except Exception as e:
+        raise ValueError(f"Error saving query results: {e}")
+    
+    return result
+
+
+def save_mapping_query_in_memory(mapping: PDFTextMapping, start_char: int, end_char: int, output_file: Path) -> Dict[str, Any]:
+    """Query character range from in-memory mapping and save results to file.
+    
+    Args:
+        mapping: PDFTextMapping object containing character mappings
+        start_char: Starting character index (inclusive)
+        end_char: Ending character index (exclusive)
+        output_file: Path to save the query results
+        
+    Returns:
+        Dictionary containing query results
+        
+    Raises:
+        ValueError: If the character range is invalid or saving fails
+        
+    Examples:
+        ```python
+        from bookwyrm.utils import save_mapping_query_in_memory
+        from pathlib import Path
+        
+        # After creating mapping from pages
+        mapping = create_pdf_text_mapping_from_pages(pages)
+        
+        result = save_mapping_query_in_memory(
+            mapping, 
+            start_char=100, 
+            end_char=200,
+            output_file=Path("output/query_results.json")
+        )
+        ```
+    """
+    # Use the in-memory query function
+    result = query_mapping_range_in_memory(mapping, start_char, end_char)
     
     try:
         with open(output_file, 'w', encoding="utf-8") as f:
