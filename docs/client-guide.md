@@ -341,6 +341,7 @@ def basic_summarization() -> Optional[SummaryResponse]:
     # Stream summarization with progress using utility function
     stream = client.stream_summarize(
         phrases=phrases,
+        model_strength="smart",
         debug=True
     )
 
