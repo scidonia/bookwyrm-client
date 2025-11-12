@@ -153,19 +153,16 @@ pages = extract_pdf_structure()
 
 ## 3. PDF to Text Conversion with Character Mapping
 
-Convert the extracted PDF data to raw text with character position mapping using the built-in utility functions:
+Convert the extracted PDF data to raw text with character position mapping using the built-in utility functions. The preferred approach is to work directly with the page objects in memory:
 
 ```python
-from bookwyrm.utils import pdf_to_text_with_mapping
-from pathlib import Path
+from bookwyrm.utils import create_pdf_text_mapping_from_pages
 
-def convert_pdf_to_text():
-    """Convert PDF extraction data to raw text with character mapping."""
+def convert_pdf_to_text(pages):
+    """Convert PDF page objects to raw text with character mapping (in-memory)."""
     
-    # Convert PDF extraction to text with mapping using utility function
-    mapping = pdf_to_text_with_mapping(
-        Path("data/SOA_2025_Final_pages_1-4.json")
-    )
+    # Convert PDF pages to text mapping directly in memory (preferred)
+    mapping = create_pdf_text_mapping_from_pages(pages)
     
     print(f"Created raw text with {len(mapping.raw_text)} characters")
     print(f"Created {len(mapping.character_mappings)} character mappings")
@@ -173,37 +170,41 @@ def convert_pdf_to_text():
     
     return mapping
 
-# Convert PDF data to text with mapping
-mapping = convert_pdf_to_text()
+# Convert PDF data to text with mapping (after extracting pages)
+mapping = convert_pdf_to_text(pages)
 ```
 
-You can also specify custom output paths:
+If you need to save the mapping to files:
+
+```python
+from pathlib import Path
+
+# Save text and mapping files if needed
+Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
+Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
+```
+
+For working with JSON data directly (if you have extraction data as a dictionary):
+
+```python
+from bookwyrm.utils import pdf_to_text_with_mapping_from_json
+
+# If you have the extraction data as JSON
+extraction_data = {"pages": [page.model_dump() for page in pages]}
+mapping = pdf_to_text_with_mapping_from_json(extraction_data)
+print(f"Converted {len(mapping.raw_text)} characters")
+```
+
+For loading from saved JSON files (less preferred):
 
 ```python
 from bookwyrm.utils import pdf_to_text_with_mapping
 from pathlib import Path
 
-# Convert with custom output filenames
+# Only use this if you need to load from a saved JSON file
 mapping = pdf_to_text_with_mapping(
-    Path("data/SOA_2025_Final_pages_1-4.json"),
-    output_path=Path("data/custom_text.txt"),
-    mapping_output=Path("data/custom_mapping.json")
+    Path("data/SOA_2025_Final_pages_1-4.json")
 )
-```
-
-For in-memory processing without saving files, use the JSON data directly:
-
-```python
-from bookwyrm.utils import pdf_to_text_with_mapping_from_json
-import json
-
-# Load extraction data
-with open("data/SOA_2025_Final_pages_1-4.json", "r") as f:
-    extraction_data = json.load(f)
-
-# Convert to text mapping in memory
-mapping = pdf_to_text_with_mapping_from_json(extraction_data)
-print(f"Converted {len(mapping.raw_text)} characters")
 ```
 
 ## 4. Querying Character Positions
@@ -614,6 +615,7 @@ Here's a complete workflow that processes a PDF from extraction to citation find
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.utils import create_pdf_text_mapping_from_pages, query_mapping_range_in_memory, save_mapping_query_in_memory
+from bookwyrm.models import PDFStreamPageResponse
 from pathlib import Path
 import json
 
@@ -646,7 +648,8 @@ def complete_pdf_workflow():
                                           Path("data/positions_1000-2000.json"))
     
     # Optional: Save extracted data and mapping if needed for later use
-    if you_want_to_save_files:
+    save_files = False  # Set to True if you want to save files
+    if save_files:
         output_data = {"pages": [page.model_dump() for page in pages]}
         with open("data/SOA_2025_Final_extracted.json", "w") as f:
             json.dump(output_data, f, indent=2)
