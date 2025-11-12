@@ -167,8 +167,8 @@ def convert_pdf_to_text(pages: List[PDFPage]) -> PDFTextMapping:
     
     return mapping
 
-# Convert PDF data to text with mapping (after extracting pages)
-mapping = convert_pdf_to_text(pages)
+# Convert PDF data to text with mapping (using pages from previous example)
+# mapping = convert_pdf_to_text(pages)
 ```
 
 If you need to save the mapping to files:
@@ -176,9 +176,9 @@ If you need to save the mapping to files:
 ```python
 from pathlib import Path
 
-# Save text and mapping files if needed
-Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
-Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
+# Save text and mapping files if needed (mapping from previous example)
+# Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
+# Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
 ```
 
 For working with JSON data directly (if you have extraction data as a dictionary):
@@ -186,10 +186,10 @@ For working with JSON data directly (if you have extraction data as a dictionary
 ```python
 from bookwyrm.utils import pdf_to_text_with_mapping_from_json
 
-# If you have the extraction data as JSON
-extraction_data = {"pages": [page.model_dump() for page in pages]}
-mapping = pdf_to_text_with_mapping_from_json(extraction_data)
-print(f"Converted {len(mapping.raw_text)} characters")
+# If you have the extraction data as JSON (pages from previous example)
+# extraction_data = {"pages": [page.model_dump() for page in pages]}
+# mapping = pdf_to_text_with_mapping_from_json(extraction_data)
+# print(f"Converted {len(mapping.raw_text)} characters")
 ```
 
 For loading from saved JSON files (less preferred):
@@ -209,60 +209,49 @@ mapping = pdf_to_text_with_mapping(
 Query specific character ranges to get their bounding box coordinates using the built-in utilities:
 
 ```python
-from bookwyrm import query_mapping_range_in_memory
+from bookwyrm.utils import query_mapping_range_in_memory
+from bookwyrm import BookWyrmClient
+from pathlib import Path
 
-# Query character positions from in-memory mapping (preferred approach)
-result = query_mapping_range_in_memory(mapping, 974, 1089)
-
-print(f"Character range 974-1089:")
-print(f"Pages: {result['pages']}")
-print(f"Sample text: {result['sample_text'][:100]}...")
-print(f"Bounding boxes found on {len(result['bounding_boxes'])} pages")
-
-# Or use the client method directly with in-memory mapping
-result = client.query_character_range(
-    mapping=mapping,
-    start_char=974,
-    end_char=1089
-)
-
-# Only save to file if needed
-if you_need_to_save_results:
-    from bookwyrm import save_mapping_query_in_memory
-    result = save_mapping_query_in_memory(
-        mapping, 
-        974, 
-        1089, 
-        Path("data/character_positions.json")
-    )
+def query_character_positions(mapping):
+    """Query character positions from mapping (requires mapping from previous examples)."""
+    client = BookWyrmClient()
     
-    # Or use client method
+    # Query character positions from in-memory mapping (preferred approach)
+    result = query_mapping_range_in_memory(mapping, 974, 1089)
+
+    print(f"Character range 974-1089:")
+    print(f"Pages: {result['pages']}")
+    print(f"Sample text: {result['sample_text'][:100]}...")
+    print(f"Bounding boxes found on {len(result['bounding_boxes'])} pages")
+
+    # Or use the client method directly with in-memory mapping
     result = client.query_character_range(
         mapping=mapping,
         start_char=974,
-        end_char=1089,
-        output_file=Path("data/character_positions.json")
+        end_char=1089
     )
+    
+    return result
 
-# Query from mapping data directly (in-memory)
-from bookwyrm import query_character_range_from_mapping
-import json
+# Example usage (requires mapping from previous examples):
+# result = query_character_positions(mapping)
 
-# Load mapping data
-with open("data/mapping.json", "r") as f:
-    mapping_data = json.load(f)
+# Alternative: Query from saved mapping file
+def query_from_saved_mapping():
+    """Query from a saved mapping file."""
+    from bookwyrm.utils import query_character_range
+    
+    result = query_character_range(
+        Path("data/SOA_2025_Final_mapping.json"), 
+        start_char=974, 
+        end_char=1089
+    )
+    print(f"Found bounding boxes on {len(result['pages'])} pages")
+    return result
 
-# Query character range in memory
-result = query_character_range_from_mapping(mapping_data, 974, 1089)
-print(f"Found bounding boxes on {len(result['pages'])} pages")
-
-# Query from mapping file (loads file internally)
-from bookwyrm import query_character_range
-result = query_character_range(
-    Path("data/mapping.json"), 
-    start_char=974, 
-    end_char=1089
-)
+# Query from saved file
+# result = query_from_saved_mapping()
 ```
 
 ## 5. Phrasal Text Processing
