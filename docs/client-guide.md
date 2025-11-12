@@ -14,6 +14,7 @@ pip install bookwyrm
 Set your API key as an environment variable:
 
 ```python
+# doctest: +SKIP
 import os
 os.environ["BOOKWYRM_API_KEY"] = "your-api-key-here"
 ```
