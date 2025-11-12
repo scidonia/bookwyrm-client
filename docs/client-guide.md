@@ -37,13 +37,13 @@ def classify_pdf():
     client = BookWyrmClient()
     
     # Read PDF file as bytes
-    pdf_path = Path("data/Heinrich_palaces.pdf")
+    pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
     # Non-streaming classification
     response = client.classify(
         content_bytes=pdf_bytes,
-        filename="Heinrich_palaces.pdf"
+        filename="SOA_2025_Final.pdf"
     )
     
     print(f"Format Type: {response.classification.format_type}")
@@ -58,13 +58,13 @@ def classify_pdf_with_progress():
     """Classify a PDF with real-time progress updates."""
     client = BookWyrmClient()
     
-    pdf_path = Path("data/Heinrich_palaces.pdf")
+    pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
     classification_result = None
     for response in client.stream_classify(
         content_bytes=pdf_bytes,
-        filename="Heinrich_palaces.pdf"
+        filename="SOA_2025_Final.pdf"
     ):
         if isinstance(response, ClassifyProgressUpdate):
             print(f"Progress: {response.message}")
@@ -95,7 +95,7 @@ def extract_pdf_structure():
     """Extract structured data from PDF pages 1-4."""
     client = BookWyrmClient()
     
-    pdf_path = Path("data/Heinrich_palaces.pdf")
+    pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
     pages = []
@@ -103,7 +103,7 @@ def extract_pdf_structure():
     
     for response in client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
-        filename="Heinrich_palaces.pdf",
+        filename="SOA_2025_Final.pdf",
         start_page=1,
         num_pages=4
     ):
@@ -124,7 +124,7 @@ def extract_pdf_structure():
         "pages": [page.model_dump() for page in pages]
     }
     
-    output_path = Path("data/heinrich_pages_1-4.json")
+    output_path = Path("data/SOA_2025_Final_pages_1-4.json")
     with open(output_path, "w") as f:
         json.dump(output_data, f, indent=2)
     
@@ -219,7 +219,7 @@ def pdf_to_text_with_mapping(pdf_data_file):
     return text_mapping
 
 # Convert PDF data to text with mapping
-mapping = pdf_to_text_with_mapping("data/heinrich_pages_1-4.json")
+mapping = pdf_to_text_with_mapping("data/SOA_2025_Final_pages_1-4.json")
 ```
 
 ## 4. Querying Character Positions
@@ -274,8 +274,8 @@ def save_character_query(mapping_file, start_char, end_char, output_file):
     return result
 
 # Query character positions
-result = query_character_range("data/heinrich_pages_1-4_mapping.json", 11948, 13000)
-save_character_query("data/heinrich_pages_1-4_mapping.json", 11948, 13000, "data/character_positions.json")
+result = query_character_range("data/SOA_2025_Final_pages_1-4_mapping.json", 974, 1089)
+save_character_query("data/SOA_2025_Final_pages_1-4_mapping.json", 974, 1089, "data/character_positions.json")
 ```
 
 ## 5. Phrasal Text Processing
@@ -292,7 +292,7 @@ def process_text_to_phrases():
     """Create phrasal analysis of a text file."""
     client = BookWyrmClient()
     
-    # Read text file
+    # Read text file (available in the repository)
     text_file = Path("data/country-of-the-blind.txt")
     text_content = text_file.read_text(encoding='utf-8')
     
@@ -632,13 +632,13 @@ def complete_pdf_workflow():
     client = BookWyrmClient()
     
     print("Step 1: Extract PDF structure")
-    pdf_path = Path("data/Heinrich_palaces.pdf")
+    pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
     pages = []
     for response in client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
-        filename="Heinrich_palaces.pdf",
+        filename="SOA_2025_Final.pdf",
         start_page=1,
         num_pages=4
     ):
@@ -647,15 +647,15 @@ def complete_pdf_workflow():
     
     # Save extracted data
     output_data = {"pages": [page.model_dump() for page in pages]}
-    with open("data/heinrich_extracted.json", "w") as f:
+    with open("data/SOA_2025_Final_extracted.json", "w") as f:
         json.dump(output_data, f, indent=2)
     
     print("Step 2: Convert to text and create character mapping")
-    mapping = pdf_to_text_with_mapping("data/heinrich_extracted.json")
+    mapping = pdf_to_text_with_mapping("data/SOA_2025_Final_extracted.json")
     
     print("Step 3: Query character ranges")
-    result1 = query_character_range("data/heinrich_extracted_mapping.json", 0, 100)
-    result2 = save_character_query("data/heinrich_extracted_mapping.json", 1000, 2000, 
+    result1 = query_character_range("data/SOA_2025_Final_extracted_mapping.json", 0, 100)
+    result2 = save_character_query("data/SOA_2025_Final_extracted_mapping.json", 1000, 2000, 
                                    "data/positions_1000-2000.json")
     
     print("Step 4: Process text for phrases (if we have a text file)")
@@ -726,15 +726,22 @@ result = safe_client_usage()
 
 After running these examples, you should have the same files as the CLI guide:
 
-- `data/heinrich_pages_1-4.json` - Structured PDF data with bounding boxes
-- `data/heinrich_pages_1-4_raw.txt` - Raw text extracted from PDF
-- `data/heinrich_pages_1-4_mapping.json` - Character position to bounding box mapping
+- `data/SOA_2025_Final_pages_1-4.json` - Structured PDF data with bounding boxes
+- `data/SOA_2025_Final_pages_1-4_raw.txt` - Raw text extracted from PDF
+- `data/SOA_2025_Final_pages_1-4_mapping.json` - Character position to bounding box mapping
 - `data/character_positions.json` - Query results for specific character ranges
 - `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis
 - `data/country-of-the-blind-summary.json` - Basic text summary
 - `data/country-structured-summary.json` - Structured literary analysis using Summary model
 - `data/country-detailed-analysis.json` - High-quality structured analysis
 - `data/protagonist-dangers.json` - Citation results
+
+## Sample Data Files
+
+The examples in this guide use sample data files included in the repository:
+
+- [`data/SOA_2025_Final.pdf`](../data/SOA_2025_Final.pdf) - State-of-the-Art spacecraft technology PDF for extraction examples
+- [`data/country-of-the-blind.txt`](../data/country-of-the-blind.txt) - H.G. Wells' "The Country of the Blind" text for phrasal analysis and summarization examples
 
 ## Key Differences from CLI
 
