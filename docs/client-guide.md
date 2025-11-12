@@ -693,7 +693,7 @@ def robust_citation_search() -> List[Citation]:
     try:
         phrases = load_phrases_from_jsonl("data/country-of-the-blind-phrases.jsonl")
         
-        citations = []
+        citations: List[Citation] = []
         for response in client.stream_citations(
             chunks=phrases,
             question="What are the main themes?"
