@@ -7,6 +7,7 @@ All examples include proper type annotations following the project conventions.
 ## Installation and Setup
 
 ```bash
+# doctest: +SKIP
 pip install bookwyrm
 ```
 
