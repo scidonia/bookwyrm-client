@@ -30,6 +30,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Tutorials:
+      - Overview: tutorials.md
       - CLI Guide: cli-guide.md
       - Client Library Guide: client-guide.md
   - Examples: examples.md
