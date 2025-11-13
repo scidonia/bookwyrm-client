@@ -712,12 +712,13 @@ After running these examples, you should have the same files as the CLI guide:
 
 ## Sample Data Files
 
-The examples in this guide use sample data files included in the repository:
+The examples in this guide use sample data files from the repository:
 
 - [`data/SOA_2025_Final.pdf`](https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf) - State-of-the-Art spacecraft technology PDF for extraction examples
 - [`data/country-of-the-blind.txt`](https://github.com/scidonia/bookwyrm-client/blob/main/data/country-of-the-blind.txt) - H.G. Wells' "The Country of the Blind" text for phrasal analysis and summarization examples
+- [`data/summary.py`](https://github.com/scidonia/bookwyrm-client/blob/main/data/summary.py) - Example Pydantic model for structured literary analysis
 
-**Note**: The SOA PDF file (`data/SOA_2025_Final.pdf`) should be present in your local repository's `data/` directory. If you don't have this file, you can substitute any PDF file for the extraction examples, adjusting the filename and page numbers as needed.
+**Note**: Download these files from the GitHub repository to your local `data/` directory to run the examples. If you don't have these files, you can substitute your own PDF and text files, adjusting the filenames and page numbers as needed.
 
 ## Key Differences from CLI
 

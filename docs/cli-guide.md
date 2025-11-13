@@ -8,7 +8,7 @@ First, let's classify a PDF file to understand its content type and structure:
 
 ```bash
 # Classify the State-of-the-Art spacecraft technology (SOA) PDF to understand its content
-# Note: This file should be located in your repository's data/ directory
+# Download from: https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf
 bookwyrm classify --file data/SOA_2025_Final.pdf
 ```
 
@@ -20,7 +20,7 @@ Next, let's extract structured data from specific pages of the PDF:
 
 ```bash
 # Extract structured JSON data from pages 1-4 of the SOA PDF
-# The SOA_2025_Final.pdf file is included in the repository's data/ directory
+# Download from: https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf
 bookwyrm extract-pdf data/SOA_2025_Final.pdf --start-page 1 --num-pages 4 --output data/SOA_2025_Final_1-4.json
 ```
 
@@ -81,6 +81,7 @@ Now let's process a text file to extract meaningful phrases and text spans:
 
 ```bash
 # Create phrasal analysis of "The Country of the Blind" text
+# Download from: https://github.com/scidonia/bookwyrm-client/blob/main/data/country-of-the-blind.txt
 bookwyrm phrasal --file data/country-of-the-blind.txt --output data/country-of-the-blind-phrases.jsonl
 ```
 
@@ -103,7 +104,7 @@ BookWyrm supports structured output using custom Pydantic models, allowing you t
 
 #### The Summary Model
 
-The `Summary` model in `data/summary.py` demonstrates how to create a structured analysis model for literary works:
+The `Summary` model in [`data/summary.py`](https://github.com/scidonia/bookwyrm-client/blob/main/data/summary.py) demonstrates how to create a structured analysis model for literary works:
 
 ```python
 from pydantic import BaseModel, Field

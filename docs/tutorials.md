@@ -30,8 +30,8 @@ with BookWyrmClient() as client:
 
 ## Sample Files
 
-- `data/SOA_2025_Final.pdf` - Spacecraft technology document
-- `data/country-of-the-blind.txt` - H.G. Wells text
-- `data/summary.py` - Pydantic model example
+- [`data/SOA_2025_Final.pdf`](https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf) - Spacecraft technology document
+- [`data/country-of-the-blind.txt`](https://github.com/scidonia/bookwyrm-client/blob/main/data/country-of-the-blind.txt) - H.G. Wells text
+- [`data/summary.py`](https://github.com/scidonia/bookwyrm-client/blob/main/data/summary.py) - Pydantic model example
 
 **Start here:** [CLI Guide](cli-guide.md) → [Client Library Guide](client-guide.md) → [Examples](examples.md)
