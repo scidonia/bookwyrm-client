@@ -1967,7 +1967,7 @@ def extract_pdf(
                     console.print("[green]✓ PDF extraction complete![/green]")
                 elif isinstance(response, PDFStreamError):
                     error_console.print(
-                        f"[red]Extraction error: {response.error}[/red]"
+                        f"\n[red]Extraction error ({response.error_type}): {response.message}[/red]"
                     )
                     raise typer.Exit(1)
 

@@ -701,8 +701,12 @@ class PDFStreamComplete(BaseModel):
 class PDFStreamError(BaseModel):
     """Error during PDF streaming extraction."""
 
+    model_config = {"extra": "allow"}
+
     type: Literal["error"] = "error"
-    error: str
+    error_type: str
+    message: str
+    recoverable: bool = False
 
 
 StreamingPDFResponse = Union[
