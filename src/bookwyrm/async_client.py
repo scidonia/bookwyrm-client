@@ -188,6 +188,7 @@ class AsyncBookWyrmClient:
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
+        model_strength: Optional[ModelStrength] = ModelStrength.SWIFT,
     ) -> CitationResponse:
         """Get citations for a question from text chunks asynchronously.
 
@@ -275,6 +276,7 @@ class AsyncBookWyrmClient:
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens_per_chunk,
+            model_strength=model_strength,
         )
         headers: Dict[str, str] = {
             **DEFAULT_HEADERS,
@@ -880,6 +882,7 @@ class AsyncBookWyrmClient:
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
+        model_strength: Optional[ModelStrength] = ModelStrength.SWIFT,
     ) -> AsyncIterator[StreamingCitationResponse]:
         """Stream citations as they are found with real-time progress updates.
 
@@ -976,6 +979,7 @@ class AsyncBookWyrmClient:
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens_per_chunk,
+            model_strength=model_strength,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:
