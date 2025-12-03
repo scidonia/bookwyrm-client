@@ -806,7 +806,7 @@ class BookWyrmClient:
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
-        model_strength: Optional[ModelStrength] = ModelStrength.SWIFT,
+        model_strength: ModelStrength = ModelStrength.SWIFT,
     ) -> Iterator[StreamingCitationResponse]:
         """Stream citations as they are found with real-time progress updates.
 
@@ -920,66 +920,6 @@ class BookWyrmClient:
             limit=limit,
             max_tokens_per_chunk=max_tokens_per_chunk,
             model_strength=model_strength,
-        )
-        """Stream citations as they are found with real-time progress updates.
-
-        This method provides real-time streaming of citation results, allowing you to
-        process citations as they're found rather than waiting for all results. Useful
-        for large datasets or when you want to show progress to users.
-
-        Args:
-            chunks: List of text chunks to search
-            jsonl_content: Raw JSONL content as string
-            jsonl_url: URL to fetch JSONL content from
-            question: The question to find citations for
-            start: Starting chunk index (0-based)
-            limit: Maximum number of chunks to process
-            max_tokens_per_chunk: Maximum tokens per chunk
-
-        Yields:
-            StreamingCitationResponse: Union of progress updates, individual citations,
-            final summary, or error messages
-
-        Raises:
-            BookWyrmAPIError: If the API request fails (network, authentication, server errors)
-
-        Examples:
-            Basic streaming:
-
-            ```python
-            from bookwyrm import BookWyrmClient
-            from bookwyrm.models import TextSpan, CitationProgressUpdate, CitationStreamResponse, CitationSummaryResponse
-
-            # Create some example chunks
-            chunks = [
-                TextSpan(text="The sky is blue due to Rayleigh scattering.", start_char=0, end_char=42),
-                TextSpan(text="Water molecules are polar.", start_char=43, end_char=69),
-                TextSpan(text="Plants appear green due to chlorophyll.", start_char=70, end_char=109)
-            ]
-
-            client = BookWyrmClient(api_key="your-api-key")
-            citations = []
-            for response in client.stream_citations(
-                chunks=chunks,
-                question="Why is the sky blue?"
-            ):
-                if isinstance(response, CitationProgressUpdate):  # Progress update
-                    print(f"Progress: {response.message}")
-                elif isinstance(response, CitationStreamResponse):  # Citation found
-                    citations.append(response.citation)
-                    print(f"Found: {response.citation.text[:50]}...")
-                elif isinstance(response, CitationSummaryResponse):  # Summary
-                    print(f"Complete: {response.total_citations} citations found")
-            ```
-        """
-        request = CitationRequest(
-            chunks=chunks,
-            jsonl_content=jsonl_content,
-            jsonl_url=jsonl_url,
-            question=question,
-            start=start,
-            limit=limit,
-            max_tokens_per_chunk=max_tokens_per_chunk,
         )
         headers = {**DEFAULT_HEADERS, "Content-Type": "application/json"}
         if self.api_key:

@@ -189,7 +189,7 @@ class AsyncBookWyrmClient:
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
-        model_strength: Optional[ModelStrength] = ModelStrength.SWIFT,
+        model_strength: ModelStrength = ModelStrength.SWIFT,
     ) -> CitationResponse:
         """Get citations for a question from text chunks asynchronously.
 
@@ -883,7 +883,7 @@ class AsyncBookWyrmClient:
         start: Optional[int] = 0,
         limit: Optional[int] = None,
         max_tokens_per_chunk: Optional[int] = 1000,
-        model_strength: Optional[ModelStrength] = ModelStrength.SWIFT,
+        model_strength: ModelStrength = ModelStrength.SWIFT,
     ) -> AsyncIterator[StreamingCitationResponse]:
         """Stream citations as they are found with real-time progress updates.
 

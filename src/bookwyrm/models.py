@@ -62,7 +62,7 @@ class CitationRequest(BaseModel):
     max_tokens_per_chunk: Optional[int] = Field(
         1000, description="Maximum tokens per chunk"
     )
-    model_strength: Optional[ModelStrength] = Field(
+    model_strength: ModelStrength = Field(
         ModelStrength.SWIFT,
         description="Model strength level for processing quality vs speed trade-offs",
     )
