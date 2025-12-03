@@ -717,7 +717,7 @@ def collect_citations_from_stream(
                         f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                     )
         elif isinstance(response, CitationErrorResponse):
-            raise ValueError(f"Citation error: {response.error}")
+            raise ValueError(f"Citation error: {response.error_message}")
 
     return citations, usage_info
 

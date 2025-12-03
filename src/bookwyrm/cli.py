@@ -645,7 +645,7 @@ def cite(
                             f"[dim]Tokens processed: {response.usage.tokens_processed}, Cost: {cost_str}[/dim]"
                         )
                 elif isinstance(response, CitationErrorResponse):
-                    error_console.print(f"[red]Error: {response.error}[/red]")
+                    error_console.print(f"[red]Error: {response.error_message}[/red]")
 
         display_citations_table(citations, questions=questions, long=long)
 
