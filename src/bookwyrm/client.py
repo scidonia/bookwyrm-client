@@ -55,6 +55,7 @@ from .models import (
     TextSpan,
     UsageInfo,
     PDFTextMapping,
+    ModelStrength,
 )
 
 
