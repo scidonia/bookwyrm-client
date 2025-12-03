@@ -53,6 +53,7 @@ from .models import (
     PDFStreamError,
     TextSpan,
     PDFTextMapping,
+    ModelStrength,
 )
 from .client import BookWyrmClientError, BookWyrmAPIError
 
