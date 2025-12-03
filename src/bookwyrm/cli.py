@@ -415,6 +415,13 @@ def cite(
     max_tokens: Annotated[
         int, typer.Option(help="Maximum tokens per chunk (default: 1000)")
     ] = 1000,
+    model_strength: Annotated[
+        ModelStrength,
+        typer.Option(
+            "--model-strength",
+            help="Model strength level: swift (fast), smart (intelligent), clever (advanced), wise (high-quality), brainiac (maximum sophistication)",
+        ),
+    ] = ModelStrength.SWIFT,
     base_url: Annotated[
         Optional[str],
         typer.Option(
@@ -460,20 +467,32 @@ def cite(
     ## Examples
 
     ```bash
-    # Single question
+    # Single question (uses swift model by default)
     bookwyrm cite --question "What is machine learning?" ml_chunks.jsonl
 
-    # Multiple questions
-    bookwyrm cite --question "What is AI?" --question "How does ML work?" data.jsonl
+    # High-quality citation finding
+    bookwyrm cite --question "What is AI?" data.jsonl --model-strength wise
 
-    # Questions from file
-    bookwyrm cite --questions-file questions.txt data.jsonl -o citations.json
+    # Multiple questions with advanced reasoning
+    bookwyrm cite --question "What is AI?" --question "How does ML work?" data.jsonl --model-strength clever
+
+    # Questions from file with maximum sophistication
+    bookwyrm cite --questions-file questions.txt data.jsonl --model-strength brainiac -o citations.json
 
     # From URL with multiple questions
     bookwyrm cite --question "Q1" --question "Q2" --url https://example.com/chunks.jsonl
 
-    # Limit processing
-    bookwyrm cite --question "Question" data.jsonl --start 10 --limit 50
+    # Limit processing with smart model
+    bookwyrm cite --question "Question" data.jsonl --start 10 --limit 50 --model-strength smart
+    ```
+
+    ## Model Strength Levels
+
+    - **swift**: Fast processing for quick results
+    - **smart**: Intelligent analysis with good quality
+    - **clever**: Advanced reasoning capabilities
+    - **wise**: High-quality analysis for important content
+    - **brainiac**: Maximum sophistication for complex questions
     ```
 
     ## Output Formats
@@ -547,6 +566,7 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
+            model_strength=model_strength,
         )
     else:
         # Use URL
@@ -561,6 +581,7 @@ def cite(
             start=start,
             limit=limit,
             max_tokens_per_chunk=max_tokens,
+            model_strength=model_strength,
         )
 
     client = BookWyrmClient(
