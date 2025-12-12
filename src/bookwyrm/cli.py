@@ -32,6 +32,7 @@ except ImportError:
 from bookwyrm.client import BookWyrmClient, BookWyrmAPIError
 from bookwyrm.models import (
     CitationRequest,
+    PDFProgressUpdate,
     TextSpan,
     CitationProgressUpdate,
     CitationStreamResponse,
@@ -1960,24 +1961,19 @@ def extract_pdf(
                     pages.append(response.page_data)
                     total_elements += len(response.page_data.text_blocks)
 
-                    progress.update(
-                        task,
-                        completed=response.current_page,
-                        description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
-                    )
-
                     if state.verbose:
                         console.print(
                             f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
                         )
                 elif isinstance(response, PDFStreamPageError):
-                    progress.update(
-                        task,
-                        completed=response.current_page,
-                        description=f"Error on page {response.document_page}",
-                    )
                     error_console.print(
                         f"[red]Error on page {response.document_page}: {response.error}[/red]"
+                    )
+                elif isinstance(response, PDFProgressUpdate):
+                    progress.update(
+                        task,
+                        completed=response.pages_processed,
+                        description=response.message,
                     )
                 elif isinstance(response, PDFStreamComplete):
                     progress.update(

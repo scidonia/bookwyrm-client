@@ -713,12 +713,25 @@ class PDFStreamError(BaseModel):
     recoverable: bool = False
 
 
+# PDF Progress and result models for SSE streaming
+class PDFProgressUpdate(BaseModel):
+    """Progress update for streaming responses."""
+
+    model_config = {"extra": "allow"}
+
+    type: Literal["progress"] = "progress"
+    pages_processed: int
+    total_pages: int
+    message: str
+
+
 StreamingPDFResponse = Union[
     PDFStreamMetadata,
     PDFStreamPageResponse,
     PDFStreamPageError,
     PDFStreamComplete,
     PDFStreamError,
+    PDFProgressUpdate,
 ]
 
 

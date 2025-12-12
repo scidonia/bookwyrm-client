@@ -51,6 +51,7 @@ from .models import (
     PDFStreamPageError,
     PDFStreamComplete,
     PDFStreamError,
+    PDFProgressUpdate,
     TextSpan,
     PDFTextMapping,
     ModelStrength,
@@ -1228,6 +1229,8 @@ class AsyncBookWyrmClient:
                                         yield PDFStreamComplete.model_validate(data)
                                     case "error":
                                         yield PDFStreamError.model_validate(data)
+                                    case "progress":
+                                        yield PDFProgressUpdate.model_validate(data)
                                     case "keepalive":
                                         # Ignore keepalive messages
                                         continue

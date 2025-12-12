@@ -19,6 +19,7 @@ except ImportError:
 from .models import (
     CitationRequest,
     CitationResponse,
+    PDFProgressUpdate,
     StreamingCitationResponse,
     CitationProgressUpdate,
     CitationStreamResponse,
@@ -1160,6 +1161,8 @@ class BookWyrmClient:
                                 yield PDFStreamComplete.model_validate(data)
                             case "error":
                                 yield PDFStreamError.model_validate(data)
+                            case "progress":
+                                yield PDFProgressUpdate.model_validate(data)
                             case "keepalive":
                                 # Ignore keepalive messages
                                 continue
