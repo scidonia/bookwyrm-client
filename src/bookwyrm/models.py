@@ -564,8 +564,17 @@ class PDFExtractRequest(BaseModel):
     num_pages: Optional[int] = None  # Number of pages to process from start_page
     lang: str = "en"  # Language code for OCR processing
 
+    enable_layout_detection: bool = False
+    enable_table_recognition: bool = False
+    enable_formula_recognition: bool = False
+    enable_seal_recognition: bool = False
+    enable_chart_parsing: bool = False
+    enable_document_preprocessing: bool = False
+    use_lightweight_models: bool = True
+    max_processing_time: Optional[int] = None
+
     @model_validator(mode="after")
-    def validate_input_source(self):
+    def validate_input_source(self) -> "PDFExtractRequest":
         """Validate that exactly one of pdf_url, pdf_content, or pdf_bytes is provided."""
         sources = [self.pdf_url, self.pdf_content, self.pdf_bytes]
         provided_sources = [s for s in sources if s is not None]
@@ -585,7 +594,7 @@ class PDFExtractRequest(BaseModel):
 
 
 class PDFBoundingBox(BaseModel):
-    """Bounding box coordinates for PDF text elements.
+    """Bounding box coordinates for PDF elements.
 
     Represents a rectangular bounding box with top-left and bottom-right coordinates.
     """
@@ -596,11 +605,213 @@ class PDFBoundingBox(BaseModel):
     y2: float = Field(..., description="Bottom edge y-coordinate")
 
 
-class PDFTextElement(BaseModel):
-    """A text element extracted from PDF with position and confidence.
+# New unified layout models to match runpod-pdf schema
+class ContentType(str, Enum):
+    """Content type enumeration for layout regions."""
 
-    Represents a piece of text found in a PDF with its location and OCR confidence.
-    """
+    TEXT = "text"
+    TABLE = "table"
+    IMAGE = "image"
+    FORMULA = "formula"
+    SEAL = "seal"
+
+
+class TextLabelType(str, Enum):
+    """Specific text label types from layout detection."""
+
+    TEXT = "text"
+    PARAGRAPH_TITLE = "paragraph_title"
+    NUMBER = "number"
+    TITLE = "title"
+    PARAGRAPH = "paragraph"
+    HEADER = "header"
+    FOOTER = "footer"
+    REFERENCE = "reference"
+    FIGURE_TITLE = "figure_title"
+    REFERENCE_CONTENT = "reference_content"
+
+
+class ImageLabelType(str, Enum):
+    """Specific image label types from layout detection."""
+
+    IMAGE = "image"
+    FIGURE = "figure"
+    CHART = "chart"
+    PHOTO = "photo"
+    DIAGRAM = "diagram"
+
+
+class FormulaLabelType(str, Enum):
+    """Specific formula label types from layout detection."""
+
+    FORMULA = "formula"
+    EQUATION = "equation"
+
+
+class TableLabelType(str, Enum):
+    """Specific table label types from layout detection."""
+
+    TABLE = "table"
+    TABLE_CAPTION = "table caption"
+
+
+class TextContent(BaseModel):
+    """Text content with OCR results and layout classification."""
+
+    content_type: Literal[ContentType.TEXT] = Field(
+        default=ContentType.TEXT,
+        description="Content type discriminator, always 'text' for text content",
+    )
+    label: TextLabelType = Field(
+        description="Specific text label from layout detection"
+    )
+    text: Optional[str] = Field(
+        default=None, description="OCR extracted text content, if available"
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="OCR confidence score between 0.0 and 1.0",
+    )
+    reading_order: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Reading order index for this text block within the page",
+    )
+    block_id: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Unique identifier for this text block within the page",
+    )
+
+
+class TableContent(BaseModel):
+    """Table content with structure and cell data."""
+
+    content_type: Literal[ContentType.TABLE] = Field(
+        default=ContentType.TABLE,
+        description="Content type discriminator, always 'table' for table content",
+    )
+    label: TableLabelType = Field(
+        description="Specific table label from layout detection"
+    )
+    html: Optional[str] = Field(
+        default=None, description="HTML representation of the table structure"
+    )
+    cells: List[Dict[str, Union[str, int, float]]] = Field(
+        default_factory=list,
+        description="Structured cell data with positions and content",
+    )
+    raw_texts: List[str] = Field(
+        default_factory=list,
+        description="Raw cell texts extracted by OCR, in reading order",
+    )
+    rows: int = Field(default=0, ge=0, description="Number of rows in the table")
+    cols: int = Field(default=0, ge=0, description="Number of columns in the table")
+    has_header: bool = Field(
+        default=False, description="Whether the table has a header row"
+    )
+    table_type: Optional[str] = Field(
+        default=None,
+        description="Classification of table type",
+    )
+
+
+class ImageContent(BaseModel):
+    """Image content with metadata and optional extracted data."""
+
+    content_type: Literal[ContentType.IMAGE] = Field(
+        default=ContentType.IMAGE,
+        description="Content type discriminator, always 'image' for image content",
+    )
+    label: ImageLabelType = Field(
+        description="Specific image label from layout detection"
+    )
+    image_data: Optional[str] = Field(
+        default=None,
+        description="Base64 encoded image data extracted from the document",
+    )
+    file_format: Optional[str] = Field(
+        default=None, description="Image file format (e.g., 'png', 'jpg', 'gif')"
+    )
+    width: Optional[int] = Field(
+        default=None, gt=0, description="Image width in pixels"
+    )
+    height: Optional[int] = Field(
+        default=None, gt=0, description="Image height in pixels"
+    )
+    caption: Optional[str] = Field(
+        default=None, description="Image caption text, if detected nearby"
+    )
+
+
+class FormulaContent(BaseModel):
+    """Mathematical formula content with LaTeX representation."""
+
+    content_type: Literal[ContentType.FORMULA] = Field(
+        default=ContentType.FORMULA,
+        description="Content type discriminator, always 'formula' for formula content",
+    )
+    label: FormulaLabelType = Field(
+        description="Specific formula label from layout detection"
+    )
+    latex: str = Field(
+        description="LaTeX representation of the mathematical formula or equation"
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Formula recognition confidence score between 0.0 and 1.0",
+    )
+
+
+class SealContent(BaseModel):
+    """Circular seal text content."""
+
+    content_type: Literal[ContentType.SEAL] = Field(
+        default=ContentType.SEAL,
+        description="Content type discriminator, always 'seal' for seal content",
+    )
+    text: str = Field(description="Text content extracted from the circular seal")
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Seal text recognition confidence score between 0.0 and 1.0",
+    )
+
+
+# Tagged union using discriminated union
+LayoutContent = Union[
+    TextContent, TableContent, ImageContent, FormulaContent, SealContent
+]
+
+
+class UnifiedLayoutRegion(BaseModel):
+    """Unified layout region with bounding box and typed content."""
+
+    bbox: List[List[float]] = Field(
+        description="Bounding box polygon as list of [x, y] coordinate pairs"
+    )
+    coordinates: PDFBoundingBox = Field(
+        description="Simplified rectangular bounding box coordinates"
+    )
+    content: LayoutContent = Field(
+        discriminator="content_type",
+        description="Typed content of the layout region",
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Layout detection confidence score between 0.0 and 1.0",
+    )
+
+
+class PDFTextElement(BaseModel):
+    """Legacy text element model for backward compatibility."""
 
     text: str = Field(..., description="The extracted text content")
     confidence: float = Field(..., description="OCR confidence score (0.0-1.0)")
@@ -613,36 +824,102 @@ class PDFTextElement(BaseModel):
 
 
 class PDFPage(BaseModel):
-    """Data for a single PDF page.
-
-    Contains all extracted elements from a PDF page including text, tables, and images.
-    """
+    """Data for a single PDF page with unified layout regions."""
 
     page_number: int = Field(..., description="The page number (1-based)")
-    text_blocks: List[PDFTextElement] = Field(
-        ..., description="List of text elements found on the page"
-    )
-    tables: List[dict] = Field(
+
+    # New unified layout structure
+    layout_regions: List[UnifiedLayoutRegion] = Field(
         default_factory=list,
-        description="List of table data (placeholder for future feature)",
+        description="Unified list of all detected layout regions with typed content",
     )
-    images: List[dict] = Field(
-        default_factory=list,
-        description="List of image data (placeholder for future feature)",
+
+    # Optional fields
+    reading_order: Optional[List[int]] = Field(
+        default=None,
+        description="Global reading order indices for all content elements",
     )
+
+    @classmethod
+    def from_runpod_page_data(cls, page_data: dict) -> "PDFPage":
+        """Create PDFPage from runpod-pdf PageData format."""
+        return cls(**page_data)
+
+    def get_text_content(self) -> List[TextContent]:
+        """Extract all text content from layout regions."""
+        return [
+            region.content
+            for region in self.layout_regions
+            if region.content.content_type == ContentType.TEXT
+        ]
+
+    def get_table_content(self) -> List[TableContent]:
+        """Extract all table content from layout regions."""
+        return [
+            region.content
+            for region in self.layout_regions
+            if region.content.content_type == ContentType.TABLE
+        ]
+
+    def get_image_content(self) -> List[ImageContent]:
+        """Extract all image content from layout regions."""
+        return [
+            region.content
+            for region in self.layout_regions
+            if region.content.content_type == ContentType.IMAGE
+        ]
+
+    def get_formula_content(self) -> List[FormulaContent]:
+        """Extract all formula content from layout regions."""
+        return [
+            region.content
+            for region in self.layout_regions
+            if region.content.content_type == ContentType.FORMULA
+        ]
+
+    def get_seal_content(self) -> List[SealContent]:
+        """Extract all seal content from layout regions."""
+        return [
+            region.content
+            for region in self.layout_regions
+            if region.content.content_type == ContentType.SEAL
+        ]
+
+    def to_legacy_text_blocks(self) -> List[PDFTextElement]:
+        """Convert layout regions to legacy text blocks format for backward compatibility."""
+        legacy_blocks = []
+        for region in self.layout_regions:
+            if region.content.content_type == ContentType.TEXT:
+                text_content = region.content
+                legacy_block = PDFTextElement(
+                    text=text_content.text or "",
+                    confidence=text_content.confidence or 1.0,
+                    bbox=region.bbox,
+                    coordinates=region.coordinates,
+                )
+                legacy_blocks.append(legacy_block)
+        return legacy_blocks
 
 
 class PDFStructuredData(BaseModel):
-    """Complete structured data from PDF extraction.
-
-    Contains all pages and metadata from PDF extraction process.
-    """
+    """Complete structured data from PDF extraction."""
 
     pages: List[PDFPage] = Field(..., description="List of extracted page data")
     total_pages: int = Field(..., description="Total number of pages processed")
-    extraction_method: str = Field(
-        "paddleocr", description="OCR method used for extraction"
-    )
+
+    def get_all_text_content(self) -> List[TextContent]:
+        """Get all text content from all pages."""
+        all_text = []
+        for page in self.pages:
+            all_text.extend(page.get_text_content())
+        return all_text
+
+    def get_all_table_content(self) -> List[TableContent]:
+        """Get all table content from all pages."""
+        all_tables = []
+        for page in self.pages:
+            all_tables.extend(page.get_table_content())
+        return all_tables
 
 
 class PDFExtractResponse(BaseModel):
@@ -653,9 +930,6 @@ class PDFExtractResponse(BaseModel):
 
     pages: List[PDFPage] = Field(..., description="List of extracted page data")
     total_pages: int = Field(..., description="Total number of pages processed")
-    extraction_method: str = Field(
-        "paddleocr", description="OCR method used for extraction"
-    )
     processing_time: Optional[float] = Field(
         None, description="Time taken for processing (seconds)"
     )

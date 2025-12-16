@@ -188,7 +188,9 @@ def display_citations_table(citations, questions=None, long=False):
         quality_color = (
             "red"
             if citation.quality <= 1
-            else "yellow" if citation.quality <= 2 else "green"
+            else "yellow"
+            if citation.quality <= 2
+            else "green"
         )
         quality_text = f"[{quality_color}]{citation.quality}/4[/{quality_color}]"
 
@@ -237,7 +239,9 @@ def display_verbose_citation(citation, questions=None, long=False):
     quality_color = (
         "red"
         if citation.quality <= 1
-        else "yellow" if citation.quality <= 2 else "green"
+        else "yellow"
+        if citation.quality <= 2
+        else "green"
     )
 
     chunk_range = (
@@ -613,7 +617,6 @@ def cite(
             TaskProgressColumn(),
             console=console,
         ) as progress:
-
             # For URL sources, we don't know the total chunks initially
             total_chunks = len(chunks) if not url else None
             task = progress.add_task("Processing chunks...", total=total_chunks)
@@ -974,7 +977,6 @@ def summarize(
             TaskProgressColumn(),
             console=console,
         ) as progress:
-
             level_tasks = {}  # Track tasks for each level
 
             for response in client.stream_summarize(
@@ -1297,7 +1299,6 @@ def phrasal(
             TaskProgressColumn(),
             console=console,
         ) as progress:
-
             task = progress.add_task("Processing text...", total=None)
 
             # Use function-based interface with boolean flags
@@ -1793,6 +1794,51 @@ def extract_pdf(
         str,
         typer.Option(help="Language code for OCR processing (default: en)"),
     ] = "en",
+    # PDF processing model configuration options
+    layout: Annotated[
+        bool,
+        typer.Option(
+            "--layout",
+            help="Enable advanced layout detection for better text structure analysis",
+        ),
+    ] = False,
+    tables: Annotated[
+        bool,
+        typer.Option("--tables", help="Enable table recognition and extraction"),
+    ] = False,
+    formulas: Annotated[
+        bool,
+        typer.Option(
+            "--formulas",
+            help="Enable mathematical formula recognition",
+        ),
+    ] = False,
+    seals: Annotated[
+        bool,
+        typer.Option("--seals", help="Enable seal and stamp recognition"),
+    ] = False,
+    charts: Annotated[
+        bool,
+        typer.Option("--charts", help="Enable chart and graph parsing"),
+    ] = False,
+    images: Annotated[
+        bool,
+        typer.Option("--images", help="Enable image detection and extraction"),
+    ] = False,
+    use_lightweight_models: Annotated[
+        bool,
+        typer.Option(
+            "--use-lightweight-models/--use-full-models",
+            help="Use lightweight models for faster processing (default) vs full models for better accuracy",
+        ),
+    ] = True,
+    max_processing_time: Annotated[
+        Optional[int],
+        typer.Option(
+            "--max-processing-time",
+            help="Maximum processing time in seconds (default: no limit)",
+        ),
+    ] = None,
     timeout: Annotated[
         Optional[float],
         typer.Option(help="Request timeout in seconds (default: no timeout)"),
@@ -1828,6 +1874,17 @@ def extract_pdf(
     - **Streaming progress updates**
     - **Support for both local files and URLs**
 
+    ## Advanced Processing Features
+
+    - **Layout Detection**: `--enable-layout-detection` for better text structure
+    - **Table Recognition**: `--enable-table-recognition` for table extraction
+    - **Formula Recognition**: `--enable-formula-recognition` for math formulas
+    - **Seal Recognition**: `--enable-seal-recognition` for stamps and seals
+    - **Chart Parsing**: `--enable-chart-parsing` for graphs and charts
+    - **Document Preprocessing**: `--enable-document-preprocessing` for better OCR
+    - **Model Selection**: `--use-lightweight-models` (default) vs `--use-full-models`
+    - **Time Limits**: `--max-processing-time` to set processing timeouts
+
     ## Page Selection
 
     - `start_page`: 1-based page number to begin extraction
@@ -1848,6 +1905,23 @@ def extract_pdf(
 
     # Extract with specific language
     bookwyrm extract-pdf document.pdf --lang fr --output extracted.json
+
+    # Advanced processing with all features
+    bookwyrm extract-pdf document.pdf \
+      --layout \
+      --tables \
+      --formulas \
+      --seals \
+      --charts \
+      --use-full-models \
+      --max-processing-time 300 \
+      --output advanced_extracted.json
+
+    # Fast processing with lightweight models
+    bookwyrm extract-pdf document.pdf \
+      --use-lightweight-models \
+      --max-processing-time 60 \
+      --output fast_extracted.json
 
     # Verbose output
     bookwyrm extract-pdf document.pdf -v --output extracted.json
@@ -1898,12 +1972,34 @@ def extract_pdf(
             pdf_content = base64.b64encode(pdf_bytes).decode("ascii")
             console.print(f"[green]Loaded PDF file ({len(pdf_bytes)} bytes)[/green]")
 
+            # Auto-enable layout detection and document preprocessing when advanced features are used
+            enable_layout_detection = layout or any(
+                [tables, formulas, seals, charts, images]
+            )
+            enable_document_preprocessing = enable_layout_detection or any(
+                [tables, formulas, seals, charts, images]
+            )
+            enable_document_preprocessing = enable_layout_detection or any(
+                [tables, formulas, seals, charts, images]
+            )
+            enable_document_preprocessing = enable_layout_detection or any(
+                [tables, formulas, seals, charts, images]
+            )
+
             request = PDFExtractRequest(
                 pdf_content=pdf_content,
                 filename=actual_file.name,
                 start_page=start_page,
                 num_pages=num_pages,
                 lang=lang,
+                enable_layout_detection=enable_layout_detection,
+                enable_table_recognition=tables,
+                enable_formula_recognition=formulas,
+                enable_seal_recognition=seals,
+                enable_chart_parsing=charts,
+                enable_document_preprocessing=enable_document_preprocessing,
+                use_lightweight_models=use_lightweight_models,
+                max_processing_time=max_processing_time,
             )
         except Exception as e:
             error_console.print(f"[red]Error reading PDF file: {e}[/red]")
@@ -1911,8 +2007,28 @@ def extract_pdf(
     else:
         # Use URL
         console.print(f"[blue]Using PDF from URL: {url}[/blue]")
+
+        # Auto-enable layout detection and document preprocessing when advanced features are used
+        enable_layout_detection = layout or any(
+            [tables, formulas, seals, charts, images]
+        )
+        enable_document_preprocessing = enable_layout_detection or any(
+            [tables, formulas, seals, charts, images]
+        )
+
         request = PDFExtractRequest(
-            pdf_url=url, start_page=start_page, num_pages=num_pages, lang=lang
+            pdf_url=url,
+            start_page=start_page,
+            num_pages=num_pages,
+            lang=lang,
+            enable_layout_detection=enable_layout_detection,
+            enable_table_recognition=tables,
+            enable_formula_recognition=formulas,
+            enable_seal_recognition=seals,
+            enable_chart_parsing=charts,
+            enable_document_preprocessing=enable_document_preprocessing,
+            use_lightweight_models=use_lightweight_models,
+            max_processing_time=max_processing_time,
         )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
@@ -1936,7 +2052,6 @@ def extract_pdf(
             TaskProgressColumn(),
             console=console,
         ) as progress:
-
             task = progress.add_task(
                 "Processing PDF...", total=100
             )  # Start with 100 as placeholder
@@ -1959,11 +2074,19 @@ def extract_pdf(
                         )
                 elif isinstance(response, PDFStreamPageResponse):
                     pages.append(response.page_data)
-                    total_elements += len(response.page_data.text_blocks)
+                    # Count elements from layout_regions
+                    page_elements = len(response.page_data.layout_regions)
+                    total_elements += page_elements
 
                     if state.verbose:
                         console.print(
-                            f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
+                            f"[green]Page {response.document_page}: {page_elements} layout regions[/green]"
+                        )
+                    total_elements += page_elements
+
+                    if state.verbose:
+                        console.print(
+                            f"[green]Page {response.document_page}: {page_elements} elements ({len(response.page_data.text_blocks)} legacy + {len(response.page_data.layout_regions)} layout regions)[/green]"
                         )
                 elif isinstance(response, PDFStreamPageError):
                     error_console.print(
@@ -1990,7 +2113,7 @@ def extract_pdf(
 
         # Display summary
         console.print(f"[green]Extracted {len(pages)} pages[/green]")
-        console.print(f"[green]Found {total_elements} text elements[/green]")
+        console.print(f"[green]Found {total_elements} elements[/green]")
 
         # Display detailed results if verbose
         if state.verbose and pages:
@@ -2000,20 +2123,31 @@ def extract_pdf(
             table.add_column("Confidence", justify="center", style="yellow")
             table.add_column("Text", style="green")
 
-            # Show first 20 elements across all pages
+            # Show first 20 text elements across all pages
             element_count = 0
             for page in pages:
-                for element in page.text_blocks:
+                # Get text content from layout regions
+                text_elements = page.get_text_content()
+                for text_content in text_elements:
                     if element_count >= 20:
                         break
 
-                    position = f"({element.coordinates.x1:.0f},{element.coordinates.y1:.0f})-({element.coordinates.x2:.0f},{element.coordinates.y2:.0f})"
-                    confidence = f"{element.confidence:.2f}"
-                    text_preview = (
-                        element.text[:60] + "..."
-                        if len(element.text) > 60
-                        else element.text
-                    )
+                    # Find the corresponding layout region to get coordinates
+                    layout_region = None
+                    for region in page.layout_regions:
+                        if region.content == text_content:
+                            layout_region = region
+                            break
+
+                    if layout_region:
+                        position = f"({layout_region.coordinates.x1:.0f},{layout_region.coordinates.y1:.0f})-({layout_region.coordinates.x2:.0f},{layout_region.coordinates.y2:.0f})"
+                        confidence = f"{text_content.confidence or 1.0:.2f}"
+                    else:
+                        position = "N/A"
+                        confidence = f"{text_content.confidence or 1.0:.2f}"
+
+                    text = text_content.text or ""
+                    text_preview = text[:60] + "..." if len(text) > 60 else text
 
                     table.add_row(
                         str(page.page_number), position, confidence, text_preview
@@ -2064,13 +2198,6 @@ def extract_pdf(
                 output_data = {
                     "pages": [page.model_dump() for page in pages],
                     "total_pages": len(pages),
-                    "extraction_method": "paddleocr",
-                    "source": {
-                        "file": str(actual_file) if actual_file else None,
-                        "url": url,
-                        "start_page": start_page,
-                        "num_pages": num_pages,
-                    },
                 }
 
                 output.write_text(json.dumps(output_data, indent=2), encoding="utf-8")

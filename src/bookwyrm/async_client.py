@@ -1080,6 +1080,58 @@ class AsyncBookWyrmClient:
         except httpx.RequestError as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
+    async def extract_pdf_simple(
+        self,
+        *,
+        pdf_url: Optional[str] = None,
+        pdf_content: Optional[str] = None,
+        pdf_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
+        start_page: Optional[int] = None,
+        num_pages: Optional[int] = None,
+        lang: str = "en",
+        # Simplified feature flags
+        layout: bool = False,
+        tables: bool = False,
+        formulas: bool = False,
+        seals: bool = False,
+        charts: bool = False,
+        images: bool = False,
+        use_lightweight_models: bool = True,
+        max_processing_time: Optional[int] = None,
+    ) -> AsyncIterator[StreamingPDFResponse]:
+        """Stream PDF extraction with simplified feature flags (async version).
+
+        Auto-enables layout detection and document preprocessing when advanced features are used.
+        """
+        # Auto-enable layout detection and document preprocessing when advanced features are used
+        enable_layout_detection = layout or any(
+            [tables, formulas, seals, charts, images]
+        )
+        enable_document_preprocessing = enable_layout_detection or any(
+            [tables, formulas, seals, charts, images]
+        )
+
+        # Use the full-featured method with mapped parameters
+        async for response in self.stream_extract_pdf(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+            lang=lang,
+            enable_layout_detection=enable_layout_detection,
+            enable_table_recognition=tables,
+            enable_formula_recognition=formulas,
+            enable_seal_recognition=seals,
+            enable_chart_parsing=charts,
+            enable_document_preprocessing=enable_document_preprocessing,
+            use_lightweight_models=use_lightweight_models,
+            max_processing_time=max_processing_time,
+        ):
+            yield response
+
     async def stream_extract_pdf(
         self,
         *,
@@ -1090,6 +1142,15 @@ class AsyncBookWyrmClient:
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
         lang: str = "en",
+        # PP-StructureV3 feature flags
+        enable_layout_detection: bool = False,
+        enable_table_recognition: bool = False,
+        enable_formula_recognition: bool = False,
+        enable_seal_recognition: bool = False,
+        enable_chart_parsing: bool = False,
+        enable_document_preprocessing: bool = False,
+        use_lightweight_models: bool = True,
+        max_processing_time: Optional[int] = None,
     ) -> AsyncIterator[StreamingPDFResponse]:
         """Stream PDF extraction with real-time progress updates asynchronously.
 
@@ -1164,6 +1225,14 @@ class AsyncBookWyrmClient:
             start_page=start_page,
             num_pages=num_pages,
             lang=lang,
+            enable_layout_detection=enable_layout_detection,
+            enable_table_recognition=enable_table_recognition,
+            enable_formula_recognition=enable_formula_recognition,
+            enable_seal_recognition=enable_seal_recognition,
+            enable_chart_parsing=enable_chart_parsing,
+            enable_document_preprocessing=enable_document_preprocessing,
+            use_lightweight_models=use_lightweight_models,
+            max_processing_time=max_processing_time,
         )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:

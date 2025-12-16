@@ -1010,6 +1010,77 @@ class BookWyrmClient:
         except requests.RequestException as e:
             raise BookWyrmAPIError(f"Request failed: {e}")
 
+    def extract_pdf_simple(
+        self,
+        *,
+        pdf_url: Optional[str] = None,
+        pdf_content: Optional[str] = None,
+        pdf_bytes: Optional[bytes] = None,
+        filename: Optional[str] = None,
+        start_page: Optional[int] = None,
+        num_pages: Optional[int] = None,
+        lang: str = "en",
+        # Simplified feature flags
+        layout: bool = False,
+        tables: bool = False,
+        formulas: bool = False,
+        seals: bool = False,
+        charts: bool = False,
+        images: bool = False,
+        use_lightweight_models: bool = True,
+        max_processing_time: Optional[int] = None,
+    ) -> Iterator[StreamingPDFResponse]:
+        """Stream PDF extraction with simplified feature flags.
+
+        Auto-enables layout detection and document preprocessing when advanced features are used.
+
+        Args:
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes
+            filename: Optional filename hint
+            start_page: 1-based page number to start from
+            num_pages: Number of pages to process from start_page
+            lang: Language code for OCR processing (default: "en")
+            layout: Enable advanced layout detection
+            tables: Enable table recognition and extraction
+            formulas: Enable mathematical formula recognition
+            seals: Enable seal and stamp recognition
+            charts: Enable chart and graph parsing
+            images: Enable image detection and extraction
+            use_lightweight_models: Use lightweight models for speed vs full models for accuracy
+            max_processing_time: Maximum processing time in seconds
+
+        Yields:
+            StreamingPDFResponse: Union of metadata, page responses, page errors, completion, or general errors
+        """
+        # Auto-enable layout detection and document preprocessing when advanced features are used
+        enable_layout_detection = layout or any(
+            [tables, formulas, seals, charts, images]
+        )
+        enable_document_preprocessing = enable_layout_detection or any(
+            [tables, formulas, seals, charts, images]
+        )
+
+        # Use the full-featured method with mapped parameters
+        return self.stream_extract_pdf(
+            pdf_url=pdf_url,
+            pdf_content=pdf_content,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            start_page=start_page,
+            num_pages=num_pages,
+            lang=lang,
+            enable_layout_detection=enable_layout_detection,
+            enable_table_recognition=tables,
+            enable_formula_recognition=formulas,
+            enable_seal_recognition=seals,
+            enable_chart_parsing=charts,
+            enable_document_preprocessing=enable_document_preprocessing,
+            use_lightweight_models=use_lightweight_models,
+            max_processing_time=max_processing_time,
+        )
+
     def stream_extract_pdf(
         self,
         *,
@@ -1020,6 +1091,15 @@ class BookWyrmClient:
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
         lang: str = "en",
+        # PP-StructureV3 feature flags
+        enable_layout_detection: bool = False,
+        enable_table_recognition: bool = False,
+        enable_formula_recognition: bool = False,
+        enable_seal_recognition: bool = False,
+        enable_chart_parsing: bool = False,
+        enable_document_preprocessing: bool = False,
+        use_lightweight_models: bool = True,
+        max_processing_time: Optional[int] = None,
     ) -> Iterator[StreamingPDFResponse]:
         """Stream PDF extraction with real-time progress updates.
 
@@ -1075,6 +1155,14 @@ class BookWyrmClient:
             pdf_bytes=pdf_bytes,
             filename=filename,
             start_page=start_page,
+            enable_layout_detection=enable_layout_detection,
+            enable_table_recognition=enable_table_recognition,
+            enable_formula_recognition=enable_formula_recognition,
+            enable_seal_recognition=enable_seal_recognition,
+            enable_chart_parsing=enable_chart_parsing,
+            enable_document_preprocessing=enable_document_preprocessing,
+            use_lightweight_models=use_lightweight_models,
+            max_processing_time=max_processing_time,
             num_pages=num_pages,
             lang=lang,
         )
@@ -1108,6 +1196,30 @@ class BookWyrmClient:
                 if request.lang:
                     data["lang"] = request.lang
 
+                # Add PDF processing model configuration fields - always send all boolean parameters
+                # Convert booleans to strings for form data
+                data["enable_layout_detection"] = str(
+                    request.enable_layout_detection
+                ).lower()
+                data["enable_table_recognition"] = str(
+                    request.enable_table_recognition
+                ).lower()
+                data["enable_formula_recognition"] = str(
+                    request.enable_formula_recognition
+                ).lower()
+                data["enable_seal_recognition"] = str(
+                    request.enable_seal_recognition
+                ).lower()
+                data["enable_chart_parsing"] = str(request.enable_chart_parsing).lower()
+                data["enable_document_preprocessing"] = str(
+                    request.enable_document_preprocessing
+                ).lower()
+                data["use_lightweight_models"] = str(
+                    request.use_lightweight_models
+                ).lower()
+                if request.max_processing_time is not None:
+                    data["max_processing_time"] = request.max_processing_time
+
                 response = self.session.post(
                     f"{self.base_url}/extract-structure/sse",
                     files=files,
@@ -1126,6 +1238,22 @@ class BookWyrmClient:
                     json_data["num_pages"] = request.num_pages
                 if request.lang:
                     json_data["lang"] = request.lang
+
+                # Add PDF processing model configuration fields - always send all boolean parameters
+                # Keep as boolean values for JSON (standard JSON supports booleans)
+                json_data["enable_layout_detection"] = request.enable_layout_detection
+                json_data["enable_table_recognition"] = request.enable_table_recognition
+                json_data["enable_formula_recognition"] = (
+                    request.enable_formula_recognition
+                )
+                json_data["enable_seal_recognition"] = request.enable_seal_recognition
+                json_data["enable_chart_parsing"] = request.enable_chart_parsing
+                json_data["enable_document_preprocessing"] = (
+                    request.enable_document_preprocessing
+                )
+                json_data["use_lightweight_models"] = request.use_lightweight_models
+                if request.max_processing_time is not None:
+                    json_data["max_processing_time"] = request.max_processing_time
 
                 response = self.session.post(
                     f"{self.base_url}/extract-structure-json/sse",

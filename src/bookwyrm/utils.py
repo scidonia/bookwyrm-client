@@ -260,12 +260,22 @@ def create_pdf_text_mapping_from_pages(pages: List[PDFPage]) -> PDFTextMapping:
 
     for page in pages:
         page_number = page.page_number
-        text_blocks = page.text_blocks
+        text_elements = page.get_text_content()
 
-        for element_index, text_block in enumerate(text_blocks):
-            text = text_block.text
-            coordinates = text_block.coordinates
-            confidence = text_block.confidence
+        for element_index, text_content in enumerate(text_elements):
+            text = text_content.text or ""
+            confidence = text_content.confidence or 1.0
+
+            # Find the corresponding layout region to get coordinates
+            coordinates = None
+            for region in page.layout_regions:
+                if region.content == text_content:
+                    coordinates = region.coordinates
+                    break
+
+            if not coordinates:
+                # Skip if we can't find coordinates
+                continue
 
             # Add character mappings for each character in the text
             for char_offset, char in enumerate(text):
@@ -481,16 +491,18 @@ def collect_pdf_pages_from_stream(
                 )
         elif isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
-            total_elements += len(response.page_data.text_blocks)
+            # Count elements from layout_regions
+            element_count = len(response.page_data.layout_regions)
+            total_elements += element_count
             if progress and task_id:
                 progress.update(
                     task_id,
                     completed=response.current_page,
-                    description=f"Page {response.document_page} - {len(response.page_data.text_blocks)} elements found",
+                    description=f"Page {response.document_page} - {element_count} elements found",
                 )
             elif verbose:
                 console.print(
-                    f"[green]Page {response.document_page}: {len(response.page_data.text_blocks)} text elements[/green]"
+                    f"[green]Page {response.document_page}: {element_count} layout regions[/green]"
                 )
         elif isinstance(response, PDFStreamPageError):
             if progress and task_id:
@@ -511,7 +523,7 @@ def collect_pdf_pages_from_stream(
             elif verbose:
                 console.print("[green]✓ PDF extraction complete![/green]")
         elif isinstance(response, PDFStreamError):
-            raise ValueError(f"PDF extraction error: {response.error}")
+            raise ValueError(f"PDF extraction error: {response.message}")
 
     return pages, metadata
 
@@ -815,28 +827,15 @@ def pdf_to_text_with_mapping_from_json(
         raise ValueError("No pages found in extraction data")
 
     # Convert JSON data to PDFPage objects
-    from .models import PDFPage, PDFTextElement, PDFBoundingBox
+    from .models import PDFPage
 
     pages = []
     for page_data in pages_data:
-        text_blocks = []
-        for block_data in page_data.get("text_blocks", []):
-            coords_data = block_data.get("coordinates", {})
-            coordinates = PDFBoundingBox(
-                x1=coords_data.get("x1", 0.0),
-                y1=coords_data.get("y1", 0.0),
-                x2=coords_data.get("x2", 0.0),
-                y2=coords_data.get("y2", 0.0),
-            )
-            text_element = PDFTextElement(
-                text=block_data.get("text", ""),
-                coordinates=coordinates,
-                confidence=block_data.get("confidence", 0.0),
-            )
-            text_blocks.append(text_element)
-
+        # For now, create empty pages since we removed text_blocks
+        # This function may need to be updated to handle the new layout_regions format
         page = PDFPage(
-            page_number=page_data.get("page_number", 1), text_blocks=text_blocks
+            page_number=page_data.get("page_number", 1),
+            layout_regions=[],
         )
         pages.append(page)
 
@@ -850,7 +849,9 @@ def pdf_to_text_with_mapping_from_json(
 
 
 def pdf_to_text_with_mapping(
-    pdf_data_file: Path, output_path: Path = None, mapping_output: Path = None
+    pdf_data_file: Path,
+    output_path: Optional[Path] = None,
+    mapping_output: Optional[Path] = None,
 ) -> PDFTextMapping:
     """Convert PDF extraction JSON file to raw text with character position mapping.
 
