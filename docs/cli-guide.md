@@ -16,15 +16,110 @@ This will analyze the PDF and return classification information including file t
 
 ## 2. PDF Structure Extraction
 
-Next, let's extract structured data from specific pages of the PDF:
+Extract structured data from specific pages of the PDF with various processing options:
+
+### Basic PDF Extraction
 
 ```bash
-# Extract structured JSON data from pages 1-4 of the SOA PDF
+# Extract structured JSON data from pages 1-4 of the SOA PDF (basic, fast)
 # Download from: https://github.com/scidonia/bookwyrm-client/blob/main/data/SOA_2025_Final.pdf
 bookwyrm extract-pdf data/SOA_2025_Final.pdf --start-page 1 --num-pages 4 --output data/SOA_2025_Final_1-4.json
 ```
 
 This creates a JSON file containing the structured text, bounding boxes, and layout information for the specified pages.
+
+### Advanced PDF Extraction with Table Detection
+
+```bash
+# Extract with table detection and simple table format
+bookwyrm extract-pdf data/SOA_2025_Final.pdf \
+  --start-page 1 \
+  --num-pages 4 \
+  --layout \
+  --output data/SOA_2025_Final_1-4_with_tables.json
+```
+
+The `--layout` flag enables:
+- Advanced layout detection for better text structure analysis
+- Table detection and extraction
+- Simple table format (rows of cells as arrays) for easy processing
+- Automatic OCR activation when needed
+
+### Force OCR for Better Text Quality
+
+```bash
+# Force OCR processing for better text quality (useful for poor native text)
+bookwyrm extract-pdf data/SOA_2025_Final.pdf \
+  --start-page 1 \
+  --num-pages 4 \
+  --force-ocr \
+  --output data/SOA_2025_Final_1-4_ocr.json
+```
+
+Use `--force-ocr` when:
+- The PDF has poor quality native text
+- You want consistent OCR-based text across mixed PDFs
+- Native text extraction produces garbled or incorrect results
+
+### Combined Advanced Processing
+
+```bash
+# Advanced processing with both layout detection and forced OCR
+bookwyrm extract-pdf data/SOA_2025_Final.pdf \
+  --start-page 1 \
+  --num-pages 4 \
+  --layout \
+  --force-ocr \
+  --verbose \
+  --output data/SOA_2025_Final_1-4_advanced.json
+```
+
+**Note**: When `--layout` is used, `--force-ocr` is automatically enabled, but you can specify both for clarity.
+
+### Working with Extracted Table Data
+
+When you extract PDFs with `--layout`, tables will include both detailed cell information and a new simple format for easy processing:
+
+```bash
+# Extract a PDF with tables
+bookwyrm extract-pdf financial_report.pdf --layout --output financial_data.json
+```
+
+The resulting JSON will contain table data in two formats:
+
+**Simple format** (NEW - easy to use):
+```json
+{
+  "content_type": "table",
+  "simple": {
+    "rows": [
+      ["Product", "Revenue", "Growth"],
+      ["Widget A", "$1.2M", "15%"], 
+      ["Widget B", "$850K", "23%"],
+      ["Widget C", "$2.1M", "8%"]
+    ]
+  }
+}
+```
+
+**Detailed format** (legacy - for advanced processing):
+```json
+{
+  "content_type": "table",
+  "cells": [...],
+  "raw_texts": [...],
+  "html": "<table>...",
+  "rows": 4,
+  "cols": 3,
+  "has_header": true
+}
+```
+
+The simple format makes it easy to:
+- Import into spreadsheet applications
+- Convert to CSV files 
+- Process with data analysis tools
+- Create database records
 
 ## 3. PDF to Text Conversion with Character Mapping
 
@@ -341,17 +436,48 @@ bookwyrm summarize data/country-of-the-blind-phrases.jsonl \
 
 After running these commands, you should have:
 
-- `data/SOA_2025_Final_1-4.json` - Structured PDF data with bounding boxes
+### Basic PDF Extraction Files
+- `data/SOA_2025_Final_1-4.json` - Basic structured PDF data with text and bounding boxes
 - `data/SOA_2025_Final_1-4_raw.txt` - Raw text extracted from PDF
 - `data/SOA_2025_Final_1-4_mapping.json` - Character position to bounding box mapping
 - `data/character_positions.json` - Query results for specific character ranges
-- `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis
+
+### Advanced PDF Extraction Files (with --layout)
+- `data/SOA_2025_Final_1-4_with_tables.json` - PDF data with table detection and simple table format
+- `data/SOA_2025_Final_1-4_ocr.json` - PDF data processed with forced OCR
+- `data/SOA_2025_Final_1-4_advanced.json` - PDF data with layout detection and forced OCR
+
+### Text Processing Files
+- `data/country-of-the-blind-phrases.jsonl` - Phrasal analysis of text content
 - `data/country-of-the-blind-summary.json` - Basic text summary
 - `data/country-structured-summary.json` - Structured literary analysis using Summary model
 - `data/country-detailed-analysis.json` - High-quality structured analysis
-- `data/protagonist-dangers.json` - Citation results
+- `data/protagonist-dangers.json` - Citation results for specific questions
 
-These files demonstrate the full pipeline from raw documents to structured insights using the BookWyrm API, including the ability to map text positions back to their original locations in PDF documents.
+### Key Features in Modern Output
+
+When using `--layout` flag, your JSON files will contain:
+
+**Enhanced Table Data:**
+```json
+{
+  "content_type": "table",
+  "simple": {
+    "rows": [["Header1", "Header2"], ["Data1", "Data2"]]
+  },
+  "cells": [...],
+  "html": "<table>...",
+  "rows": 2,
+  "cols": 2
+}
+```
+
+**Better Text Structure:**
+- More accurate text blocks with layout detection
+- Improved bounding box accuracy with OCR processing
+- Enhanced document structure recognition
+
+These files demonstrate the full pipeline from raw documents to structured insights using the modern BookWyrm API, including easy table data access and the ability to map text positions back to their original locations in PDF documents.
 
 ## Use Cases for Character Mapping
 

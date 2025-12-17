@@ -89,7 +89,7 @@ result = classify_pdf()
 
 ## 2. PDF Structure Extraction
 
-Extract structured data from specific pages of a PDF:
+Extract structured data from specific pages of a PDF with advanced features:
 
 ```python
 from bookwyrm import BookWyrmClient
@@ -98,8 +98,8 @@ from pathlib import Path
 from typing import List
 import json
 
-def extract_pdf_structure() -> List[PDFPage]:
-    """Extract structured data from PDF pages 1-4."""
+def extract_pdf_structure_basic() -> List[PDFPage]:
+    """Extract structured data from PDF pages 1-4 (basic extraction)."""
     from bookwyrm.utils import collect_pdf_pages_from_stream
     
     client = BookWyrmClient()
@@ -107,6 +107,7 @@ def extract_pdf_structure() -> List[PDFPage]:
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
     
+    # Basic extraction - fast, uses native text when possible
     stream = client.stream_extract_pdf(
         pdf_bytes=pdf_bytes,
         filename="SOA_2025_Final.pdf",
@@ -129,8 +130,73 @@ def extract_pdf_structure() -> List[PDFPage]:
     print(f"Saved structured data to {output_path}")
     return pages
 
+def extract_pdf_with_tables() -> List[PDFPage]:
+    """Extract PDF with table detection and simple table format."""
+    from bookwyrm.utils import collect_pdf_pages_from_stream
+    
+    client = BookWyrmClient()
+    
+    pdf_path = Path("data/SOA_2025_Final.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    # Advanced extraction with table detection
+    stream = client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="SOA_2025_Final.pdf",
+        start_page=1,
+        num_pages=4,
+        enable_layout_detection=True  # Enables table detection and simple table format
+    )
+    
+    pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
+    
+    # Process extracted tables
+    for page in pages:
+        for region in page.layout_regions:
+            if region.content.content_type == "table":
+                table = region.content
+                print(f"Found table on page {page.page}")
+                
+                # NEW: Easy table access with simple field
+                if table.simple:
+                    headers = table.simple.rows[0] if table.simple.rows else []
+                    data_rows = table.simple.rows[1:] if len(table.simple.rows) > 1 else []
+                    print(f"  Headers: {headers}")
+                    print(f"  Data rows: {len(data_rows)}")
+                    
+                    # Example: Convert to dictionary format
+                    if headers and data_rows:
+                        table_records = []
+                        for row in data_rows:
+                            record = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+                            table_records.append(record)
+                        print(f"  Sample record: {table_records[0] if table_records else 'None'}")
+    
+    return pages
+
+def extract_pdf_force_ocr() -> List[PDFPage]:
+    """Force OCR processing for better text quality."""
+    from bookwyrm.utils import collect_pdf_pages_from_stream
+    
+    client = BookWyrmClient()
+    
+    pdf_path = Path("data/SOA_2025_Final.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    # Force OCR even for native text PDFs (useful for poor quality native text)
+    stream = client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="SOA_2025_Final.pdf",
+        start_page=1,
+        num_pages=4,
+        force_ocr=True  # NEW: Force OCR processing
+    )
+    
+    pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
+    return pages
+
 def extract_pdf_from_url() -> List[PDFPage]:
-    """Extract PDF structure from a URL."""
+    """Extract PDF structure from a URL with modern parameters."""
     from bookwyrm.utils import collect_pdf_pages_from_stream
     
     client = BookWyrmClient()
@@ -138,14 +204,152 @@ def extract_pdf_from_url() -> List[PDFPage]:
     stream = client.stream_extract_pdf(
         pdf_url="https://example.com/document.pdf",
         start_page=1,
-        num_pages=5
+        num_pages=5,
+        enable_layout_detection=True,  # Enable table detection
+        force_ocr=False  # Use native text when available
     )
     
     pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
     return pages
 
-# Extract PDF structure
-pages = extract_pdf_structure()
+# Extract PDF structure - choose the approach that fits your needs
+pages = extract_pdf_structure_basic()  # Fast, basic extraction
+# pages = extract_pdf_with_tables()    # Advanced with table detection  
+# pages = extract_pdf_force_ocr()      # Force OCR for quality
+```
+
+### Working with Simple Table Data
+
+The new Simple Table format makes it easy to work with extracted table data:
+
+```python
+from bookwyrm.models import PDFPage, SimpleTable
+from typing import List, Dict, Any
+import pandas as pd
+import csv
+import io
+
+def process_simple_tables(pages: List[PDFPage]) -> List[Dict[str, Any]]:
+    """Process all tables found in PDF pages using the simple format."""
+    all_tables = []
+    
+    for page in pages:
+        for region_idx, region in enumerate(page.layout_regions):
+            if region.content.content_type == "table" and region.content.simple:
+                table = region.content
+                simple_data = table.simple
+                
+                if not simple_data.rows:
+                    continue
+                
+                # Extract table information
+                table_info = {
+                    "page": page.page,
+                    "region": region_idx,
+                    "headers": simple_data.rows[0] if simple_data.rows else [],
+                    "data_rows": simple_data.rows[1:] if len(simple_data.rows) > 1 else [],
+                    "total_rows": len(simple_data.rows),
+                    "total_cols": len(simple_data.rows[0]) if simple_data.rows else 0,
+                }
+                
+                print(f"Table on page {page.page}, region {region_idx}:")
+                print(f"  Size: {table_info['total_rows']} rows × {table_info['total_cols']} cols")
+                print(f"  Headers: {table_info['headers']}")
+                
+                all_tables.append(table_info)
+    
+    return all_tables
+
+def convert_table_to_pandas(simple_table: SimpleTable) -> pd.DataFrame:
+    """Convert a SimpleTable to pandas DataFrame."""
+    if not simple_table.rows or len(simple_table.rows) < 2:
+        return pd.DataFrame()  # Empty DataFrame for tables without data
+    
+    headers = simple_table.rows[0]
+    data_rows = simple_table.rows[1:]
+    
+    # Create DataFrame with headers as column names
+    df = pd.DataFrame(data_rows, columns=headers)
+    return df
+
+def convert_table_to_csv(simple_table: SimpleTable) -> str:
+    """Convert a SimpleTable to CSV format."""
+    if not simple_table.rows:
+        return ""
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(simple_table.rows)
+    return output.getvalue()
+
+def convert_table_to_records(simple_table: SimpleTable) -> List[Dict[str, str]]:
+    """Convert a SimpleTable to list of dictionary records."""
+    if not simple_table.rows or len(simple_table.rows) < 2:
+        return []
+    
+    headers = simple_table.rows[0]
+    data_rows = simple_table.rows[1:]
+    
+    records = []
+    for row in data_rows:
+        # Create record dictionary, handling mismatched row lengths
+        record = {}
+        for i, header in enumerate(headers):
+            record[header] = row[i] if i < len(row) else ""
+        records.append(record)
+    
+    return records
+
+def comprehensive_table_processing() -> None:
+    """Complete example of table processing workflow."""
+    client = BookWyrmClient()
+    
+    # Extract PDF with table detection
+    pdf_path = Path("data/SOA_2025_Final.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    stream = client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="SOA_2025_Final.pdf",
+        start_page=1,
+        num_pages=4,
+        enable_layout_detection=True  # Required for table detection
+    )
+    
+    pages, metadata = collect_pdf_pages_from_stream(stream, verbose=True)
+    
+    # Process all tables found
+    table_data = process_simple_tables(pages)
+    
+    # Work with each table
+    for table_info in table_data:
+        print(f"\nProcessing table on page {table_info['page']}:")
+        
+        # Reconstruct SimpleTable object for conversion functions
+        simple_table = SimpleTable(rows=[table_info['headers']] + table_info['data_rows'])
+        
+        # Convert to different formats
+        print("1. As pandas DataFrame:")
+        df = convert_table_to_pandas(simple_table)
+        print(df.head() if not df.empty else "Empty table")
+        
+        print("2. As CSV:")
+        csv_data = convert_table_to_csv(simple_table)
+        print(csv_data[:200] + "..." if len(csv_data) > 200 else csv_data)
+        
+        print("3. As dictionary records:")
+        records = convert_table_to_records(simple_table)
+        print(f"First record: {records[0] if records else 'No records'}")
+        
+        # Save table data
+        if records:
+            table_file = Path(f"data/table_page_{table_info['page']}_region_{table_info['region']}.json")
+            with open(table_file, "w") as f:
+                json.dump(records, f, indent=2)
+            print(f"Saved table to {table_file}")
+
+# Example usage:
+# comprehensive_table_processing()
 ```
 
 ## 3. PDF to Text Conversion with Character Mapping
@@ -573,21 +777,21 @@ multiple_citations = find_multiple_citations()
 
 ## Complete Workflow Example
 
-Here's a complete workflow that processes a PDF from extraction to citation finding:
+Here's a complete workflow that processes a PDF from extraction to citation finding, including the new Simple Table features:
 
 ```python
 from bookwyrm import BookWyrmClient
 from bookwyrm.utils import create_pdf_text_mapping_from_pages, query_mapping_range_in_memory, save_mapping_query_in_memory
-from bookwyrm.models import PDFStreamPageResponse, PDFPage, PDFTextMapping
+from bookwyrm.models import PDFStreamPageResponse, PDFPage, PDFTextMapping, SimpleTable
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import json
 
-def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, Any], Dict[str, Any], List]:
-    """Complete workflow from PDF to citations."""
+def complete_pdf_workflow_with_tables() -> Tuple[List[PDFPage], PDFTextMapping, List[Dict], List]:
+    """Complete workflow from PDF to citations with table extraction."""
     client = BookWyrmClient()
 
-    print("Step 1: Extract PDF structure")
+    print("Step 1: Extract PDF structure with table detection")
     pdf_path = Path("data/SOA_2025_Final.pdf")
     pdf_bytes = pdf_path.read_bytes()
 
@@ -596,30 +800,38 @@ def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, An
         pdf_bytes=pdf_bytes,
         filename="SOA_2025_Final.pdf",
         start_page=1,
-        num_pages=4
+        num_pages=4,
+        enable_layout_detection=True,  # Enable table detection
+        force_ocr=False  # Use native text when possible (faster)
     ):
         if isinstance(response, PDFStreamPageResponse):
             pages.append(response.page_data)
 
-    print("Step 2: Create text mapping directly from pages (in-memory)")
+    print("Step 2: Process extracted tables")
+    all_tables = []
+    for page in pages:
+        for region_idx, region in enumerate(page.layout_regions):
+            if region.content.content_type == "table" and region.content.simple:
+                table_data = {
+                    "page": page.page,
+                    "region": region_idx,
+                    "headers": region.content.simple.rows[0] if region.content.simple.rows else [],
+                    "data": region.content.simple.rows[1:] if len(region.content.simple.rows) > 1 else [],
+                    "bbox": region.coordinates.model_dump()
+                }
+                all_tables.append(table_data)
+                print(f"Found table on page {page.page}: {len(table_data['data'])} rows")
+    
+    # Save table data separately for easy access
+    if all_tables:
+        table_file = Path("data/extracted_tables.json")
+        with open(table_file, "w") as f:
+            json.dump(all_tables, f, indent=2)
+        print(f"Saved {len(all_tables)} tables to {table_file}")
+
+    print("Step 3: Create text mapping directly from pages (in-memory)")
     # Use in-memory utility function - no file I/O needed
     mapping = create_pdf_text_mapping_from_pages(pages)
-
-    print("Step 3: Query character ranges (in-memory)")
-    # Use in-memory mapping (preferred)
-    result1 = query_mapping_range_in_memory(mapping, 0, 100)
-    result2 = save_mapping_query_in_memory(mapping, 1000, 2000, Path("data/positions_1000-2000.json"))
-
-    # Optional: Save extracted data and mapping if needed for later use
-    save_files = False  # Set to True if you want to save files
-    if save_files:
-        output_data = {"pages": [page.model_dump() for page in pages]}
-        with open("data/SOA_2025_Final_extracted.json", "w") as f:
-            json.dump(output_data, f, indent=2)
-
-        # Save text and mapping files
-        Path("data/SOA_2025_Final_raw.txt").write_text(mapping.raw_text, encoding="utf-8")
-        Path("data/SOA_2025_Final_mapping.json").write_text(mapping.model_dump_json(indent=2), encoding="utf-8")
 
     print("Step 4: Process text for phrases")
     # Process the extracted text to create phrases
@@ -635,10 +847,92 @@ def complete_pdf_workflow() -> Tuple[List[PDFPage], PDFTextMapping, Dict[str, An
     print(f"Created {len(phrases)} phrases from PDF text")
 
     print("Workflow complete!")
-    return pages, mapping, result1, result2, phrases
+    return pages, mapping, all_tables, phrases
 
-# Run complete workflow
-results = complete_pdf_workflow()
+def advanced_table_workflow() -> List[Dict[str, Any]]:
+    """Advanced workflow focused on table extraction and processing."""
+    client = BookWyrmClient()
+    
+    print("Advanced Table Processing Workflow")
+    print("=" * 40)
+    
+    # Extract with forced OCR for better table text quality
+    pdf_path = Path("data/SOA_2025_Final.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    pages = []
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="SOA_2025_Final.pdf",
+        start_page=1,
+        num_pages=4,
+        enable_layout_detection=True,  # Required for tables
+        force_ocr=True  # Force OCR for better table text quality
+    ):
+        if isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+    
+    # Advanced table processing
+    processed_tables = []
+    
+    for page in pages:
+        for region_idx, region in enumerate(page.layout_regions):
+            if region.content.content_type == "table":
+                table_content = region.content
+                
+                # Process both simple and legacy formats
+                table_result = {
+                    "page": page.page,
+                    "region": region_idx,
+                    "bbox": region.coordinates.model_dump(),
+                    "legacy_data": {
+                        "rows": table_content.rows,
+                        "cols": table_content.cols,
+                        "has_header": table_content.has_header,
+                        "cell_count": len(table_content.cells)
+                    }
+                }
+                
+                # NEW: Simple table processing
+                if table_content.simple and table_content.simple.rows:
+                    headers = table_content.simple.rows[0]
+                    data_rows = table_content.simple.rows[1:]
+                    
+                    # Convert to structured records
+                    records = []
+                    for row in data_rows:
+                        record = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+                        records.append(record)
+                    
+                    table_result["simple_data"] = {
+                        "headers": headers,
+                        "records": records,
+                        "row_count": len(data_rows),
+                        "col_count": len(headers)
+                    }
+                    
+                    print(f"Table page {page.page}, region {region_idx}:")
+                    print(f"  Headers: {headers}")
+                    print(f"  Records: {len(records)}")
+                    print(f"  Sample: {records[0] if records else 'No data'}")
+                
+                processed_tables.append(table_result)
+    
+    # Save comprehensive table analysis
+    if processed_tables:
+        analysis_file = Path("data/comprehensive_table_analysis.json")
+        with open(analysis_file, "w") as f:
+            json.dump(processed_tables, f, indent=2)
+        print(f"\nSaved comprehensive analysis to {analysis_file}")
+    
+    return processed_tables
+
+# Choose your workflow based on needs:
+# Basic workflow with table support
+results = complete_pdf_workflow_with_tables()
+
+# Advanced table-focused workflow  
+# table_results = advanced_table_workflow()
 ```
 
 ## Error Handling and Best Practices

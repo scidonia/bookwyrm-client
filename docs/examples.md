@@ -600,7 +600,279 @@ for response in client.stream_summarize(
         print(f"Progress: {response.message}")
 
 if final_summary:
-    print(final_summary.summary)
+    print(f"Summary: {final_summary.summary}")
+```
+
+## PDF Processing and Table Extraction
+
+### Basic PDF Extraction
+
+```python
+from bookwyrm import BookWyrmClient
+from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
+from pathlib import Path
+from typing import List
+
+def basic_pdf_extraction() -> List:
+    """Extract basic structured data from a PDF."""
+    client = BookWyrmClient()
+    
+    # Read PDF file
+    pdf_path = Path("document.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    pages = []
+    extracted_text = ""
+    
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="document.pdf",
+        start_page=1,
+        num_pages=5
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            print(f"Processing {response.total_pages} pages")
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            
+            # Extract text content
+            for text_block in response.page_data.text_blocks:
+                extracted_text += text_block.text + "\n"
+            
+            print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} text elements")
+        elif isinstance(response, PDFStreamPageError):
+            print(f"Error on page {response.document_page}: {response.error}")
+    
+    print(f"Extracted {len(extracted_text)} characters from {len(pages)} pages")
+    return pages
+```
+
+### Advanced PDF Extraction with Tables
+
+```python
+from bookwyrm.models import SimpleTable
+import json
+
+def extract_pdf_with_tables() -> tuple:
+    """Extract PDF with table detection using the simple table format."""
+    client = BookWyrmClient()
+    
+    pdf_path = Path("financial_report.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    pages = []
+    tables = []
+    
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="financial_report.pdf",
+        enable_layout_detection=True,  # Enable table detection
+        force_ocr=False  # Use native text when available
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            print(f"Processing {response.total_pages} pages with table detection enabled")
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            
+            # Process tables using the simple format
+            for region_idx, region in enumerate(response.page_data.layout_regions):
+                if region.content.content_type == "table" and region.content.simple:
+                    table_data = {
+                        "page": response.document_page,
+                        "region": region_idx,
+                        "headers": region.content.simple.rows[0] if region.content.simple.rows else [],
+                        "data_rows": region.content.simple.rows[1:] if len(region.content.simple.rows) > 1 else [],
+                        "bbox": {
+                            "x1": region.coordinates.x1,
+                            "y1": region.coordinates.y1,
+                            "x2": region.coordinates.x2,
+                            "y2": region.coordinates.y2
+                        }
+                    }
+                    tables.append(table_data)
+                    
+                    print(f"Found table on page {response.document_page}: {len(table_data['data_rows'])} rows")
+                    print(f"  Headers: {table_data['headers']}")
+    
+    return pages, tables
+
+# Extract with table detection
+pages, tables = extract_pdf_with_tables()
+```
+
+### Processing Simple Table Data
+
+```python
+import pandas as pd
+import csv
+import io
+from typing import List, Dict
+
+def convert_table_to_pandas(table_data: Dict) -> pd.DataFrame:
+    """Convert simple table data to pandas DataFrame."""
+    if not table_data['headers'] or not table_data['data_rows']:
+        return pd.DataFrame()
+    
+    df = pd.DataFrame(table_data['data_rows'], columns=table_data['headers'])
+    return df
+
+def convert_table_to_csv(table_data: Dict) -> str:
+    """Convert simple table data to CSV format."""
+    if not table_data['headers']:
+        return ""
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(table_data['headers'])
+    writer.writerows(table_data['data_rows'])
+    return output.getvalue()
+
+def convert_table_to_records(table_data: Dict) -> List[Dict[str, str]]:
+    """Convert simple table data to list of dictionary records."""
+    if not table_data['headers'] or not table_data['data_rows']:
+        return []
+    
+    records = []
+    for row in table_data['data_rows']:
+        record = {}
+        for i, header in enumerate(table_data['headers']):
+            record[header] = row[i] if i < len(row) else ""
+        records.append(record)
+    
+    return records
+
+def process_all_extracted_tables(tables: List[Dict]) -> None:
+    """Process all tables extracted from the PDF."""
+    print(f"Processing {len(tables)} tables...")
+    
+    for i, table in enumerate(tables):
+        print(f"\n--- Table {i+1} (Page {table['page']}) ---")
+        print(f"Size: {len(table['data_rows'])} rows × {len(table['headers'])} cols")
+        
+        # Convert to different formats
+        print("1. As pandas DataFrame:")
+        df = convert_table_to_pandas(table)
+        if not df.empty:
+            print(df.head())
+        else:
+            print("Empty table")
+        
+        print("2. As CSV:")
+        csv_content = convert_table_to_csv(table)
+        print(csv_content[:200] + "..." if len(csv_content) > 200 else csv_content)
+        
+        print("3. As dictionary records:")
+        records = convert_table_to_records(table)
+        if records:
+            print(f"First record: {records[0]}")
+            
+            # Save records to JSON
+            output_file = f"table_page_{table['page']}_region_{table['region']}.json"
+            with open(output_file, 'w') as f:
+                json.dump(records, f, indent=2)
+            print(f"Saved to {output_file}")
+
+# Process the extracted tables
+if tables:
+    process_all_extracted_tables(tables)
+```
+
+### Force OCR for Better Quality
+
+```python
+def extract_pdf_with_forced_ocr():
+    """Force OCR processing for better text quality."""
+    client = BookWyrmClient()
+    
+    pdf_path = Path("scanned_document.pdf")
+    pdf_bytes = pdf_path.read_bytes()
+    
+    pages = []
+    
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="scanned_document.pdf",
+        force_ocr=True,  # Force OCR even for native text PDFs
+        enable_layout_detection=True  # Also enable table detection
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            print(f"Processing {response.total_pages} pages with forced OCR")
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            
+            # Show OCR confidence scores
+            text_elements = 0
+            total_confidence = 0
+            
+            for text_block in response.page_data.text_blocks:
+                text_elements += 1
+                if hasattr(text_block, 'confidence') and text_block.confidence:
+                    total_confidence += text_block.confidence
+            
+            avg_confidence = total_confidence / text_elements if text_elements > 0 else 0
+            print(f"Page {response.document_page}: {text_elements} elements, avg confidence: {avg_confidence:.2f}")
+    
+    return pages
+
+# Use forced OCR when native text quality is poor
+# ocr_pages = extract_pdf_with_forced_ocr()
+```
+
+### Complete Table Processing Workflow
+
+```python
+def complete_table_processing_workflow():
+    """Complete workflow from PDF to processed table data."""
+    client = BookWyrmClient()
+    
+    print("Step 1: Extract PDF with table detection")
+    pdf_path = Path("business_report.pdf") 
+    pdf_bytes = pdf_path.read_bytes()
+    
+    # Extract with both layout detection and forced OCR for best quality
+    tables = []
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="business_report.pdf", 
+        enable_layout_detection=True,
+        force_ocr=True  # Force OCR for better table text quality
+    ):
+        if isinstance(response, PDFStreamPageResponse):
+            for region in response.page_data.layout_regions:
+                if region.content.content_type == "table" and region.content.simple:
+                    table_info = {
+                        "page": response.document_page,
+                        "headers": region.content.simple.rows[0] if region.content.simple.rows else [],
+                        "data": region.content.simple.rows[1:] if len(region.content.simple.rows) > 1 else []
+                    }
+                    tables.append(table_info)
+    
+    print(f"Step 2: Process {len(tables)} extracted tables")
+    
+    # Step 2: Convert all tables to structured data
+    all_records = []
+    for table in tables:
+        records = convert_table_to_records(table)
+        for record in records:
+            record['source_page'] = table['page']  # Add page number
+        all_records.extend(records)
+    
+    print(f"Step 3: Save {len(all_records)} records to database format")
+    
+    # Step 3: Save to various formats
+    with open("extracted_data.json", "w") as f:
+        json.dump(all_records, f, indent=2)
+    
+    # Save as CSV if we have records
+    if all_records:
+        df = pd.DataFrame(all_records)
+        df.to_csv("extracted_data.csv", index=False)
+        print("Saved to extracted_data.csv and extracted_data.json")
+    
+    return all_records
+
+# Run complete workflow
+# all_data = complete_table_processing_workflow()
 ```
 
 ### Model Strength Selection

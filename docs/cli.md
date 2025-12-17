@@ -78,3 +78,52 @@ The CLI provides helpful error messages and exit codes:
 {"type": "text_span", "text": "First phrase", "start_char": 0, "end_char": 12}
 {"type": "text_span", "text": "Second phrase", "start_char": 13, "end_char": 26}
 ```
+
+#### PDF Extraction Output
+
+**Basic PDF extraction:**
+```json
+{
+  "pages": [
+    {
+      "page": 1,
+      "text_blocks": [
+        {
+          "text": "Document text content",
+          "bbox": {"x1": 100, "y1": 100, "x2": 200, "y2": 120}
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Advanced PDF extraction with tables (using --layout):**
+```json
+{
+  "pages": [
+    {
+      "page": 1,
+      "layout_regions": [
+        {
+          "content_type": "table",
+          "simple": {
+            "rows": [
+              ["Product", "Revenue", "Growth"],
+              ["Widget A", "$1.2M", "15%"],
+              ["Widget B", "$850K", "23%"]
+            ]
+          },
+          "cells": [...],
+          "html": "<table>...",
+          "rows": 3,
+          "cols": 3,
+          "has_header": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+The `simple` field provides easy access to table data as a 2D array, while legacy fields (`cells`, `html`, etc.) remain available for advanced processing.

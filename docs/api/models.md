@@ -116,6 +116,20 @@ show_source: true
 show_bases: true
 inherited_members: true
 
+## Table Models
+
+::: bookwyrm.SimpleTable
+options:
+show_source: true
+show_bases: true
+inherited_members: true
+
+::: bookwyrm.TableContent
+options:
+show_source: true
+show_bases: true
+inherited_members: true
+
 ## Streaming Response Models
 
 ::: bookwyrm.CitationProgressUpdate

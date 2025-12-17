@@ -1846,14 +1846,8 @@ def extract_pdf(
 
     ## Advanced Processing Features
 
-    - **Layout Detection**: `--enable-layout-detection` for better text structure
-    - **Table Recognition**: `--enable-table-recognition` for table extraction
-    - **Formula Recognition**: `--enable-formula-recognition` for math formulas
-    - **Seal Recognition**: `--enable-seal-recognition` for stamps and seals
-    - **Chart Parsing**: `--enable-chart-parsing` for graphs and charts
-    - **Document Preprocessing**: `--enable-document-preprocessing` for better OCR
-    - **Model Selection**: `--use-lightweight-models` (default) vs `--use-full-models`
-    - **Time Limits**: `--max-processing-time` to set processing timeouts
+    - **Layout Detection**: `--layout` for better text structure and table recognition
+    - **Force OCR**: `--force-ocr` to force OCR processing even for native text PDFs (auto-enabled with --layout)
 
     ## Page Selection
 

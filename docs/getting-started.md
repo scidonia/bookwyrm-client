@@ -57,29 +57,115 @@ print(f"MIME type: {response.classification.mime_type}")
 
 ### Step 2: Extract Content from PDFs
 
-Extract structured content from PDF documents:
+Extract structured content from PDF documents with modern processing options:
 
 ```python
 # Extract content from the same PDF file
 from bookwyrm.models import PDFStreamMetadata, PDFStreamPageResponse, PDFStreamPageError
 
-extracted_text = ""
-pages = []
-for response in client.stream_extract_pdf(
-    pdf_bytes=pdf_bytes,
-    filename="research_paper.pdf"
-):
-    if isinstance(response, PDFStreamMetadata):
-        print(f"Processing {response.total_pages} pages")
-    elif isinstance(response, PDFStreamPageResponse):
-        pages.append(response.page_data)
-        for text_block in response.page_data.text_blocks:
-            extracted_text += text_block.text + "\n"
-        print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
-    elif isinstance(response, PDFStreamPageError):
-        print(f"Error on page {response.document_page}: {response.error}")
+def basic_pdf_extraction():
+    """Basic PDF extraction - fast, uses native text when possible."""
+    extracted_text = ""
+    pages = []
+    
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="research_paper.pdf"
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            print(f"Processing {response.total_pages} pages")
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            for text_block in response.page_data.text_blocks:
+                extracted_text += text_block.text + "\n"
+            print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} elements")
+        elif isinstance(response, PDFStreamPageError):
+            print(f"Error on page {response.document_page}: {response.error}")
+    
+    print(f"Extracted {len(extracted_text)} characters from PDF")
+    return pages, extracted_text
 
-print(f"Extracted {len(extracted_text)} characters from PDF")
+def advanced_pdf_extraction():
+    """Advanced PDF extraction with table detection and simple table format."""
+    extracted_text = ""
+    pages = []
+    tables = []
+    
+    for response in client.stream_extract_pdf(
+        pdf_bytes=pdf_bytes,
+        filename="research_paper.pdf",
+        enable_layout_detection=True,  # Enable table detection
+        force_ocr=False  # Use native text when possible (faster)
+    ):
+        if isinstance(response, PDFStreamMetadata):
+            print(f"Processing {response.total_pages} pages with table detection")
+        elif isinstance(response, PDFStreamPageResponse):
+            pages.append(response.page_data)
+            
+            # Process text blocks
+            for text_block in response.page_data.text_blocks:
+                extracted_text += text_block.text + "\n"
+            
+            # NEW: Process tables with simple format
+            for region in response.page_data.layout_regions:
+                if region.content.content_type == "table" and region.content.simple:
+                    table_data = {
+                        "page": response.document_page,
+                        "headers": region.content.simple.rows[0] if region.content.simple.rows else [],
+                        "data": region.content.simple.rows[1:] if len(region.content.simple.rows) > 1 else []
+                    }
+                    tables.append(table_data)
+                    print(f"Found table on page {response.document_page}: {len(table_data['data'])} rows")
+            
+            print(f"Page {response.document_page}: {len(response.page_data.text_blocks)} text elements")
+        elif isinstance(response, PDFStreamPageError):
+            print(f"Error on page {response.document_page}: {response.error}")
+    
+    print(f"Extracted {len(extracted_text)} characters and {len(tables)} tables from PDF")
+    return pages, extracted_text, tables
+
+# Choose your extraction approach:
+pages, extracted_text = basic_pdf_extraction()  # Fast basic extraction
+# pages, extracted_text, tables = advanced_pdf_extraction()  # With table detection
+```
+
+#### Working with Simple Table Data
+
+If you used the advanced extraction, you can easily work with the extracted tables:
+
+```python
+def process_extracted_tables(tables):
+    """Process tables extracted with the simple format."""
+    for i, table in enumerate(tables):
+        print(f"\nTable {i+1} on page {table['page']}:")
+        print(f"Headers: {table['headers']}")
+        print(f"Data rows: {len(table['data'])}")
+        
+        # Convert to dictionary records for easy processing
+        records = []
+        for row in table['data']:
+            if len(row) == len(table['headers']):
+                record = dict(zip(table['headers'], row))
+                records.append(record)
+        
+        print(f"Sample record: {records[0] if records else 'No complete records'}")
+        
+        # Example: Save to CSV format
+        import csv
+        import io
+        
+        csv_output = io.StringIO()
+        writer = csv.writer(csv_output)
+        writer.writerow(table['headers'])  # Write headers
+        writer.writerows(table['data'])    # Write data rows
+        
+        csv_content = csv_output.getvalue()
+        print(f"CSV format:\n{csv_content[:200]}..." if len(csv_content) > 200 else csv_content)
+        
+        return records
+
+# If you have tables from advanced extraction:
+# table_records = process_extracted_tables(tables)
 ```
 
 ### Step 3: Process Text into Chunks
