@@ -1090,28 +1090,25 @@ class AsyncBookWyrmClient:
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
         lang: str = "en",
-        # Simplified feature flags
-        layout: bool = False,
-        tables: bool = False,
-        formulas: bool = False,
-        seals: bool = False,
-        charts: bool = False,
-        images: bool = False,
-        use_lightweight_models: bool = True,
-        max_processing_time: Optional[int] = None,
+        # Feature flags
+        enable_layout_detection: bool = False,
+        force_ocr: bool = False,
     ) -> AsyncIterator[StreamingPDFResponse]:
         """Stream PDF extraction with simplified feature flags (async version).
 
-        Auto-enables layout detection and document preprocessing when advanced features are used.
-        """
-        # Auto-enable layout detection and document preprocessing when advanced features are used
-        enable_layout_detection = layout or any(
-            [tables, formulas, seals, charts, images]
-        )
-        enable_document_preprocessing = enable_layout_detection or any(
-            [tables, formulas, seals, charts, images]
-        )
+        Uses the new simplified PDF endpoint contract with essential parameters.
 
+        Args:
+            pdf_url: URL to PDF file
+            pdf_content: Base64 encoded PDF content
+            pdf_bytes: Raw PDF bytes
+            filename: Optional filename hint
+            start_page: 1-based page number to start from
+            num_pages: Number of pages to process from start_page
+            lang: Language code for OCR processing (default: "en")
+            enable_layout_detection: Enable advanced layout detection
+            force_ocr: Force OCR even for native text PDFs (auto-enabled with layout detection)
+        """
         # Use the full-featured method with mapped parameters
         async for response in self.stream_extract_pdf(
             pdf_url=pdf_url,
@@ -1122,13 +1119,7 @@ class AsyncBookWyrmClient:
             num_pages=num_pages,
             lang=lang,
             enable_layout_detection=enable_layout_detection,
-            enable_table_recognition=tables,
-            enable_formula_recognition=formulas,
-            enable_seal_recognition=seals,
-            enable_chart_parsing=charts,
-            enable_document_preprocessing=enable_document_preprocessing,
-            use_lightweight_models=use_lightweight_models,
-            max_processing_time=max_processing_time,
+            force_ocr=force_ocr,
         ):
             yield response
 
@@ -1142,15 +1133,9 @@ class AsyncBookWyrmClient:
         start_page: Optional[int] = None,
         num_pages: Optional[int] = None,
         lang: str = "en",
-        # PP-StructureV3 feature flags
+        # Feature flags
         enable_layout_detection: bool = False,
-        enable_table_recognition: bool = False,
-        enable_formula_recognition: bool = False,
-        enable_seal_recognition: bool = False,
-        enable_chart_parsing: bool = False,
-        enable_document_preprocessing: bool = False,
-        use_lightweight_models: bool = True,
-        max_processing_time: Optional[int] = None,
+        force_ocr: bool = False,
     ) -> AsyncIterator[StreamingPDFResponse]:
         """Stream PDF extraction with real-time progress updates asynchronously.
 
@@ -1226,13 +1211,7 @@ class AsyncBookWyrmClient:
             num_pages=num_pages,
             lang=lang,
             enable_layout_detection=enable_layout_detection,
-            enable_table_recognition=enable_table_recognition,
-            enable_formula_recognition=enable_formula_recognition,
-            enable_seal_recognition=enable_seal_recognition,
-            enable_chart_parsing=enable_chart_parsing,
-            enable_document_preprocessing=enable_document_preprocessing,
-            use_lightweight_models=use_lightweight_models,
-            max_processing_time=max_processing_time,
+            force_ocr=force_ocr,
         )
         headers = {**DEFAULT_HEADERS}
         if self.api_key:
@@ -1247,6 +1226,8 @@ class AsyncBookWyrmClient:
                     # Handle base64-encoded file content using form data
                     import base64
 
+                    if request.pdf_content is None:
+                        raise ValueError("pdf_content cannot be None")
                     pdf_bytes = base64.b64decode(request.pdf_content)
 
                 files = {
@@ -1258,11 +1239,17 @@ class AsyncBookWyrmClient:
                 }
                 data = {}
                 if request.start_page is not None:
-                    data["start_page"] = request.start_page
+                    data["start_page"] = str(request.start_page)
                 if request.num_pages is not None:
-                    data["num_pages"] = request.num_pages
+                    data["num_pages"] = str(request.num_pages)
                 if request.lang:
                     data["lang"] = request.lang
+
+                # Add PDF processing configuration
+                data["enable_layout_detection"] = str(
+                    request.enable_layout_detection
+                ).lower()
+                data["force_ocr"] = str(request.force_ocr).lower()
 
                 # Use multipart form data with SSE
                 async with aconnect_sse(
@@ -1319,6 +1306,10 @@ class AsyncBookWyrmClient:
                     json_data["num_pages"] = request.num_pages
                 if request.lang:
                     json_data["lang"] = request.lang
+
+                # Add PDF processing configuration
+                json_data["enable_layout_detection"] = request.enable_layout_detection
+                json_data["force_ocr"] = request.force_ocr
 
                 async with aconnect_sse(
                     self.client,

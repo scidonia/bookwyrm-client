@@ -564,14 +564,9 @@ class PDFExtractRequest(BaseModel):
     num_pages: Optional[int] = None  # Number of pages to process from start_page
     lang: str = "en"  # Language code for OCR processing
 
+    # Feature flags
     enable_layout_detection: bool = False
-    enable_table_recognition: bool = False
-    enable_formula_recognition: bool = False
-    enable_seal_recognition: bool = False
-    enable_chart_parsing: bool = False
-    enable_document_preprocessing: bool = False
-    use_lightweight_models: bool = True
-    max_processing_time: Optional[int] = None
+    force_ocr: bool = False  # Force OCR even for native text PDFs
 
     @model_validator(mode="after")
     def validate_input_source(self) -> "PDFExtractRequest":
@@ -589,6 +584,10 @@ class PDFExtractRequest(BaseModel):
 
         if self.num_pages is not None and self.num_pages < 1:
             raise ValueError("num_pages must be >= 1")
+
+        # Auto-enable force_ocr when layout detection is enabled
+        if self.enable_layout_detection and not self.force_ocr:
+            self.force_ocr = True
 
         return self
 
@@ -686,8 +685,21 @@ class TextContent(BaseModel):
     )
 
 
+class SimpleTable(BaseModel):
+    """Simple table representation with rows as lists of cells."""
+
+    rows: List[List[str]] = Field(
+        default_factory=list,
+        description="Table data as list of rows, each row is a list of cell values",
+    )
+
+
 class TableContent(BaseModel):
-    """Table content with structure and cell data."""
+    """Table content with structure and cell data.
+
+    Includes both a simplified table representation (simple field) and
+    detailed cell-level data for advanced processing.
+    """
 
     content_type: Literal[ContentType.TABLE] = Field(
         default=ContentType.TABLE,
@@ -698,6 +710,10 @@ class TableContent(BaseModel):
     )
     html: Optional[str] = Field(
         default=None, description="HTML representation of the table structure"
+    )
+    simple: Optional[SimpleTable] = Field(
+        default=None,
+        description="Simple table representation with rows as lists of cells",
     )
     cells: List[Dict[str, Union[str, int, float]]] = Field(
         default_factory=list,

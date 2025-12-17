@@ -1802,43 +1802,13 @@ def extract_pdf(
             help="Enable advanced layout detection for better text structure analysis",
         ),
     ] = False,
-    tables: Annotated[
-        bool,
-        typer.Option("--tables", help="Enable table recognition and extraction"),
-    ] = False,
-    formulas: Annotated[
+    force_ocr: Annotated[
         bool,
         typer.Option(
-            "--formulas",
-            help="Enable mathematical formula recognition",
+            "--force-ocr",
+            help="Force use of OCR endpoint even for native text PDFs (auto-enabled with --layout)",
         ),
     ] = False,
-    seals: Annotated[
-        bool,
-        typer.Option("--seals", help="Enable seal and stamp recognition"),
-    ] = False,
-    charts: Annotated[
-        bool,
-        typer.Option("--charts", help="Enable chart and graph parsing"),
-    ] = False,
-    images: Annotated[
-        bool,
-        typer.Option("--images", help="Enable image detection and extraction"),
-    ] = False,
-    use_lightweight_models: Annotated[
-        bool,
-        typer.Option(
-            "--use-lightweight-models/--use-full-models",
-            help="Use lightweight models for faster processing (default) vs full models for better accuracy",
-        ),
-    ] = True,
-    max_processing_time: Annotated[
-        Optional[int],
-        typer.Option(
-            "--max-processing-time",
-            help="Maximum processing time in seconds (default: no limit)",
-        ),
-    ] = None,
     timeout: Annotated[
         Optional[float],
         typer.Option(help="Request timeout in seconds (default: no timeout)"),
@@ -1906,22 +1876,15 @@ def extract_pdf(
     # Extract with specific language
     bookwyrm extract-pdf document.pdf --lang fr --output extracted.json
 
-    # Advanced processing with all features
+    # Advanced processing with layout detection
     bookwyrm extract-pdf document.pdf \
       --layout \
-      --tables \
-      --formulas \
-      --seals \
-      --charts \
-      --use-full-models \
-      --max-processing-time 300 \
       --output advanced_extracted.json
-
-    # Fast processing with lightweight models
+    
+    # Force OCR for better text quality (without layout detection)
     bookwyrm extract-pdf document.pdf \
-      --use-lightweight-models \
-      --max-processing-time 60 \
-      --output fast_extracted.json
+      --force-ocr \
+      --output force_ocr_extracted.json
 
     # Verbose output
     bookwyrm extract-pdf document.pdf -v --output extracted.json
@@ -1972,34 +1935,14 @@ def extract_pdf(
             pdf_content = base64.b64encode(pdf_bytes).decode("ascii")
             console.print(f"[green]Loaded PDF file ({len(pdf_bytes)} bytes)[/green]")
 
-            # Auto-enable layout detection and document preprocessing when advanced features are used
-            enable_layout_detection = layout or any(
-                [tables, formulas, seals, charts, images]
-            )
-            enable_document_preprocessing = enable_layout_detection or any(
-                [tables, formulas, seals, charts, images]
-            )
-            enable_document_preprocessing = enable_layout_detection or any(
-                [tables, formulas, seals, charts, images]
-            )
-            enable_document_preprocessing = enable_layout_detection or any(
-                [tables, formulas, seals, charts, images]
-            )
-
             request = PDFExtractRequest(
                 pdf_content=pdf_content,
                 filename=actual_file.name,
                 start_page=start_page,
                 num_pages=num_pages,
                 lang=lang,
-                enable_layout_detection=enable_layout_detection,
-                enable_table_recognition=tables,
-                enable_formula_recognition=formulas,
-                enable_seal_recognition=seals,
-                enable_chart_parsing=charts,
-                enable_document_preprocessing=enable_document_preprocessing,
-                use_lightweight_models=use_lightweight_models,
-                max_processing_time=max_processing_time,
+                enable_layout_detection=layout,
+                force_ocr=force_ocr,
             )
         except Exception as e:
             error_console.print(f"[red]Error reading PDF file: {e}[/red]")
@@ -2008,27 +1951,13 @@ def extract_pdf(
         # Use URL
         console.print(f"[blue]Using PDF from URL: {url}[/blue]")
 
-        # Auto-enable layout detection and document preprocessing when advanced features are used
-        enable_layout_detection = layout or any(
-            [tables, formulas, seals, charts, images]
-        )
-        enable_document_preprocessing = enable_layout_detection or any(
-            [tables, formulas, seals, charts, images]
-        )
-
         request = PDFExtractRequest(
             pdf_url=url,
             start_page=start_page,
             num_pages=num_pages,
             lang=lang,
-            enable_layout_detection=enable_layout_detection,
-            enable_table_recognition=tables,
-            enable_formula_recognition=formulas,
-            enable_seal_recognition=seals,
-            enable_chart_parsing=charts,
-            enable_document_preprocessing=enable_document_preprocessing,
-            use_lightweight_models=use_lightweight_models,
-            max_processing_time=max_processing_time,
+            enable_layout_detection=layout,
+            force_ocr=force_ocr,
         )
 
     client = BookWyrmClient(base_url=state.base_url, api_key=state.api_key)
